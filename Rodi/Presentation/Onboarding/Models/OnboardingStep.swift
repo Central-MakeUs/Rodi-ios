@@ -6,24 +6,18 @@
 import Foundation
 
 enum OnboardingStep: Int, CaseIterable {
-    case entry
-    case terms
-    case nickname
-    case drivingExperience
-    case optionalDrivingPreference
-    case safety
     case locationPermission
+    case terms
+    case safety
 
     var progressCount: Int? {
         switch self {
-        case .nickname:
+        case .locationPermission:
             1
-        case .drivingExperience:
+        case .terms:
             2
-        case .optionalDrivingPreference:
+        case .safety:
             3
-        case .entry, .terms, .safety, .locationPermission:
-            nil
         }
     }
 

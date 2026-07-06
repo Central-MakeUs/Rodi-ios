@@ -28,7 +28,7 @@ struct LocationPermissionView: View {
 
             Spacer()
 
-            PrimaryBottomButton(title: "계속하기", isEnabled: true, action: onAllow)
+            PrimaryBottomButton(title: "허용하기", isEnabled: true, action: onAllow)
         }
     }
 }

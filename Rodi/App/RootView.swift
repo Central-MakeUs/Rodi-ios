@@ -25,7 +25,7 @@ struct RootView: View {
             case .onboarding:
                 OnboardingView(onComplete: completeOnboarding)
             case .home:
-                HomeView(onLogout: completeLogout)
+                HomeView()
             }
         }
         .task {
@@ -60,11 +60,6 @@ struct RootView: View {
     private func completeOnboarding() {
         preferencesStore.markOnboardingSeen()
         root = .home
-    }
-
-    private func completeLogout() {
-        preferencesStore.resetOnboardingSeen()
-        root = .onboarding
     }
 
     private func checkAppVersionIfNeeded() async {

@@ -26,6 +26,7 @@ struct PrimaryBottomButton: View {
             .disabled(!isEnabled)
             .padding(.horizontal, 16)
             .padding(.top, 10)
+            .padding(.bottom, 10)
         }
         .background(RodiColor.white)
     }

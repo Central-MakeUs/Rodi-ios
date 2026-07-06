@@ -50,6 +50,7 @@ struct DualBottomButton: View {
             .frame(height: 46)
             .padding(.horizontal, 16)
             .padding(.top, 10)
+            .padding(.bottom, 10)
         }
         .background(RodiColor.white)
     }

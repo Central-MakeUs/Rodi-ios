@@ -16,54 +16,7 @@ extension OnboardingReducer {
             }
 
         case .locationPermissionContinueTapped:
-            state.didComplete = true
-        }
-    }
-
-    func reduceEntryAction(_ action: OnboardingAction.EntryAction, state: inout OnboardingState) {
-        switch action {
-            case .browseTapped:
-                state.didComplete = true
-
-            case .appleLoginTapped:
-                state.isAuthenticating = true
-
-            case .kakaoLoginTapped:
-                state.isKakaoLoginMethodDialogPresented = true
-
-            case .kakaoTalkUnavailable:
-                state.isKakaoTalkFallbackAlertPresented = true
-
-            case .kakaoMethodDialogDismissed:
-                state.isKakaoLoginMethodDialogPresented = false
-
-            case .kakaoTalkFallbackAlertDismissed:
-                state.isKakaoTalkFallbackAlertPresented = false
-
-            case .kakaoLoginMethodSelected:
-                state.isKakaoLoginMethodDialogPresented = false
-                state.isKakaoTalkFallbackAlertPresented = false
-                state.isAuthenticating = true
-
-            case .authStarted:
-                state.isAuthenticating = true
-                state.loginAlertMessage = nil
-
-            case .authSucceeded(_, let isNewMember):
-                state.isAuthenticating = false
-                state.loginAlertMessage = nil
-                if isNewMember {
-                    state.step = .terms
-                } else {
-                    state.didComplete = true
-                }
-
-            case .authFailed(_, let message):
-                state.isAuthenticating = false
-                state.loginAlertMessage = message
-
-            case .dismissLoginAlert:
-                state.loginAlertMessage = nil
+            state.step = .terms
         }
     }
 
@@ -88,54 +41,6 @@ extension OnboardingReducer {
 
             case .nextTapped:
                 guard state.isAllTermsAgreed else { return }
-                state.step = .nickname
-        }
-    }
-
-    func reduceNicknameAction(_ action: OnboardingAction.NicknameAction, state: inout OnboardingState) {
-        switch action {
-            case .nextTapped:
-                state.step = .drivingExperience
-        }
-    }
-
-    func reduceDrivingExperienceAction(_ action: OnboardingAction.DrivingExperienceAction, state: inout OnboardingState) {
-        switch action {
-            case .selectLicenseDrivingPeriod(let period):
-                state.licenseDrivingPeriod = period
-
-            case .selectRecentDrivingFrequency(let frequency):
-                state.recentDrivingFrequency = frequency
-
-            case .selectRoadDrivingExperience(let experience):
-                state.roadDrivingExperience = experience
-
-            case .nextTapped:
-                guard state.canProceedFromDrivingExperience else { return }
-                state.step = .optionalDrivingPreference
-        }
-    }
-
-    func reduceOptionalDrivingPreferenceAction(_ action: OnboardingAction.OptionalDrivingPreferenceAction, state: inout OnboardingState) {
-        switch action {
-            case .togglePracticeSituation(let situation):
-                if let index = state.selectedPracticeSituations.firstIndex(of: situation) {
-                    state.selectedPracticeSituations.remove(at: index)
-                } else if state.selectedPracticeSituations.count < 3 {
-                    state.selectedPracticeSituations.append(situation)
-                }
-
-            case .selectVehicleType(let vehicleType):
-                state.vehicleType = vehicleType
-
-            case .updateGoal(let goal):
-                state.drivingGoal = goal
-
-            case .skipTapped:
-                state.step = .safety
-
-            case .nextTapped:
-                guard state.canProceedFromOptionalDrivingPreference else { return }
                 state.step = .safety
         }
     }
@@ -151,7 +56,7 @@ extension OnboardingReducer {
 
             case .finishTapped:
                 guard state.isAllSafetyAgreed else { return }
-                state.step = .locationPermission
+                state.didComplete = true
         }
     }
 

@@ -12,7 +12,6 @@
 		045DE9DF2FEFA5D50060C89A /* SwiftyBeaver in Frameworks */ = {isa = PBXBuildFile; productRef = 045DE9DE2FEFA5D50060C89A /* SwiftyBeaver */; };
 		045DE9E02FEFAC9E0060C89A /* RealmSwift in Embed Frameworks */ = {isa = PBXBuildFile; productRef = 045DE96F2FEF9C130060C89A /* RealmSwift */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		045DE9E22FEFAC9E0060C89A /* KakaoSDKNavi in Frameworks */ = {isa = PBXBuildFile; productRef = 045DE9E42FEFAC9E0060C89A /* KakaoSDKNavi */; };
-		045DE9E52FEFAC9E0060C89A /* KakaoSDKUser in Frameworks */ = {isa = PBXBuildFile; productRef = 045DE9E62FEFAC9E0060C89A /* KakaoSDKUser */; };
 		04CA505B2FF8E61E003FCF19 /* Then in Frameworks */ = {isa = PBXBuildFile; productRef = 04CA505A2FF8E61E003FCF19 /* Then */; };
 		04CA505E2FF8E63E003FCF19 /* SnapKit in Frameworks */ = {isa = PBXBuildFile; productRef = 04CA505D2FF8E63E003FCF19 /* SnapKit */; };
 		04CA50612FF8E665003FCF19 /* RxCocoa in Frameworks */ = {isa = PBXBuildFile; productRef = 04CA50602FF8E665003FCF19 /* RxCocoa */; };
@@ -59,7 +58,6 @@
 				04CA505B2FF8E61E003FCF19 /* Then in Frameworks */,
 				045DE9752FEFA1000060C89A /* KakaoMapsSDK-SPM in Frameworks */,
 				045DE9E22FEFAC9E0060C89A /* KakaoSDKNavi in Frameworks */,
-				045DE9E52FEFAC9E0060C89A /* KakaoSDKUser in Frameworks */,
 				04CA50682FF8E67A003FCF19 /* NSObject-Rx in Frameworks */,
 				04CA50612FF8E665003FCF19 /* RxCocoa in Frameworks */,
 				04CA505E2FF8E63E003FCF19 /* SnapKit in Frameworks */,
@@ -124,7 +122,6 @@
 				045DE9762FEFA1000060C89A /* KakaoMapsSDK-SPM */,
 				045DE9DE2FEFA5D50060C89A /* SwiftyBeaver */,
 				045DE9E42FEFAC9E0060C89A /* KakaoSDKNavi */,
-				045DE9E62FEFAC9E0060C89A /* KakaoSDKUser */,
 				04CA505A2FF8E61E003FCF19 /* Then */,
 				04CA505D2FF8E63E003FCF19 /* SnapKit */,
 				04CA50602FF8E665003FCF19 /* RxCocoa */,
@@ -507,11 +504,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 045DE9E32FEFAC9E0060C89A /* XCRemoteSwiftPackageReference "kakao-ios-sdk" */;
 			productName = KakaoSDKNavi;
-		};
-		045DE9E62FEFAC9E0060C89A /* KakaoSDKUser */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 045DE9E32FEFAC9E0060C89A /* XCRemoteSwiftPackageReference "kakao-ios-sdk" */;
-			productName = KakaoSDKUser;
 		};
 		04CA505A2FF8E61E003FCF19 /* Then */ = {
 			isa = XCSwiftPackageProductDependency;

@@ -17,9 +17,7 @@ struct OnboardingContainer<Content: View>: View {
             RodiColor.white.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                if step != .entry {
-                    topBar
-                }
+                topBar
                 if let progressCount = step.progressCount {
                     StepProgressView(activeCount: progressCount, totalCount: 3)
                         .padding(.top, 0)

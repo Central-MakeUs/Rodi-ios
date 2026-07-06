@@ -13,16 +13,6 @@ struct HomeView: View {
     @StateObject var homeStore = Store(state: HomeState(), reducer: HomeReducer())
     @State var networkMonitor = HomeNetworkMonitor()
     @State var containerHeight: CGFloat = 0
-    let authRepository: AuthRepository
-    let onLogout: () -> Void
-
-    init(
-        authRepository: AuthRepository = AuthDependencyContainer.shared.authRepository,
-        onLogout: @escaping () -> Void = {}
-    ) {
-        self.authRepository = authRepository
-        self.onLogout = onLogout
-    }
 
     enum Constants {
         static let sheetHeightRatio: CGFloat = 0.48
@@ -60,7 +50,6 @@ struct HomeView: View {
             showsLegalSettings: showsLegalSettingsBinding,
             scenePhase: scenePhase,
             openSettingsAction: openAppSettings,
-            logoutAction: performLogout,
             refreshLocationAuthorizationAction: runtimeService.refreshLocationAuthorization
         )
     }

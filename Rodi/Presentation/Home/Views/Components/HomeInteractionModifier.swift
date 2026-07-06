@@ -14,7 +14,6 @@ struct HomeInteractionModifier: ViewModifier {
     @Binding var showsLegalSettings: Bool
     let scenePhase: ScenePhase
     let openSettingsAction: () -> Void
-    let logoutAction: () -> Void
     let refreshLocationAuthorizationAction: () -> Void
 
     func body(content: Content) -> some View {
@@ -34,7 +33,7 @@ struct HomeInteractionModifier: ViewModifier {
                 Text("현 위치 기반 기능을 사용하려면 설정에서 위치 접근을 '앱을 사용하는 동안 허용'으로 변경해주세요.")
             }
             .sheet(isPresented: $showsLegalSettings) {
-                LegalSettingsView(logoutAction: logoutAction)
+                LegalSettingsView()
             }
             .onChange(of: scenePhase) { phase in
                 guard phase == .active else { return }
@@ -76,7 +75,6 @@ extension View {
         showsLegalSettings: Binding<Bool>,
         scenePhase: ScenePhase,
         openSettingsAction: @escaping () -> Void,
-        logoutAction: @escaping () -> Void,
         refreshLocationAuthorizationAction: @escaping () -> Void
     ) -> some View {
         modifier(
@@ -89,7 +87,6 @@ extension View {
                 showsLegalSettings: showsLegalSettings,
                 scenePhase: scenePhase,
                 openSettingsAction: openSettingsAction,
-                logoutAction: logoutAction,
                 refreshLocationAuthorizationAction: refreshLocationAuthorizationAction
             )
         )

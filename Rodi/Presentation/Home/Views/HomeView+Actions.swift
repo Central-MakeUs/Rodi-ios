@@ -7,10 +7,6 @@
 
 import SwiftUI
 
-#if canImport(KakaoSDKUser)
-import KakaoSDKUser
-#endif
-
 extension HomeView {
     func handleSheetDragEnded(predictedTranslation: CGFloat) {
         guard bottomSheetState == .medium else { return }
@@ -101,42 +97,6 @@ extension HomeView {
 
     func showLocationSettingsAlert() {
         homeStore.send(.presentationAction(.showLocationSettingsAlert))
-    }
-
-    func performLogout() {
-        Task {
-            do {
-                try await authRepository.logout()
-                RodiLogger.info("Logout API completed")
-            } catch {
-                authRepository.clearSession()
-                RodiLogger.warning("Logout API failed; local session cleared. error=\(error)")
-            }
-
-            await logoutKakaoSDKSessionIfNeeded()
-
-            await MainActor.run {
-                homeStore.send(.presentationAction(.setLegalSettingsPresented(false)))
-                onLogout()
-            }
-        }
-    }
-
-    func logoutKakaoSDKSessionIfNeeded() async {
-        #if canImport(KakaoSDKUser)
-        await withCheckedContinuation { continuation in
-            UserApi.shared.logout { error in
-                if let error {
-                    RodiLogger.warning("Kakao SDK logout failed or no active Kakao session. error=\(error)")
-                } else {
-                    RodiLogger.info("Kakao SDK logout completed")
-                }
-                continuation.resume()
-            }
-        }
-        #else
-        RodiLogger.debug("Kakao SDK logout skipped: KakaoSDKUser unavailable")
-        #endif
     }
 
     func requestCurrentLocation() {

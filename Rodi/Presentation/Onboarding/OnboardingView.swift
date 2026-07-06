@@ -9,32 +9,24 @@ import SwiftUI
 
 struct OnboardingView: View {
     let onComplete: () -> Void
-    let authRepository: AuthRepository
 
     @StateObject var onboardingStore: StoreOf<OnboardingReducer>
     @State var locationPermission: LocationPermissionRequester
-    @State var socialLoginService: SocialLoginService
 
     init(onComplete: @escaping () -> Void) {
         self.onComplete = onComplete
-        self.authRepository = AuthDependencyContainer.shared.authRepository
         _onboardingStore = StateObject(wrappedValue: Store(state: OnboardingState(), reducer: OnboardingReducer()))
         _locationPermission = State(initialValue: LocationPermissionRequester())
-        _socialLoginService = State(initialValue: SocialLoginService())
     }
 
     init(
         onComplete: @escaping () -> Void,
         onboardingStore: StoreOf<OnboardingReducer>,
-        locationPermission: LocationPermissionRequester,
-        socialLoginService: SocialLoginService,
-        authRepository: AuthRepository = AuthDependencyContainer.shared.authRepository
+        locationPermission: LocationPermissionRequester
     ) {
         self.onComplete = onComplete
-        self.authRepository = authRepository
         _onboardingStore = StateObject(wrappedValue: onboardingStore)
         _locationPermission = State(initialValue: locationPermission)
-        _socialLoginService = State(initialValue: socialLoginService)
     }
 
     var body: some View {
@@ -46,42 +38,6 @@ struct OnboardingView: View {
         .sheet(item: selectedTermsPageBinding) { terms in
             LegalWebView(title: terms.title, url: terms.url)
         }
-        .alert("로그인에 실패했어요", isPresented: loginAlertBinding) {
-            Button("확인") {
-                onboardingStore.send(.entry(.dismissLoginAlert))
-            }
-        } message: {
-            Text(onboardingStore.state.loginAlertMessage ?? "")
-        }
-        .confirmationDialog("카카오 로그인 방식을 선택해주세요", isPresented: kakaoLoginMethodDialogBinding, titleVisibility: .visible) {
-            Button("카카오톡 앱으로 진행") {
-                startKakaoLogin(method: .kakaoTalk)
-            }
-
-            Button("웹으로 진행") {
-                startKakaoLogin(method: .account)
-            }
-
-            Button("취소", role: .cancel) {
-                onboardingStore.send(.entry(.kakaoMethodDialogDismissed))
-            }
-        } message: {
-            Text("카카오톡 앱 또는 카카오계정 웹 로그인으로 계속할 수 있어요.")
-        }
-        .alert("카카오톡 앱을 사용할 수 없어요", isPresented: kakaoTalkFallbackAlertBinding) {
-            Button("웹으로 진행") {
-                startKakaoLogin(method: .account)
-            }
-
-            Button("취소", role: .cancel) {
-                onboardingStore.send(.entry(.kakaoTalkFallbackAlertDismissed))
-            }
-        } message: {
-            Text("카카오계정 웹 로그인으로 계속 진행할 수 있어요.")
-        }
-        .onOpenURL { url in
-            _ = socialLoginService.handleOpenURL(url)
-        }
         .onChange(of: onboardingStore.state.didComplete) { didComplete in
             guard didComplete else { return }
             onComplete()
@@ -91,13 +47,8 @@ struct OnboardingView: View {
     @ViewBuilder
     private var onboardingStepView: some View {
         switch onboardingStore.state.step {
-            case .entry:
-                OnboardingEntryView(
-                    isAuthenticating: onboardingStore.state.isAuthenticating,
-                    onBrowse: { onboardingStore.send(.entry(.browseTapped)) },
-                    onAppleLogin: startAppleLogin,
-                    onKakaoLogin: startKakaoLogin
-                )
+            case .locationPermission:
+                LocationPermissionView(onAllow: requestLocationPermission)
             
             case .terms:
                 TermsAgreementView(
@@ -109,37 +60,6 @@ struct OnboardingView: View {
                     onNext: { onboardingStore.send(.terms(.nextTapped)) }
                 )
             
-            case .nickname:
-                NicknameSetupView(
-                    nickname: onboardingStore.state.nickname,
-                    onNext: { onboardingStore.send(.nickname(.nextTapped)) }
-                )
-            
-            case .drivingExperience:
-                DrivingExperienceView(
-                    selectedPeriod: onboardingStore.state.licenseDrivingPeriod,
-                    selectedFrequency: onboardingStore.state.recentDrivingFrequency,
-                    selectedRoadExperience: onboardingStore.state.roadDrivingExperience,
-                    canProceed: onboardingStore.state.canProceedFromDrivingExperience,
-                    onSelectPeriod: { onboardingStore.send(.drivingExperience(.selectLicenseDrivingPeriod($0))) },
-                    onSelectFrequency: { onboardingStore.send(.drivingExperience(.selectRecentDrivingFrequency($0))) },
-                    onSelectRoadExperience: { onboardingStore.send(.drivingExperience(.selectRoadDrivingExperience($0))) },
-                    onNext: { onboardingStore.send(.drivingExperience(.nextTapped)) }
-                )
-            
-            case .optionalDrivingPreference:
-                OptionalDrivingPreferenceView(
-                    selectedPracticeSituations: onboardingStore.state.selectedPracticeSituations,
-                    selectedVehicleType: onboardingStore.state.vehicleType,
-                    drivingGoal: onboardingStore.state.drivingGoal,
-                    canProceed: onboardingStore.state.canProceedFromOptionalDrivingPreference,
-                    onTogglePracticeSituation: { onboardingStore.send(.optionalDrivingPreference(.togglePracticeSituation($0))) },
-                    onSelectVehicleType: { onboardingStore.send(.optionalDrivingPreference(.selectVehicleType($0))) },
-                    onUpdateGoal: { onboardingStore.send(.optionalDrivingPreference(.updateGoal($0))) },
-                    onSkip: { onboardingStore.send(.optionalDrivingPreference(.skipTapped)) },
-                    onNext: { onboardingStore.send(.optionalDrivingPreference(.nextTapped)) }
-                )
-            
             case .safety:
                 SafetyAgreementView(
                     agreedSafetyItems: onboardingStore.state.agreedSafetyItems,
@@ -147,9 +67,6 @@ struct OnboardingView: View {
                     onToggleSafety: { onboardingStore.send(.safety(.toggle($0))) },
                     onNext: { onboardingStore.send(.safety(.finishTapped)) }
                 )
-            
-            case .locationPermission:
-                LocationPermissionView(onAllow: requestLocationPermission)
         }
     }
 }

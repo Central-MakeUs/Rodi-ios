@@ -30,8 +30,6 @@ struct LegalWebView: View {
 }
 
 struct LegalSettingsView: View {
-    var logoutAction: (() -> Void)?
-
     var body: some View {
         NavigationStack {
             List {
@@ -58,15 +56,6 @@ struct LegalSettingsView: View {
                         Text("문의")
                             .rodiTypography(.body3Medium)
                             .foregroundStyle(RodiColor.black)
-                    }
-                }
-
-                if let logoutAction {
-                    Section {
-                        Button(role: .destructive, action: logoutAction) {
-                            Text("로그아웃")
-                                .rodiTypography(.body3Medium)
-                        }
                     }
                 }
             }
