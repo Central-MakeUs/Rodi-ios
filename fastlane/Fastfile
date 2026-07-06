@@ -1,0 +1,112 @@
+# This file contains the fastlane.tools configuration
+# You can find the documentation at https://docs.fastlane.tools
+
+require "base64"
+
+default_platform(:ios)
+
+ROOT_DIRECTORY = File.expand_path("..", __dir__)
+PROJECT_PATH = File.join(ROOT_DIRECTORY, "Rodi.xcodeproj")
+SECRETS_PATH = File.join(ROOT_DIRECTORY, "Config/Secrets.xcconfig")
+LOCAL_SECRETS_PATH = File.join(ROOT_DIRECTORY, "Config/Secrets.local.xcconfig")
+
+def xcconfig_value(key)
+  value = nil
+
+  [SECRETS_PATH, LOCAL_SECRETS_PATH].each do |path|
+    next unless File.exist?(path)
+
+    File.readlines(path).each do |line|
+      next if line.strip.empty? || line.strip.start_with?("#", "//")
+
+      name, raw_value = line.split("=", 2).map { |part| part&.strip }
+      next unless name == key
+
+      value = raw_value.to_s.delete_prefix("\"").delete_suffix("\"")
+    end
+  end
+
+  value
+end
+
+def resolved_key_path(raw_path)
+  return nil if raw_path.to_s.strip.empty?
+
+  path = File.expand_path(raw_path, ROOT_DIRECTORY)
+  return path if File.exist?(path)
+
+  project_relative_path = File.join(ROOT_DIRECTORY, raw_path.delete_prefix("/"))
+  return project_relative_path if File.exist?(project_relative_path)
+
+  path
+end
+
+def app_store_connect_api_key_from_secrets!
+  key_id = xcconfig_value("APP_STORE_CONNECT_KEY_ID").to_s
+  issuer_id = xcconfig_value("APP_STORE_CONNECT_ISSUER_ID").to_s
+  key_path = resolved_key_path(xcconfig_value("APP_STORE_CONNECT_API_KEY_PATH").to_s)
+  key_base64 = xcconfig_value("APP_STORE_CONNECT_API_KEY_BASE64").to_s
+
+  if key_id.empty? || issuer_id.empty? || (key_path.to_s.empty? && key_base64.empty?)
+    UI.user_error!("App Store Connect API key is missing in Config/Secrets.local.xcconfig")
+  end
+
+  if key_base64.empty? && !File.exist?(key_path)
+    UI.user_error!("App Store Connect API key file not found: #{key_path}")
+  end
+
+  params = {
+    key_id: key_id,
+    issuer_id: issuer_id,
+    duration: 1200,
+    in_house: false
+  }
+
+  if key_base64.empty?
+    params[:key_filepath] = key_path
+  else
+    params[:key_content] = Base64.decode64(key_base64)
+  end
+
+  app_store_connect_api_key(params)
+end
+
+platform :ios do
+  desc "Show the current app version and build number"
+  lane :version do
+    version_number = get_version_number(xcodeproj: PROJECT_PATH, target: "Rodi")
+    build_number = get_build_number(xcodeproj: PROJECT_PATH)
+
+    UI.message("Rodi version: #{version_number}")
+    UI.message("Rodi build: #{build_number}")
+  end
+
+  desc "Build Rodi for the iOS Simulator"
+  lane :build do
+    sh("xcodebuild -project #{PROJECT_PATH.shellescape} -scheme Rodi -destination 'generic/platform=iOS Simulator' build")
+  end
+
+  desc "Create an App Store archive locally"
+  lane :archive do
+    build_app(
+      project: PROJECT_PATH,
+      scheme: "Rodi",
+      export_method: "app-store",
+      xcargs: "-allowProvisioningUpdates"
+    )
+  end
+
+  desc "Push a new beta build to TestFlight"
+  lane :beta do
+    api_key = app_store_connect_api_key_from_secrets!
+
+    increment_build_number(xcodeproj: PROJECT_PATH)
+    build_app(
+      project: PROJECT_PATH,
+      scheme: "Rodi",
+      export_method: "app-store",
+      xcargs: "-allowProvisioningUpdates"
+    )
+    upload_to_testflight(api_key: api_key)
+  end
+end

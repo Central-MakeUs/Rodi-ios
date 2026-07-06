@@ -1,0 +1,96 @@
+{
+  "originHash" : "0aa84f363aeb51987c4eded355ae71e45f23ea922431f57fb0a3986579e40a56",
+  "pins" : [
+    {
+      "identity" : "alamofire",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Alamofire/Alamofire.git",
+      "state" : {
+        "revision" : "7595cbcf59809f9977c5f6378500de2ad73b7ddb",
+        "version" : "5.12.0"
+      }
+    },
+    {
+      "identity" : "kakao-ios-sdk",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/kakao/kakao-ios-sdk.git",
+      "state" : {
+        "revision" : "2a68ca01e2d7900a1559b31d0d59843837f130f2",
+        "version" : "2.28.0"
+      }
+    },
+    {
+      "identity" : "kakaomapssdk-spm",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/kakao-mapsSDK/KakaoMapsSDK-SPM.git",
+      "state" : {
+        "revision" : "f65244fa972c713e865f5903c356a590f42b990a",
+        "version" : "2.12.14"
+      }
+    },
+    {
+      "identity" : "nsobject-rx",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/RxSwiftCommunity/NSObject-Rx.git",
+      "state" : {
+        "revision" : "6134a640808db7390d3dfcb32ef5f0a12b7a644d",
+        "version" : "5.2.2"
+      }
+    },
+    {
+      "identity" : "realm-core",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/realm/realm-core.git",
+      "state" : {
+        "revision" : "b4192c46305570577c4d08df790fddec5ab3aa04",
+        "version" : "20.1.5"
+      }
+    },
+    {
+      "identity" : "realm-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/realm/realm-swift.git",
+      "state" : {
+        "branch" : "community",
+        "revision" : "ca03df491ec5e4bb8af0bca1e9957d08c10ec2da"
+      }
+    },
+    {
+      "identity" : "rxswift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ReactiveX/RxSwift.git",
+      "state" : {
+        "revision" : "132aea4f236ccadc51590b38af0357a331d51fa2",
+        "version" : "6.10.2"
+      }
+    },
+    {
+      "identity" : "snapkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/SnapKit/SnapKit.git",
+      "state" : {
+        "revision" : "e27a338a03a5f388de759da63f9baf7988ed9e00",
+        "version" : "6.0.0"
+      }
+    },
+    {
+      "identity" : "swiftybeaver",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/SwiftyBeaver/SwiftyBeaver.git",
+      "state" : {
+        "revision" : "8cba041db09596183331d123f337d0eb2e6e8e91",
+        "version" : "2.1.1"
+      }
+    },
+    {
+      "identity" : "then",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/devxoul/Then.git",
+      "state" : {
+        "revision" : "d41ef523faef0f911369f79c0b96815d9dbb6d7a",
+        "version" : "3.0.0"
+      }
+    }
+  ],
+  "version" : 3
+}
