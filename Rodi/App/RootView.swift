@@ -13,12 +13,14 @@ struct RootView: View {
     @State private var root: RootDestination
     @State private var pendingUpdate: AppVersionUpdate?
     @State private var hasCheckedAppVersion = false
-
+    
     init() {
         let store = AppPreferencesStore()
-        _root = State(initialValue: store.hasSeenOnboarding() ? .home : .onboarding)
+        _root = State(initialValue:
+                        store.hasSeenOnboarding() ?
+                        .home : .onboarding)
     }
-
+    
     var body: some View {
         Group {
             switch root {
@@ -35,7 +37,7 @@ struct RootView: View {
             Button("나중에", role: .cancel) {
                 pendingUpdate = nil
             }
-
+            
             Button("업데이트") {
                 guard let appStoreURL = pendingUpdate?.appStoreURL else { return }
                 pendingUpdate = nil
@@ -45,7 +47,7 @@ struct RootView: View {
             Text("더 안정적인 사용을 위해 최신 버전으로 업데이트할 수 있어요.")
         }
     }
-
+    
     private var updateAlertBinding: Binding<Bool> {
         Binding(
             get: { pendingUpdate != nil },
@@ -56,17 +58,17 @@ struct RootView: View {
             }
         )
     }
-
+    
     private func completeOnboarding() {
         preferencesStore.markOnboardingSeen()
         root = .home
     }
-
+    
     private func completeLogout() {
         preferencesStore.resetOnboardingSeen()
         root = .onboarding
     }
-
+    
     private func checkAppVersionIfNeeded() async {
         guard !hasCheckedAppVersion else { return }
         hasCheckedAppVersion = true

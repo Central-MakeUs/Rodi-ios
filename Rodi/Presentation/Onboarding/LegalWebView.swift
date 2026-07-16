@@ -31,6 +31,7 @@ struct LegalWebView: View {
 
 struct LegalSettingsView: View {
     var logoutAction: (() -> Void)?
+    var withdrawalAction: (() -> Void)?
 
     var body: some View {
         NavigationStack {
@@ -66,6 +67,13 @@ struct LegalSettingsView: View {
                         Button(role: .destructive, action: logoutAction) {
                             Text("로그아웃")
                                 .rodiTypography(.body3Medium)
+                        }
+
+                        if let withdrawalAction {
+                            Button(role: .destructive, action: withdrawalAction) {
+                                Text("회원탈퇴")
+                                    .rodiTypography(.body3Medium)
+                            }
                         }
                     }
                 }

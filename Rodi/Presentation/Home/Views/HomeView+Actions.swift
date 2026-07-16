@@ -122,6 +122,26 @@ extension HomeView {
         }
     }
 
+    func performWithdrawal() {
+        Task {
+            do {
+                try await memberRepository.withdraw()
+                RodiLogger.info("Member withdrawal API completed")
+            } catch {
+                RodiLogger.warning("Member withdrawal API failed. error=\(error)")
+                return
+            }
+
+            authRepository.clearSession()
+            await logoutKakaoSDKSessionIfNeeded()
+
+            await MainActor.run {
+                homeStore.send(.presentationAction(.setLegalSettingsPresented(false)))
+                onLogout()
+            }
+        }
+    }
+
     func logoutKakaoSDKSessionIfNeeded() async {
         #if canImport(KakaoSDKUser)
         await withCheckedContinuation { continuation in

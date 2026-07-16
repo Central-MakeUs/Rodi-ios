@@ -12,6 +12,7 @@ final class AuthDependencyContainer {
     let unauthenticatedNetworkManager: NetworkManager
     let authenticatedNetworkManager: NetworkManager
     let authRepository: AuthRepository
+    let memberRepository: MemberRepository
 
     private init() {
         let tokenStore = KeychainTokenStore()
@@ -32,6 +33,9 @@ final class AuthDependencyContainer {
             networkManager: unauthenticatedNetworkManager,
             tokenStore: tokenStore,
             tokenRefresher: tokenRefresher
+        )
+        self.memberRepository = MemberRepositoryImpl(
+            networkManager: authenticatedNetworkManager
         )
     }
 }
