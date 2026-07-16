@@ -40,6 +40,10 @@ final class AuthRepositoryImpl: AuthRepository {
             accessToken: token.accessToken,
             refreshToken: token.refreshToken
         )
+        #if DEBUG
+        RodiLogger.debug("AccessToken: \(token.accessToken)")
+        RodiLogger.debug("RefreshToken: \(token.refreshToken)")
+        #endif
         return token.domain
     }
 

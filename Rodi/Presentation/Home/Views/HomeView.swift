@@ -14,13 +14,16 @@ struct HomeView: View {
     @State var networkMonitor = HomeNetworkMonitor()
     @State var containerHeight: CGFloat = 0
     let authRepository: AuthRepository
+    let memberRepository: MemberRepository
     let onLogout: () -> Void
 
     init(
         authRepository: AuthRepository = AuthDependencyContainer.shared.authRepository,
+        memberRepository: MemberRepository = AuthDependencyContainer.shared.memberRepository,
         onLogout: @escaping () -> Void = {}
     ) {
         self.authRepository = authRepository
+        self.memberRepository = memberRepository
         self.onLogout = onLogout
     }
 
@@ -61,6 +64,7 @@ struct HomeView: View {
             scenePhase: scenePhase,
             openSettingsAction: openAppSettings,
             logoutAction: performLogout,
+            withdrawalAction: performWithdrawal,
             refreshLocationAuthorizationAction: runtimeService.refreshLocationAuthorization
         )
     }
