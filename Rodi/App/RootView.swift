@@ -76,10 +76,18 @@ struct RootView: View {
     private var mainTabContent: some View {
         switch selectedTab {
         case .home:
-            HomeView(selectedTab: $selectedTab)
+            HomeView(
+                selectedTab: $selectedTab,
+                onAuthenticationRequired: beginAuthentication
+            )
         case .my:
             MyView(tabBar: bottomTabBar, onLogout: completeLogout)
         }
+    }
+
+    private func beginAuthentication() {
+        selectedTab = .home
+        root = .onboarding
     }
 
     private var bottomTabBar: RodiBottomTabBar {

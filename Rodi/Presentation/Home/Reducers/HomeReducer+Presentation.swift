@@ -58,6 +58,9 @@ extension HomeReducer {
         case .setLocationSettingsAlertPresented(let isPresented):
             state.presentation.showsLocationSettingsAlert = isPresented
 
+        case .requestAuthentication:
+            state.presentation.authenticationRequestID += 1
+
         }
 
         return .none

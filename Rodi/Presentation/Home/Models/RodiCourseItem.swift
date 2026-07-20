@@ -137,7 +137,9 @@ extension RodiCourseItem {
         lng = placeListItem.longitude
         rating = 0
         difficultyScore = 3
-        tags = placeListItem.type == .parking ? ["주차"] : placeListItem.practiceTypes
+        tags = placeListItem.type == .parking
+            ? [PlacePracticeType.parking.displayName]
+            : placeListItem.practiceTypes.map(PlacePracticeType.displayName(for:))
         summary = placeListItem.summary ?? ""
         cautions = []
         recommendedTime = nil
@@ -160,11 +162,90 @@ extension RodiCourseItem {
             : nil
         course = nil
     }
+
+    /// `/places/{id}` 상세 응답을 기존 지도/경로 표시 모델로 변환한다.
+    init(placeDetail: PlaceDetail) {
+        id = placeDetail.id
+        type = placeDetail.type == .course ? .course : .parking
+        name = placeDetail.name
+        address = placeDetail.address
+        roadAddress = placeDetail.parking?.roadAddress
+        jibunAddress = placeDetail.parking?.lotAddress
+        lat = placeDetail.latitude
+        lng = placeDetail.longitude
+        rating = 0
+        difficultyScore = 3
+        tags = placeDetail.practiceTypes.map(PlacePracticeType.displayName(for:))
+        summary = placeDetail.course?.summary ?? ""
+        cautions = placeDetail.course?.cautions ?? []
+        recommendedTime = nil
+        distanceKm = placeDetail.course?.distanceMeters.map { Double($0) / 1_000 }
+        estimatedMinutes = nil
+        parking = placeDetail.parking.map { parking in
+            RodiParkingInfo(
+                managementNo: parking.managementNumber,
+                parkingType: parking.parkingType,
+                capacity: parking.capacity,
+                isFree: parking.isFree,
+                feeInfo: parking.feeInfo.map {
+                    RodiParkingFeeInfo(
+                        baseMinutes: $0.baseMinutes,
+                        baseFee: $0.baseFee,
+                        addUnitMinutes: $0.addUnitMinutes,
+                        addUnitFee: $0.addUnitFee,
+                        dayTicketHours: $0.dayTicketHours,
+                        dayTicketFee: $0.dayTicketFee,
+                        monthlyFee: $0.monthlyFee
+                    )
+                },
+                operatingHours: parking.operatingHours.map {
+                    RodiParkingOperatingHours(
+                        weekday: $0.weekday,
+                        saturday: $0.saturday,
+                        holiday: $0.holiday
+                    )
+                },
+                paymentMethods: nil,
+                hasAccessibleSpace: nil,
+                phone: nil,
+                operator: nil,
+                note: nil
+            )
+        }
+        course = placeDetail.course.map { course in
+            RodiCourse(
+                points: course.waypoints.map { waypoint in
+                    RodiCoursePoint(
+                        id: waypoint.sequence,
+                        sequence: waypoint.sequence,
+                        role: RodiCoursePointRole(serverValue: waypoint.type),
+                        name: waypoint.name?.nilIfBlank ?? "경유지",
+                        address: "",
+                        lat: waypoint.latitude,
+                        lng: waypoint.longitude
+                    )
+                }
+            )
+        }
+    }
 }
 
 private extension String {
     var nilIfBlank: String? {
         let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
+private extension RodiCoursePointRole {
+    init(serverValue: String) {
+        switch serverValue.uppercased() {
+        case "START", "ORIGIN":
+            self = .start
+        case "END", "ARRIVAL", "DESTINATION":
+            self = .end
+        default:
+            self = .waypoint
+        }
     }
 }

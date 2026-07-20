@@ -12,6 +12,7 @@ enum RodiColor {
     static let primary20 = Color(hex: 0xF4F4FF)
     static let primary50 = Color(hex: 0xF0EFFF)
     static let primary100 = Color(hex: 0xDBD9FF)
+    static let primaryMinus100 = Color(hex: 0xF5F5F0)
     static let primary200 = Color(hex: 0xBAB6FF)
     static let primary400 = Color(hex: 0x7062FF)
     static let black = Color(hex: 0x222222)
