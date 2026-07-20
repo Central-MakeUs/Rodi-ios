@@ -24,6 +24,7 @@ enum RodiColor {
     static let gray100 = Color(hex: 0xF5F5F5)
     static let gray200 = Color(hex: 0xEFEFEF)
     static let gray900 = Color(hex: 0x222222)
+    static let gray850 = Color(hex: 0x323232)
     static let gray800 = Color(hex: 0x434343)
     static let gray700 = Color(hex: 0x626262)
     static let gray600 = Color(hex: 0x767676)

@@ -10,10 +10,17 @@ import SwiftUI
 struct PrimaryBottomButton: View {
     let title: String
     let isEnabled: Bool
+    var showsDivider = false
     let action: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
+            if showsDivider {
+                Rectangle()
+                    .fill(RodiColor.gray200)
+                    .frame(height: 1)
+            }
+
             Button(action: action) {
                 Text(title)
                     .rodiTypography(.buttonMedium)
@@ -25,7 +32,7 @@ struct PrimaryBottomButton: View {
             }
             .disabled(!isEnabled)
             .padding(.horizontal, 16)
-            .padding(.top, 10)
+            .padding(.vertical, 10)
         }
         .background(RodiColor.white)
     }

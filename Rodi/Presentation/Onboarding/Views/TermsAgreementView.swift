@@ -8,6 +8,11 @@
 import SwiftUI
 
 struct TermsAgreementView: View {
+    private enum Constants {
+        /// Status bar safe area(약 44pt) 이후 52pt를 더해 제목 시작점을 화면 상단 약 96pt에 맞춘다.
+        static let titleTopInset: CGFloat = 52
+    }
+
     let agreedTerms: Set<TermsAgreement>
     let isAllAgreed: Bool
     let onToggleAll: () -> Void
@@ -28,6 +33,7 @@ struct TermsAgreementView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 16)
+            .padding(.top, Constants.titleTopInset)
 
             Button {
                 onToggleAll()
