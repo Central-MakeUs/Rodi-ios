@@ -6,10 +6,11 @@
 //
 
 import CoreLocation
+import Combine
 import Foundation
 
 @MainActor
-final class HomeRuntimeService: NSObject {
+final class HomeRuntimeService: NSObject, ObservableObject {
     var onEvent: ((HomeRuntimeEvent) -> Void)?
 
     private var nextCameraRequestID = 0

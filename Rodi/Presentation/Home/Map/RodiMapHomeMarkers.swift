@@ -11,6 +11,7 @@ import KakaoMapsSDK
 extension RodiKakaoMapView {
     func updateHomeMarkers(with markers: [RodiMapMarker]) {
         guard let map = kakaoMap else { return }
+        guard lastAppliedHomeMarkers != markers else { return }
 
         let manager = map.getLabelManager()
         registerHomeMarkerStylesIfNeeded(with: manager)
@@ -57,6 +58,8 @@ extension RodiKakaoMapView {
                 homeMarkerIDsByPoiID[poiID] = marker.id
             }
         }
+
+        lastAppliedHomeMarkers = markers
     }
 
     func displayCoordinate(for marker: RodiMapMarker, in markers: [RodiMapMarker]) -> RodiCoordinate {

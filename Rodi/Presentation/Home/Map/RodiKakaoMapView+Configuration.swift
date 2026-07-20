@@ -79,7 +79,28 @@ extension RodiKakaoMapView {
         isInteractionEnabled: Bool,
         visibilityState: RodiMapVisibilityState
     ) {
+        let renderInput = RenderInput(
+            cameraTarget: cameraTarget,
+            cameraRequestID: cameraRequestID,
+            animatedCameraRequestID: animatedCameraRequestID,
+            cameraFocus: cameraFocus,
+            userLocation: userLocation,
+            userHeadingDegrees: userHeadingDegrees,
+            routeOverlay: routeOverlay,
+            mapMarkers: mapMarkers,
+            logoBottomInset: logoBottomInset,
+            cameraBottomInset: cameraBottomInset,
+            isInteractionEnabled: isInteractionEnabled,
+            visibilityState: visibilityState
+        )
+
+        guard lastAppliedRenderInput != renderInput else { return }
+        lastAppliedRenderInput = renderInput
+
+        let previousUserLocation = latestUserLocation
         let previousHeadingDegrees = latestUserHeadingDegrees
+        let didUserLocationChange = previousUserLocation != userLocation
+        let didUserHeadingChange = previousHeadingDegrees != userHeadingDegrees
         latestCameraTarget = cameraTarget
         latestCameraRequestID = cameraRequestID
         latestAnimatedCameraRequestID = animatedCameraRequestID
@@ -107,12 +128,14 @@ extension RodiKakaoMapView {
         startEngineIfPossible(reason: "active_update")
         activateEngineIfNeeded()
         updateLogoPosition()
-        updateUserLocationMarker(
-            animatedHeading: shouldAnimateHeadingChange(
-                from: previousHeadingDegrees,
-                to: userHeadingDegrees
+        if didUserLocationChange || didUserHeadingChange {
+            updateUserLocationMarker(
+                animatedHeading: shouldAnimateHeadingChange(
+                    from: previousHeadingDegrees,
+                    to: userHeadingDegrees
+                )
             )
-        )
+        }
         updateHomeMarkers(with: mapMarkers)
         if previousRouteOverlay != routeOverlay {
             updateRouteOverlay()

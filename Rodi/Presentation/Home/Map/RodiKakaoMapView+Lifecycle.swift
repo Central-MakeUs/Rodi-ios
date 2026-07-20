@@ -15,7 +15,12 @@ import KakaoMapsSDK
 extension RodiKakaoMapView {
     func activateEngineIfNeeded() {
         guard latestVisibilityState.isActive else { return }
+        // prepareEngine 이전의 호출은 실제 엔진 활성화가 아니므로 완료 상태로 기록하면 안 된다.
+        // 인증 성공 뒤 addViews callback이 오려면 준비가 끝난 시점에 activateEngine이 반드시 한 번 실행되어야 한다.
+        guard didPrepareEngine else { return }
+        guard !didActivateEngine || didPauseEngine else { return }
         mapController?.activateEngine()
+        didActivateEngine = true
         didPauseEngine = false
     }
 

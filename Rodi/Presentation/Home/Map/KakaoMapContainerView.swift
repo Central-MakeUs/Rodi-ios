@@ -11,7 +11,7 @@ import SwiftUI
 import KakaoMapsSDK
 #endif
 
-enum RodiMapVisibilityState {
+enum RodiMapVisibilityState: Equatable {
     case interactive
     case covered
 
