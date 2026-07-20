@@ -49,6 +49,9 @@ final class SocialLoginService: NSObject {
                 if let error {
                     continuation.resume(returning: .failure(error))
                 } else if let accessToken = token?.accessToken, !accessToken.isEmpty {
+                    #if DEBUG
+                    RodiLogger.debug("Kakao access token for restore test: \(RodiLogger.masked(accessToken))")
+                    #endif
                     continuation.resume(returning: .success(accessToken))
                 } else {
                     continuation.resume(returning: .failure(SocialLoginError.emptyKakaoToken))
@@ -98,6 +101,9 @@ extension SocialLoginService: ASAuthorizationControllerDelegate {
             }
 
             RodiLogger.info("Apple sign-in succeeded userID=\(RodiLogger.masked(credential.user))")
+            #if DEBUG
+            RodiLogger.debug("Apple authorization code for restore test: \(RodiLogger.masked(code))")
+            #endif
             appleContinuation?.resume(returning: .success(code))
             appleContinuation = nil
         }

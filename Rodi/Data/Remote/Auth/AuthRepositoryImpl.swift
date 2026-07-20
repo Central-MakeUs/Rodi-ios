@@ -29,22 +29,24 @@ final class AuthRepositoryImpl: AuthRepository {
         let request = SocialLoginRequestDTO(credential: trimmedCredential)
         let response = try await networkManager.request(
             AuthTarget.login(provider: provider, request: request),
-            as: ServerResponse<AuthTokenDTO>.self
+            as: ServerResponse<SocialLoginResponseDTO>.self
         )
 
-        guard response.isSuccess, let token = response.data else {
+        guard response.isSuccess, let loginResponse = response.data else {
             throw .apiError(code: response.code, message: response.message)
         }
+
+        let token = try loginResponse.validatedToken()
 
         tokenStore.update(
             accessToken: token.accessToken,
             refreshToken: token.refreshToken
         )
         #if DEBUG
-        RodiLogger.debug("AccessToken: \(token.accessToken)")
-        RodiLogger.debug("RefreshToken: \(token.refreshToken)")
+        RodiLogger.debug("AccessToken: \(RodiLogger.masked(token.accessToken))")
+        RodiLogger.debug("RefreshToken: \(RodiLogger.masked(token.refreshToken))")
         #endif
-        return token.domain
+        return token
     }
 
     func refreshToken() async throws(NetworkError) -> AuthToken {
