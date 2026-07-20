@@ -114,6 +114,9 @@ Common assets:
 - `ic_arrival_pin`
 - `ic_parking_pin`
 - `ic_star`
+- `ic_tab_home_active`, `ic_tab_home_inactive`
+- `ic_tab_my_active`, `ic_tab_my_inactive`
+- `ic_list`
 
 ## Figma Implementation Rules
 
@@ -174,6 +177,10 @@ Avoid:
 - Home-specific components should stay under `Presentation/Home/Views`.
 - Home map adapter code belongs under `Presentation/Home/Map`.
 - Do not move Home-only chips, bottom sheets, marker UI, or controls to `Core/Components` unless reused outside Home.
+- The app-level bottom tab has `홈` and `마이`. Keep its icons in the asset catalog and render the label separately with a 3pt gap.
+- Home starts with the bottom tab and a `목록열기` button visible. Re-tapping the selected Home tab or tapping `목록열기` opens the course bottom sheet.
+- While dragging the list sheet down, reveal the tab and list button progressively; do not make them appear only after the drag ends.
+- Legal documents, support, logout, and withdrawal belong to the `마이` tab, not a Home floating settings button.
 - Kakao map rendering is UIKit-backed; do not replace it with a pure SwiftUI map.
 
 ## Onboarding UI Rules

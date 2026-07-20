@@ -19,7 +19,8 @@ extension HomeView {
             floatingControlSpacing: Constants.floatingControlSpacing,
             currentLocationButtonSize: Constants.currentLocationButtonSize,
             pageMorphStartRatio: Constants.pageMorphStartRatio,
-            pageSnapRatio: Constants.pageSnapRatio
+            pageSnapRatio: Constants.pageSnapRatio,
+            bottomTabBarHeight: Constants.bottomTabBarHeight
         )
     }
 
@@ -36,7 +37,11 @@ extension HomeView {
     }
 
     var cameraObscuredBottomInset: CGFloat {
-        sheetLayout.cameraObscuredBottomInset
+        if bottomSheetState == .collapsed {
+            return Constants.bottomTabBarHeight
+        }
+
+        return hasFixedBottomSheet ? sheetLayout.fixedSheetHeight : sheetLayout.currentSheetHeight
     }
 
     var hasSelectedBottomSheet: Bool {
@@ -47,13 +52,16 @@ extension HomeView {
         sheetLayout.hasFixedBottomSheet
     }
 
+    var isBottomSheetPresented: Bool {
+        bottomSheetState != .collapsed
+    }
+
     var mapVisibilityState: RodiMapVisibilityState {
         bottomSheetState == .expanded ? .covered : .interactive
     }
 
     var shouldShowRadiusFilter: Bool {
         overlayState == nil
-            && bottomSheetState == .medium
             && !hasSelectedBottomSheet
             && shouldRenderMap
     }
@@ -76,6 +84,18 @@ extension HomeView {
 
     var locationButtonOpacity: CGFloat {
         sheetLayout.locationButtonOpacity
+    }
+
+    var bottomTabBarOpacity: CGFloat {
+        sheetLayout.bottomTabBarOpacity
+    }
+
+    var bottomTabBarOffset: CGFloat {
+        sheetLayout.bottomTabBarOffset
+    }
+
+    var bottomSheetOpacity: CGFloat {
+        sheetLayout.bottomSheetOpacity
     }
 
     var pageProgress: CGFloat {

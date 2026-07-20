@@ -20,6 +20,7 @@ struct HomeBottomSheetLayoutPolicy {
     let currentLocationButtonSize: CGFloat
     let pageMorphStartRatio: CGFloat
     let pageSnapRatio: CGFloat
+    let bottomTabBarHeight: CGFloat
 
     /// 기본 상태의 바텀싯 높이. 현재 홈 화면은 기기 높이의 비율로 고정한다.
     var mediumSheetHeight: CGFloat {
@@ -37,12 +38,11 @@ struct HomeBottomSheetLayoutPolicy {
     }
 
     var floatingControlBottomInset: CGFloat {
-        hasFixedBottomSheet ? selectedOverlayBottomInset : mediumOverlayBottomInset
-    }
+        if bottomSheetState == .collapsed {
+            return bottomTabBarHeight + floatingControlSpacing
+        }
 
-    /// 지도 카메라가 가려진 영역을 피하도록 넘겨주는 하단 가림 높이.
-    var cameraObscuredBottomInset: CGFloat {
-        hasFixedBottomSheet ? fixedSheetHeight : currentSheetHeight
+        return hasFixedBottomSheet ? selectedOverlayBottomInset : mediumOverlayBottomInset
     }
 
     /// 선택 상세와 빈 반경 결과는 사용자가 위로 끌어올릴 수 없는 고정 바텀싯이다.
@@ -77,7 +77,7 @@ struct HomeBottomSheetLayoutPolicy {
 
     /// 드래그 중인 현재 바텀싯 높이.
     var currentSheetHeight: CGFloat {
-        clamp(sheetHeight, lowerBound: mediumSheetHeight, upperBound: availableSheetHeight)
+        clamp(sheetHeight, lowerBound: 0, upperBound: availableSheetHeight)
     }
 
     /// 전체 높이에서 현재 높이를 뺀 만큼 아래로 내려 바텀싯을 표현한다.
@@ -95,8 +95,39 @@ struct HomeBottomSheetLayoutPolicy {
         return clamp(progress, lowerBound: 0, upperBound: 1)
     }
 
+    /// 기본 목록 시트를 아래로 내릴수록 탭과 목록 열기 버튼을 복귀시킨다.
+    var sheetDismissProgress: CGFloat {
+        guard bottomSheetState == .medium, !hasFixedBottomSheet else {
+            return bottomSheetState == .collapsed ? 1 : 0
+        }
+
+        return clamp((mediumSheetHeight - currentSheetHeight) / mediumSheetHeight, lowerBound: 0, upperBound: 1)
+    }
+
+    var bottomTabBarOpacity: CGFloat {
+        sheetDismissProgress
+    }
+
+    var bottomTabBarOffset: CGFloat {
+        (1 - bottomTabBarOpacity) * 20
+    }
+
+    /// 시트를 아래로 끌수록 목록을 자연스럽게 희미하게 만들고,
+    /// 동일한 진행도로 바텀탭과 목록 열기 버튼을 교차 노출한다.
+    var bottomSheetOpacity: CGFloat {
+        guard bottomSheetState == .medium, !hasFixedBottomSheet else {
+            return bottomSheetState == .collapsed ? 0 : 1
+        }
+
+        return 1 - sheetDismissProgress
+    }
+
     /// 바텀싯이 올라와 컨트롤을 덮기 시작하면 자연스럽게 사라지도록 만드는 opacity.
     var locationButtonOpacity: CGFloat {
+        if bottomSheetState == .collapsed {
+            return 1
+        }
+
         guard !hasFixedBottomSheet else { return 1 }
 
         let overlap = currentSheetHeight - mediumOverlayBottomInset
@@ -118,7 +149,7 @@ struct HomeBottomSheetLayoutPolicy {
     func height(forDragTranslation translation: CGFloat) -> CGFloat {
         clamp(
             mediumSheetHeight - translation,
-            lowerBound: mediumSheetHeight,
+            lowerBound: 0,
             upperBound: availableSheetHeight
         )
     }
@@ -127,6 +158,11 @@ struct HomeBottomSheetLayoutPolicy {
     func shouldExpandAfterDrag(predictedTranslation: CGFloat) -> Bool {
         let predictedHeight = height(forDragTranslation: predictedTranslation)
         return predictedHeight / availableSheetHeight >= pageSnapRatio || predictedTranslation < -80
+    }
+
+    /// 목록 시트를 충분히 아래로 끌면 탭 바로 돌아간다.
+    func shouldDismissAfterDrag(predictedTranslation: CGFloat) -> Bool {
+        predictedTranslation > 96
     }
 
     private var baseHeight: CGFloat {

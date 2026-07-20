@@ -10,6 +10,7 @@ struct HomeBottomSheetLayer<Drag: Gesture>: View {
     let actions: CourseBottomSheetActions
     let height: CGFloat
     let offsetY: CGFloat
+    let opacity: CGFloat
     let dragGesture: Drag
     let shouldAllowDrag: Bool
 
@@ -20,6 +21,7 @@ struct HomeBottomSheetLayer<Drag: Gesture>: View {
         )
         .frame(height: height)
         .offset(y: offsetY)
+        .opacity(opacity)
         .gesture(dragGesture, including: shouldAllowDrag ? .all : .none)
         .zIndex(1)
     }

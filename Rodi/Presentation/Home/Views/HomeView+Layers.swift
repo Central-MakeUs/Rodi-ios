@@ -21,7 +21,7 @@ extension HomeView {
             mapMarkers: displayedMapMarkers,
             logoBottomInset: floatingControlBottomInset,
             cameraBottomInset: cameraObscuredBottomInset,
-            isInteractionEnabled: bottomSheetState == .medium,
+            isInteractionEnabled: bottomSheetState != .expanded,
             visibilityState: mapVisibilityState,
             isAccessibilityHidden: bottomSheetState == .expanded,
             onEvent: handleMapEvent
@@ -59,7 +59,6 @@ extension HomeView {
             allowsHitTesting: bottomSheetState == .medium && locationButtonOpacity > 0.95,
             isAccessibilityHidden: bottomSheetState == .expanded,
             spacing: Constants.floatingControlSpacing,
-            legalSettingsAction: { homeStore.send(.presentationAction(.setLegalSettingsPresented(true))) },
             currentLocationAction: requestCurrentLocation
         )
     }
@@ -70,8 +69,45 @@ extension HomeView {
             actions: bottomSheetActions,
             height: renderedSheetHeight,
             offsetY: renderedSheetOffset,
+            opacity: bottomSheetOpacity,
             dragGesture: sheetDragGesture,
             shouldAllowDrag: shouldAllowSheetDrag
         )
+    }
+
+    var bottomTabBarLayer: some View {
+        Group {
+            if bottomSheetState != .expanded, !hasFixedBottomSheet {
+                RodiBottomTabBar(
+                    selectedTab: selectedTab,
+                    homeAction: presentBottomSheet,
+                    myAction: { selectedTab = .my }
+                )
+                .opacity(bottomTabBarOpacity)
+                .offset(y: bottomTabBarOffset)
+                .animation(.easeOut(duration: 0.18), value: bottomSheetState)
+                .allowsHitTesting(bottomTabBarOpacity > 0.95)
+                .zIndex(0.8)
+            }
+        }
+    }
+
+    var listButtonLayer: some View {
+        Group {
+            if bottomSheetState != .expanded, !hasFixedBottomSheet, shouldRenderMap {
+                VStack {
+                    Spacer()
+
+                    HomeListButton(action: presentBottomSheet)
+                        .padding(.bottom, Constants.bottomTabBarHeight + 16)
+                        .opacity(bottomTabBarOpacity)
+                        .offset(y: bottomTabBarOffset)
+                        .animation(.easeOut(duration: 0.18), value: bottomSheetState)
+                        .allowsHitTesting(bottomTabBarOpacity > 0.95)
+                }
+                .transition(.opacity)
+                .zIndex(0.8)
+            }
+        }
     }
 }

@@ -7,15 +7,13 @@
 
 import SwiftUI
 
-#if canImport(KakaoSDKUser)
-import KakaoSDKUser
-#endif
-
 extension HomeView {
     func handleSheetDragEnded(predictedTranslation: CGFloat) {
         guard bottomSheetState == .medium else { return }
 
-        if sheetLayout.shouldExpandAfterDrag(predictedTranslation: predictedTranslation) {
+        if sheetLayout.shouldDismissAfterDrag(predictedTranslation: predictedTranslation) {
+            dismissBottomSheet()
+        } else if sheetLayout.shouldExpandAfterDrag(predictedTranslation: predictedTranslation) {
             expandBottomSheet()
         } else {
             collapseBottomSheet()
@@ -31,10 +29,26 @@ extension HomeView {
     }
 
     func collapseBottomSheet() {
-        guard bottomSheetState != .medium else { return }
+        guard bottomSheetState != .collapsed else { return }
 
         withAnimation(.spring(response: 0.36, dampingFraction: 0.9)) {
             homeStore.send(.viewAction(.collapseSheet(mediumHeight: mediumSheetHeight)))
+        }
+    }
+
+    func presentBottomSheet() {
+        guard bottomSheetState == .collapsed else { return }
+
+        withAnimation(.spring(response: 0.34, dampingFraction: 0.9)) {
+            homeStore.send(.viewAction(.presentSheet(mediumHeight: mediumSheetHeight)))
+        }
+    }
+
+    func dismissBottomSheet() {
+        guard bottomSheetState == .medium, !hasFixedBottomSheet else { return }
+
+        withAnimation(.spring(response: 0.34, dampingFraction: 0.9)) {
+            homeStore.send(.viewAction(.dismissSheet))
         }
     }
 
@@ -101,62 +115,6 @@ extension HomeView {
 
     func showLocationSettingsAlert() {
         homeStore.send(.presentationAction(.showLocationSettingsAlert))
-    }
-
-    func performLogout() {
-        Task {
-            do {
-                try await authRepository.logout()
-                RodiLogger.info("Logout API completed")
-            } catch {
-                authRepository.clearSession()
-                RodiLogger.warning("Logout API failed; local session cleared. error=\(error)")
-            }
-
-            await logoutKakaoSDKSessionIfNeeded()
-
-            await MainActor.run {
-                homeStore.send(.presentationAction(.setLegalSettingsPresented(false)))
-                onLogout()
-            }
-        }
-    }
-
-    func performWithdrawal() {
-        Task {
-            do {
-                try await memberRepository.withdraw()
-                RodiLogger.info("Member withdrawal API completed")
-            } catch {
-                RodiLogger.warning("Member withdrawal API failed. error=\(error)")
-                return
-            }
-
-            authRepository.clearSession()
-            await logoutKakaoSDKSessionIfNeeded()
-
-            await MainActor.run {
-                homeStore.send(.presentationAction(.setLegalSettingsPresented(false)))
-                onLogout()
-            }
-        }
-    }
-
-    func logoutKakaoSDKSessionIfNeeded() async {
-        #if canImport(KakaoSDKUser)
-        await withCheckedContinuation { continuation in
-            UserApi.shared.logout { error in
-                if let error {
-                    RodiLogger.warning("Kakao SDK logout failed or no active Kakao session. error=\(error)")
-                } else {
-                    RodiLogger.info("Kakao SDK logout completed")
-                }
-                continuation.resume()
-            }
-        }
-        #else
-        RodiLogger.debug("Kakao SDK logout skipped: KakaoSDKUser unavailable")
-        #endif
     }
 
     func requestCurrentLocation() {
