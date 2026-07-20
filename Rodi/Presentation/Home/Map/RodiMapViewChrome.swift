@@ -12,12 +12,15 @@ extension RodiKakaoMapView {
     func updateLogoPosition() {
         guard let map = kakaoMap else { return }
         let inset = max(12, latestLogoBottomInset)
+        guard lastAppliedLogoBottomInset != inset else { return }
         let origin = GuiAlignment(vAlign: .bottom, hAlign: .left)
         map.setLogoPosition(origin: origin, position: CGPoint(x: 16, y: -inset))
+        lastAppliedLogoBottomInset = inset
     }
 
     func applyGestureState(_ isEnabled: Bool) {
         guard let map = kakaoMap else { return }
+        guard lastAppliedMapInteractionEnabled != isEnabled else { return }
         map.setGestureEnable(type: .pan, enable: isEnabled)
         map.setGestureEnable(type: .zoom, enable: isEnabled)
         map.setGestureEnable(type: .rotate, enable: isEnabled)
@@ -27,6 +30,7 @@ extension RodiKakaoMapView {
         map.setGestureEnable(type: .longTapAndDrag, enable: isEnabled)
         map.setGestureEnable(type: .rotateZoom, enable: isEnabled)
         map.setGestureEnable(type: .oneFingerZoom, enable: isEnabled)
+        lastAppliedMapInteractionEnabled = isEnabled
     }
 
 }

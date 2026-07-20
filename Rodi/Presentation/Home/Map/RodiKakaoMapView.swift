@@ -13,6 +13,21 @@ import KakaoMapsSDK
 
 #if canImport(KakaoMapsSDK)
 final class RodiKakaoMapView: UIView {
+    struct RenderInput: Equatable {
+        let cameraTarget: RodiCoordinate
+        let cameraRequestID: Int
+        let animatedCameraRequestID: Int?
+        let cameraFocus: RodiMapCameraFocus
+        let userLocation: RodiCoordinate?
+        let userHeadingDegrees: Double?
+        let routeOverlay: RodiRouteOverlay?
+        let mapMarkers: [RodiMapMarker]
+        let logoBottomInset: CGFloat
+        let cameraBottomInset: CGFloat
+        let isInteractionEnabled: Bool
+        let visibilityState: RodiMapVisibilityState
+    }
+
     enum Constants {
         static let viewName = "rodi_home_map"
         static let mapLevel = 14
@@ -62,9 +77,13 @@ final class RodiKakaoMapView: UIView {
     var latestUserHeadingDegrees: Double?
     var latestRouteOverlay: RodiRouteOverlay?
     var latestMapMarkers: [RodiMapMarker] = []
+    var lastAppliedHomeMarkers: [RodiMapMarker] = []
     var latestLogoBottomInset: CGFloat = 0
+    var lastAppliedLogoBottomInset: CGFloat?
     var latestCameraBottomInset: CGFloat = 0
+    var lastAppliedMapInteractionEnabled: Bool?
     var latestVisibilityState: RodiMapVisibilityState = .interactive
+    var lastAppliedRenderInput: RenderInput?
     var lastAppliedCameraRequestID: Int?
     var latestCameraRequestID = 0
     var latestAnimatedCameraRequestID: Int?
@@ -86,6 +105,7 @@ final class RodiKakaoMapView: UIView {
     var didRegisterHomeMarkerStyles = false
     var didRegisterRouteStyles = false
     var didPrepareEngine = false
+    var didActivateEngine = false
     var didCreateController = false
     var didPauseEngine = false
     var didFinalizeMapView = false
