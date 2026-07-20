@@ -8,6 +8,8 @@ import Foundation
 extension HomeReducer {
     enum HomeEffectID {
         static let routeLoading = "home.route.loading"
+        static let placeDetailLoading = "home.place-detail.loading"
+        static let bookmarkUpdating = "home.place-detail.bookmark-updating"
         static let placeListLoading = "home.place-list.loading"
         static let guidanceSnackbarDismissal = "home.presentation.guidance-snackbar-dismissal"
         static let locationNoticeDismissal = "home.presentation.location-notice-dismissal"

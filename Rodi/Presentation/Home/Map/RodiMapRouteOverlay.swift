@@ -35,7 +35,7 @@ extension RodiKakaoMapView {
             routeShapeLayer = shapeManager.addShapeLayer(layerID: Constants.routeShapeLayerID, zOrder: 8_500)
         }
 
-        routeOverlay.points.filter { $0.role != .waypoint }.forEach { point in
+        routeOverlay.points.forEach { point in
             let poiID = "rodi_route_marker_\(routeOverlay.courseID)_\(point.id)"
             let options = PoiOptions(styleID: markerStyleID(for: point.role), poiID: poiID)
             options.rank = 1

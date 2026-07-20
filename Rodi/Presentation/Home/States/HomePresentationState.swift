@@ -10,4 +10,5 @@ struct HomePresentationState {
     var guidanceSnackbarMessage: String?
     var locationNoticeMessage: String?
     var showsLocationSettingsAlert = false
+    var authenticationRequestID = 0
 }

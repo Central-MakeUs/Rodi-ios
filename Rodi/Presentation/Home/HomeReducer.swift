@@ -9,9 +9,17 @@ import Foundation
 
 struct HomeReducer: Reducer {
     let placeRepository: PlaceRepository
+    let hasActiveSession: () -> Bool
 
-    init(placeRepository: PlaceRepository) {
+    init(
+        placeRepository: PlaceRepository,
+        hasActiveSession: @escaping () -> Bool = {
+            guard let token = AuthDependencyContainer.shared.tokenStore.accessToken else { return false }
+            return !token.isEmpty
+        }
+    ) {
         self.placeRepository = placeRepository
+        self.hasActiveSession = hasActiveSession
     }
 
     func reduce(_ state: inout HomeState, with action: HomeAction) -> Effect<HomeAction> {

@@ -10,6 +10,46 @@ enum PlaceType: String, Equatable {
     case parking = "PARKING"
 }
 
+/// `/api/v1/places`가 전달하는 코스 연습 유형이다.
+/// 서버에 새 유형이 추가되어도 목록은 원문을 유지해 표시한다.
+enum PlacePracticeType: String, CaseIterable, Equatable {
+    case uTurn = "U_TURN"
+    case leftRightTurn = "LEFT_RIGHT_TURN"
+    case parking = "PARKING"
+    case laneChange = "LANE_CHANGE"
+    case intersection = "INTERSECTION"
+    case roundabout = "ROUNDABOUT"
+    case unprotectedLeftTurn = "UNPROTECTED_LEFT_TURN"
+    case highwayEntry = "HIGHWAY_ENTRY"
+    case cornering = "CORNERING"
+    case narrowRoad = "NARROW_ROAD"
+    case multilane = "MULTILANE"
+    case merging = "MERGING"
+    case straight = "STRAIGHT"
+
+    nonisolated var displayName: String {
+        switch self {
+        case .uTurn: "유턴"
+        case .leftRightTurn: "좌우 회전"
+        case .parking: "주차"
+        case .laneChange: "차선변경"
+        case .intersection: "교차로"
+        case .roundabout: "회전 교차로"
+        case .unprotectedLeftTurn: "비보호 좌회전"
+        case .highwayEntry: "고속진입"
+        case .cornering: "코너링"
+        case .narrowRoad: "좁은 도로 주행"
+        case .multilane: "다차로 주행"
+        case .merging: "합류"
+        case .straight: "직선주행"
+        }
+    }
+
+    nonisolated static func displayName(for rawValue: String) -> String {
+        Self(rawValue: rawValue)?.displayName ?? rawValue
+    }
+}
+
 struct PlaceCoordinate: Equatable, Identifiable {
     let id: Int
     let type: PlaceType

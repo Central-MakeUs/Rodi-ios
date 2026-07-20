@@ -12,6 +12,7 @@ struct HomeState {
     var bottomSheet = HomeBottomSheetUIState()
     var selection = HomeSelectionState()
     var route = HomeRouteState()
+    var placeDetail = HomePlaceDetailState()
     var map = HomeMapState()
     var location = HomeLocationState()
     var placeList = HomePlaceListState()

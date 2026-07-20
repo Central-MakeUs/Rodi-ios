@@ -15,7 +15,7 @@ extension RodiKakaoMapView {
         guard !didRegisterRouteStyles else { return }
 
         labelManager.addPoiStyle(makeRouteMarkerStyle(styleID: Constants.routeStartMarkerStyleID, assetName: "ic_start_pin"))
-        labelManager.addPoiStyle(makeRouteMarkerStyle(styleID: Constants.routeWaypointMarkerStyleID, assetName: "ic_parking_pin"))
+        labelManager.addPoiStyle(makeRouteWaypointMarkerStyle())
         labelManager.addPoiStyle(makeRouteMarkerStyle(styleID: Constants.routeEndMarkerStyleID, assetName: "ic_arrival_pin"))
 
         let lineStyle = PerLevelPolylineStyle(
@@ -37,6 +37,15 @@ extension RodiKakaoMapView {
         let iconStyle = PoiIconStyle(symbol: image, anchorPoint: CGPoint(x: 0.5, y: 1.0))
         return PoiStyle(
             styleID: styleID,
+            styles: [PerLevelPoiStyle(iconStyle: iconStyle, level: 0)]
+        )
+    }
+
+    func makeRouteWaypointMarkerStyle() -> PoiStyle {
+        let image = UIImage(named: "ic_route_waypoint") ?? UIImage()
+        let iconStyle = PoiIconStyle(symbol: image, anchorPoint: CGPoint(x: 0.5, y: 1.0))
+        return PoiStyle(
+            styleID: Constants.routeWaypointMarkerStyleID,
             styles: [PerLevelPoiStyle(iconStyle: iconStyle, level: 0)]
         )
     }

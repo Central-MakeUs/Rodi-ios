@@ -69,6 +69,11 @@ enum HomeAction {
         case clearSelection
         case selectItem(RodiCourseItem, mediumHeight: CGFloat)
         case selectMapMarker(markerID: String, mediumHeight: CGFloat)
+        case detailLoaded(PlaceDetail)
+        case detailFailed(placeID: Int, message: String)
+        case toggleBookmark
+        case bookmarkUpdated(placeID: Int, isBookmarked: Bool)
+        case bookmarkFailed(placeID: Int, previousDetail: PlaceDetail, message: String)
         case roadRouteLoaded(courseID: Int, path: [RodiCoordinate])
         case roadRouteFailed(courseID: Int, message: String?)
         case setSelectedRouteOverlay(RodiRouteOverlay?)
@@ -84,9 +89,11 @@ enum HomeAction {
             page: PlaceCursorPage,
             viewport: PlaceViewport,
             revision: Int,
-            isAppending: Bool
+            isAppending: Bool,
+            isManualResearch: Bool
         )
-        case pageFailed(message: String, revision: Int, isAppending: Bool)
+        case pageFailed(message: String, revision: Int, isAppending: Bool, isManualResearch: Bool)
+        case consumeAutoExpandAfterResearch
     }
 
     enum PresentationAction {
@@ -98,6 +105,7 @@ enum HomeAction {
         case dismissLocationNoticeMessage
         case showLocationSettingsAlert
         case setLocationSettingsAlertPresented(Bool)
+        case requestAuthentication
     }
 
     enum Delegate {
