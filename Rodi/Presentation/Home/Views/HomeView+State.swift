@@ -12,10 +12,6 @@ extension HomeView {
         homeStore.state.bottomSheet.bottomSheetState
     }
 
-    var selectedRadiusFilter: HomeRadiusFilter {
-        homeStore.state.data.selectedRadiusFilter
-    }
-
     var selectedItem: RodiCourseItem? {
         homeStore.state.selection.selectedItem
     }
@@ -46,6 +42,10 @@ extension HomeView {
 
     var cameraTarget: RodiCoordinate {
         homeStore.state.map.cameraTarget
+    }
+
+    var mapZoomLevel: Int {
+        homeStore.state.map.zoomLevel
     }
 
     var cameraRequestID: Int {
@@ -80,7 +80,7 @@ extension HomeView {
         homeStore.state.visibleItems
     }
 
-    var shouldShowEmptyRadiusResult: Bool {
-        homeStore.state.shouldShowEmptyRadiusResult
+    var placeListState: HomePlaceListState {
+        homeStore.state.placeList
     }
 }

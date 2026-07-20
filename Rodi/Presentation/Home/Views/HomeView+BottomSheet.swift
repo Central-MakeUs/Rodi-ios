@@ -8,24 +8,28 @@ import Foundation
 extension HomeView {
     var bottomSheetContentState: CourseBottomSheetContentState {
         CourseBottomSheetContentState(
-            items: visibleItems,
+            placeItems: placeListState.items,
             selectedItem: selectedItem,
             isRouteLoading: isRouteLoading,
             routeStatusMessage: routeStatusMessage,
             userLocation: userLocationCoordinate,
             hasLocationPermission: hasLocationPermission,
-            showsEmptyRadiusResult: shouldShowEmptyRadiusResult,
+            isInitialLoading: placeListState.isInitialLoading,
+            isNextPageLoading: placeListState.isNextPageLoading,
+            listErrorMessage: placeListState.errorMessage,
+            hasNextPage: placeListState.hasNext,
             pageProgress: hasFixedBottomSheet ? 0 : pageProgress
         )
     }
 
     var bottomSheetActions: CourseBottomSheetActions {
         CourseBottomSheetActions(
-            selectItem: handleCourseSelection,
+            selectPlaceItem: handlePlaceListSelection,
             clearSelection: clearSelectedCourse,
             showRouteGuidanceMessage: showRouteGuidanceMessage,
             requestLocationPermission: showLocationSettingsAlert,
-            showAllCourses: showAllCourses,
+            reloadPlaceList: reloadPlaceList,
+            loadNextPage: loadNextPlaceListPage,
             expand: expandBottomSheet,
             collapse: collapseBottomSheet
         )

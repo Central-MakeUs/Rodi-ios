@@ -14,20 +14,11 @@ struct HomeState {
     var route = HomeRouteState()
     var map = HomeMapState()
     var location = HomeLocationState()
+    var placeList = HomePlaceListState()
     var presentation = HomePresentationState()
 
     var visibleItems: [RodiCourseItem] {
-        guard let radius = data.selectedRadiusFilter.radiusKilometers else {
-            return data.items
-        }
-
-        return data.items.filter {
-            data.filterAnchorCoordinate.distanceKilometers(to: $0.coordinate) <= radius
-        }
-    }
-
-    var shouldShowEmptyRadiusResult: Bool {
-        data.selectedRadiusFilter != .all && visibleItems.isEmpty
+        data.items
     }
 
     var overlayState: HomeOverlayState? {

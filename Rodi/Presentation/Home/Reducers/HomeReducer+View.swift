@@ -8,6 +8,7 @@ import Foundation
 extension HomeReducer {
     enum HomeEffectID {
         static let routeLoading = "home.route.loading"
+        static let placeListLoading = "home.place-list.loading"
         static let guidanceSnackbarDismissal = "home.presentation.guidance-snackbar-dismissal"
         static let locationNoticeDismissal = "home.presentation.location-notice-dismissal"
     }
@@ -48,24 +49,6 @@ extension HomeReducer {
         case .resetSheetToMedium(let mediumHeight):
             state.bottomSheet.bottomSheetState = .medium
             state.bottomSheet.sheetHeight = mediumHeight
-
-        case .showAllCourses:
-            state.data.selectedRadiusFilter = .all
-
-        case .applyRadiusFilter(let filter):
-            state.data.selectedRadiusFilter = filter
-            state.selection.selectedItem = nil
-            state.route.selectedRouteOverlay = nil
-            state.map.cameraFocus = .normal
-            state.route.routeStatusMessage = nil
-            state.route.isRouteLoading = false
-            return .cancel(id: HomeEffectID.routeLoading)
-
-        case .radiusFilterNeedsLocationPermission:
-            state.presentation.showsLocationSettingsAlert = true
-
-        case .radiusFilterResolvingLocation:
-            break
 
         case .requestCurrentLocation:
             state.selection.selectedItem = nil

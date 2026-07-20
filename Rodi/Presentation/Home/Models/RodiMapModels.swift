@@ -30,6 +30,7 @@ struct RodiMapMarker: Equatable, Identifiable {
 enum RodiMapMarkerKind: Equatable {
     case course
     case parking
+    case cluster
 }
 
 enum RodiMapCameraFocus: Equatable {
@@ -37,4 +38,5 @@ enum RodiMapCameraFocus: Equatable {
     case currentLocation
     case koreaOverview
     case closeSingleLocation
+    case cluster([RodiCoordinate])
 }

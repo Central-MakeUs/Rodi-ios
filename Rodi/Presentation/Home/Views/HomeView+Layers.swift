@@ -35,12 +35,19 @@ extension HomeView {
         )
     }
 
-    var radiusFilterLayer: some View {
-        HomeRadiusFilterLayer(
-            isVisible: shouldShowRadiusFilter,
-            selectedFilter: selectedRadiusFilter,
-            selectAction: handleRadiusFilterSelection
-        )
+    var placeResearchButtonLayer: some View {
+        Group {
+            if shouldShowPlaceResearchButton {
+                VStack {
+                    HomeResearchButton(action: reloadPlaceList)
+                        .padding(.top, 64)
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .transition(.opacity.combined(with: .scale(scale: 0.96)))
+                .zIndex(0.7)
+            }
+        }
     }
 
     var pageMorphOverlay: some View {
@@ -54,9 +61,10 @@ extension HomeView {
     var floatingControlLayer: some View {
         HomeFloatingControlLayer(
             isCurrentLocationActive: isCurrentLocationButtonActive,
+            mapZoomLevel: mapZoomLevel,
             bottomInset: floatingControlBottomInset,
             opacity: locationButtonOpacity,
-            allowsHitTesting: bottomSheetState == .medium && locationButtonOpacity > 0.95,
+            allowsHitTesting: bottomSheetState != .expanded && locationButtonOpacity > 0.95,
             isAccessibilityHidden: bottomSheetState == .expanded,
             spacing: Constants.floatingControlSpacing,
             currentLocationAction: requestCurrentLocation
@@ -77,7 +85,7 @@ extension HomeView {
 
     var bottomTabBarLayer: some View {
         Group {
-            if bottomSheetState != .expanded, !hasFixedBottomSheet {
+            if bottomSheetState != .expanded, !hasSelectedBottomSheet {
                 RodiBottomTabBar(
                     selectedTab: selectedTab,
                     homeAction: presentBottomSheet,
@@ -94,7 +102,7 @@ extension HomeView {
 
     var listButtonLayer: some View {
         Group {
-            if bottomSheetState != .expanded, !hasFixedBottomSheet, shouldRenderMap {
+            if bottomSheetState != .expanded, !hasSelectedBottomSheet, shouldRenderMap {
                 VStack {
                     Spacer()
 

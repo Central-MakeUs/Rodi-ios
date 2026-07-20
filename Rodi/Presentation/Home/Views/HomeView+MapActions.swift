@@ -14,8 +14,13 @@ extension HomeView {
             handleMapReady()
         case .markerTap(let markerID):
             handleMapMarkerTap(markerID)
-        case .viewportChanged(let center, let zoomLevel):
-            handleMapViewportChange(center: center, zoomLevel: zoomLevel)
+        case .viewportChanged(let center, let zoomLevel, let viewport, let isUserInitiated):
+            handleMapViewportChange(
+                center: center,
+                zoomLevel: zoomLevel,
+                viewport: viewport,
+                isUserInitiated: isUserInitiated
+            )
         case .cameraMoveFinished(let requestID):
             handleCameraMoveFinished(requestID: requestID)
         case .failed(let message):
@@ -26,12 +31,36 @@ extension HomeView {
     func handleMapReady() {
         homeStore.send(.mapAction(.ready))
         runtimeService.markMapReady()
-        runtimeService.renderMapMarkers(for: homeStore.state.visibleItems)
+        runtimeService.renderInitialMapMarkers(for: homeStore.state.visibleItems)
     }
 
-    func handleMapViewportChange(center: RodiCoordinate, zoomLevel: Int) {
-        homeStore.send(.mapAction(.viewportChanged(center: center, zoomLevel: zoomLevel)))
+    func handleMapViewportChange(
+        center: RodiCoordinate,
+        zoomLevel: Int,
+        viewport: PlaceViewport,
+        isUserInitiated: Bool
+    ) {
+        homeStore.send(
+            .mapAction(
+                .viewportChanged(
+                    center: center,
+                    zoomLevel: zoomLevel,
+                    viewport: viewport,
+                    isUserInitiated: isUserInitiated
+                )
+            )
+        )
+        homeStore.send(
+            .placeListAction(
+                .viewportChanged(
+                    viewport: viewport,
+                    center: center,
+                    isUserInitiated: isUserInitiated
+                )
+            )
+        )
         runtimeService.updateMapViewport(center: center, zoomLevel: zoomLevel)
+        runtimeService.updateMapMarkersForViewportIfNeeded(for: homeStore.state.visibleItems)
     }
 
     func handleCameraMoveFinished(requestID: Int) {

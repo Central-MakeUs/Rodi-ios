@@ -6,7 +6,7 @@
 enum HomeMapCameraPolicy {
     static func zoomLevel(for focus: RodiMapCameraFocus) -> Int {
         switch focus {
-        case .normal, .currentLocation:
+        case .normal, .currentLocation, .cluster:
             14
         case .koreaOverview:
             6

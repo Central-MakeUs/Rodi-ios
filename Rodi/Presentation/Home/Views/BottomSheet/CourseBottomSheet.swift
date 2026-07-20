@@ -5,7 +5,7 @@
 
 import SwiftUI
 
-/// 홈 하단의 코스 목록/빈 결과/선택 상세를 전환해서 보여주는 바텀싯 컨테이너.
+/// 홈 하단의 장소 목록/선택 상세를 전환해서 보여주는 바텀싯 컨테이너.
 /// Home 전체 상태를 직접 알지 않고, 바텀싯 전용 표시 상태와 액션만 입력받는다.
 struct CourseBottomSheet: View {
     let content: CourseBottomSheetContentState
@@ -39,10 +39,17 @@ struct CourseBottomSheet: View {
                     routeGuidanceMessageAction: actions.showRouteGuidanceMessage,
                     routeGuidancePermissionAction: actions.requestLocationPermission
                 )
-            } else if content.showsEmptyRadiusResult {
-                EmptyRadiusResultView(showAllCoursesAction: actions.showAllCourses)
             } else {
-                CourseListView(items: content.items, selectAction: actions.selectItem)
+                PlaceListView(
+                    items: content.placeItems,
+                    isInitialLoading: content.isInitialLoading,
+                    isNextPageLoading: content.isNextPageLoading,
+                    errorMessage: content.listErrorMessage,
+                    hasNextPage: content.hasNextPage,
+                    selectAction: actions.selectPlaceItem,
+                    reloadAction: actions.reloadPlaceList,
+                    loadNextPageAction: actions.loadNextPage
+                )
             }
 
             Spacer(minLength: 0)
@@ -57,10 +64,10 @@ struct CourseBottomSheet: View {
         .shadow(color: RodiColor.black.opacity(0.08 * (1 - content.pageProgress)), radius: 4, x: 0, y: -3)
         .ignoresSafeArea(edges: .bottom)
         .accessibilityAction(named: Text("펼치기")) {
-            guard !content.hasSelectedItem, !content.showsEmptyRadiusResult else { return }
+            guard !content.hasSelectedItem else { return }
             actions.expand()
         }
     }
 
-    private var headerTitle: String { "연습코스" }
+    private var headerTitle: String { "추천 목록" }
 }

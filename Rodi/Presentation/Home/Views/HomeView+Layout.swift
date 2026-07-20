@@ -13,7 +13,6 @@ extension HomeView {
             containerHeight: containerHeight,
             sheetHeight: homeStore.state.bottomSheet.sheetHeight,
             hasSelectedBottomSheet: hasSelectedBottomSheet,
-            showsEmptyRadiusResult: shouldShowEmptyRadiusResult,
             bottomSheetState: homeStore.state.bottomSheet.bottomSheetState,
             sheetHeightRatio: Constants.sheetHeightRatio,
             floatingControlSpacing: Constants.floatingControlSpacing,
@@ -60,10 +59,11 @@ extension HomeView {
         bottomSheetState == .expanded ? .covered : .interactive
     }
 
-    var shouldShowRadiusFilter: Bool {
-        overlayState == nil
-            && !hasSelectedBottomSheet
+    var shouldShowPlaceResearchButton: Bool {
+        homeStore.state.placeList.needsResearch
+            && overlayState == nil
             && shouldRenderMap
+            && bottomSheetState != .expanded
     }
 
     var availableSheetHeight: CGFloat {
