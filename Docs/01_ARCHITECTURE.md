@@ -67,6 +67,15 @@ Current status:
 
 Server-backed DTO, mapper, API, and repository implementation should move here once the API contract is stable.
 
+Current server-backed features:
+- `Data/Remote/Auth` + `Domain/Auth`
+- `Data/Remote/Member` + `Domain/Member`
+- `Data/Remote/Place` + `Domain/Place`
+
+`Place` keeps public marker/list requests and authenticated detail/bookmark requests behind one
+repository. Presentation must receive `PlaceRepository` through dependency injection rather than
+call `NetworkManager` directly.
+
 ### Domain
 
 Reserved for pure entities and repository interfaces.
@@ -111,6 +120,15 @@ Rules:
 - `Services/` owns Home runtime side effects and Home-specific external integrations.
 - `Models/` is temporary for Home display, DTO-like, and map models until server/Data/Domain separation is requested.
 - `States/` and `Reducers/` own Home MVI decomposition.
+
+### Map marker clustering
+
+Home marker clustering is client-rendered in `Presentation/Home/Map`.
+
+- `RodiHomeMarkerClusterIndex` groups the complete loaded marker set by global Web Mercator tile coordinates, never by the current viewport origin.
+- Tiers are `national` (map zoom `<= 10`), `district` (`11...13`), and `individual` (`>= 14`). A cluster ID is deterministic: `cluster:<tier>:<tileZoom>:<x>:<y>`.
+- Camera drag does not rebuild clusters. On KakaoMap `cameraStopped` (the practical idle event), the adapter only queries which prebuilt clusters intersect the viewport and applies a POI diff.
+- `RodiHomeMarkerBoundsCache` stores a viewport expanded by 50%. Dummy JSON is already fully loaded, so a cache miss does not make a network request yet. When the marker-list API is introduced, its request must be made only on a cache miss or tier change and return lightweight marker data.
 
 ## Onboarding Structure
 
