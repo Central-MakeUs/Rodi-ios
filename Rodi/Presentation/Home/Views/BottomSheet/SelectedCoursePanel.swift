@@ -7,6 +7,9 @@ import SwiftUI
 
 struct SelectedCoursePanel: View {
     let item: RodiCourseItem
+    let detail: PlaceDetail?
+    let isDetailLoading: Bool
+    let isBookmarkUpdating: Bool
     let isRouteLoading: Bool
     let routeStatusMessage: String?
     let userLocation: RodiCoordinate?
@@ -14,6 +17,7 @@ struct SelectedCoursePanel: View {
     let closeAction: () -> Void
     let routeGuidanceMessageAction: (String) -> Void
     let routeGuidancePermissionAction: () -> Void
+    let bookmarkAction: () -> Void
 
     @State private var isGuidanceDialogPresented = false
     @State private var isAddressExpanded = false
@@ -43,6 +47,42 @@ struct SelectedCoursePanel: View {
     }
 
     var body: some View {
+        Group {
+            if isDetailLoading {
+                ProgressView()
+                    .controlSize(.regular)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .accessibilityLabel("장소 상세 정보를 불러오는 중")
+            } else if let detail, detail.type == .course {
+                CourseSelectedDetailPanel(
+                    detail: detail,
+                    isBookmarkUpdating: isBookmarkUpdating,
+                    isRouteLoading: isRouteLoading,
+                    isRouteGuidanceEnabled: isRouteGuidanceButtonEnabled,
+                    closeAction: closeAction,
+                    bookmarkAction: bookmarkAction,
+                    routeGuidanceAction: handleRouteGuidanceButtonTap
+                )
+            } else {
+                legacyDetailPanel
+            }
+        }
+        .confirmationDialog("경로 안내 앱 선택", isPresented: $isGuidanceDialogPresented, titleVisibility: .visible) {
+            Button("카카오맵으로 보기") {
+                openRouteGuidance(.kakaoMap)
+            }
+
+            Button("카카오내비로 안내") {
+                openRouteGuidance(.kakaoNavi)
+            }
+
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("출발지, 경유지, 도착지를 함께 전달해요.")
+        }
+    }
+
+    private var legacyDetailPanel: some View {
         VStack(alignment: .leading, spacing: 0) {
             SelectedCourseHeaderView(title: item.name, closeAction: closeAction)
 
@@ -71,19 +111,6 @@ struct SelectedCoursePanel: View {
                     action: handleRouteGuidanceButtonTap
                 )
             }
-        }
-        .confirmationDialog("경로 안내 앱 선택", isPresented: $isGuidanceDialogPresented, titleVisibility: .visible) {
-            Button("카카오맵으로 보기") {
-                openRouteGuidance(.kakaoMap)
-            }
-
-            Button("카카오내비로 안내") {
-                openRouteGuidance(.kakaoNavi)
-            }
-
-            Button("취소", role: .cancel) {}
-        } message: {
-            Text("출발지, 경유지, 도착지를 함께 전달해요.")
         }
     }
 

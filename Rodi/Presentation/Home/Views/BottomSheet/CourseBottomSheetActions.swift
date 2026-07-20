@@ -12,6 +12,7 @@ struct CourseBottomSheetActions {
     let clearSelection: () -> Void
     let showRouteGuidanceMessage: (String) -> Void
     let requestLocationPermission: () -> Void
+    let toggleBookmark: () -> Void
     let reloadPlaceList: () -> Void
     let loadNextPage: () -> Void
     let expand: () -> Void

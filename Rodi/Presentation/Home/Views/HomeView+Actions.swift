@@ -44,6 +44,17 @@ extension HomeView {
         }
     }
 
+    func showResearchResultsSheet() {
+        switch bottomSheetState {
+        case .collapsed:
+            presentBottomSheet()
+        case .expanded:
+            collapseBottomSheet()
+        case .medium:
+            break
+        }
+    }
+
     func dismissBottomSheet() {
         guard bottomSheetState == .medium, !hasFixedBottomSheet else { return }
 
@@ -55,6 +66,7 @@ extension HomeView {
     func clearSelectedCourse() {
         withAnimation(.easeOut(duration: 0.2)) {
             homeStore.send(.routeAction(.clearSelection))
+            homeStore.send(.viewAction(.dismissSheet))
         }
     }
 

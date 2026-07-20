@@ -39,7 +39,10 @@ extension HomeView {
         Group {
             if shouldShowPlaceResearchButton {
                 VStack {
-                    HomeResearchButton(action: reloadPlaceList)
+                    HomeResearchButton(
+                        isLoading: placeListState.isManualResearchLoading,
+                        action: reloadPlaceList
+                    )
                         .padding(.top, 64)
                     Spacer()
                 }
@@ -76,10 +79,15 @@ extension HomeView {
             content: bottomSheetContentState,
             actions: bottomSheetActions,
             height: renderedSheetHeight,
+            usesIntrinsicHeight: usesContentSizedSelectedDetail,
             offsetY: renderedSheetOffset,
             opacity: bottomSheetOpacity,
             dragGesture: sheetDragGesture,
-            shouldAllowDrag: shouldAllowSheetDrag
+            shouldAllowDrag: shouldAllowSheetDrag,
+            contentHeightAction: { height in
+                guard abs(selectedSheetContentHeight - height) > 0.5 else { return }
+                selectedSheetContentHeight = height
+            }
         )
     }
 
