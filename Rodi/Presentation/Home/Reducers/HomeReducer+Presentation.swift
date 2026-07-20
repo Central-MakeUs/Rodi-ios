@@ -58,8 +58,6 @@ extension HomeReducer {
         case .setLocationSettingsAlertPresented(let isPresented):
             state.presentation.showsLocationSettingsAlert = isPresented
 
-        case .setLegalSettingsPresented(let isPresented):
-            state.presentation.showsLegalSettings = isPresented
         }
 
         return .none

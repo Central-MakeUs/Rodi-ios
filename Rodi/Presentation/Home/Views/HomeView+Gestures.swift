@@ -2,8 +2,6 @@
 //  HomeView+Gestures.swift
 //  Rodi
 //
-//  Created by Codex on 7/4/26.
-//
 
 import SwiftUI
 

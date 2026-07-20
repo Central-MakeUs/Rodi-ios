@@ -19,6 +19,8 @@ enum HomeAction {
         case setSheetHeight(CGFloat)
         case syncMediumSheetHeight(CGFloat)
         case syncExpandedSheetHeight(containerHeight: CGFloat, mediumHeight: CGFloat)
+        case presentSheet(mediumHeight: CGFloat)
+        case dismissSheet
         case expandSheet(availableHeight: CGFloat)
         case collapseSheet(mediumHeight: CGFloat)
         case resetSheetToMedium(mediumHeight: CGFloat)
@@ -81,7 +83,6 @@ enum HomeAction {
         case dismissLocationNoticeMessage
         case showLocationSettingsAlert
         case setLocationSettingsAlertPresented(Bool)
-        case setLegalSettingsPresented(Bool)
     }
 
     enum Delegate {

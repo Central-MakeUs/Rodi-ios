@@ -27,6 +27,14 @@ extension HomeReducer {
                 state.bottomSheet.sheetHeight = max(containerHeight, mediumHeight)
             }
 
+        case .presentSheet(let mediumHeight):
+            state.bottomSheet.bottomSheetState = .medium
+            state.bottomSheet.sheetHeight = mediumHeight
+
+        case .dismissSheet:
+            state.bottomSheet.bottomSheetState = .collapsed
+            state.bottomSheet.sheetHeight = 0
+
         case .expandSheet(let availableHeight):
             guard state.bottomSheet.bottomSheetState != .expanded else { break }
             state.bottomSheet.bottomSheetState = .expanded

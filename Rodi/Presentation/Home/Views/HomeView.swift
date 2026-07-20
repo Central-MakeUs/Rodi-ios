@@ -27,6 +27,7 @@ struct HomeView: View {
         static let currentLocationButtonSize: CGFloat = 40
         static let pageMorphStartRatio: CGFloat = 0.85
         static let pageSnapRatio: CGFloat = 0.9
+        static let bottomTabBarHeight: CGFloat = 80
     }
 
     var body: some View {
@@ -37,6 +38,8 @@ struct HomeView: View {
                 radiusFilterLayer
                 pageMorphOverlay
                 floatingControlLayer
+                listButtonLayer
+                bottomTabBarLayer
                 bottomSheetLayer
             }
             .onGeometryChange(for: CGFloat.self) { proxy in

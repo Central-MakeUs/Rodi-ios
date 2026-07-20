@@ -23,7 +23,8 @@ struct RodiMapViewport: Equatable {
     static let initial = RodiMapViewport(center: .seoulCityHall, zoomLevel: 14)
 }
 
-enum HomeBottomSheetState {
+enum HomeBottomSheetState: Equatable {
+    case collapsed
     case medium
     case expanded
 }
