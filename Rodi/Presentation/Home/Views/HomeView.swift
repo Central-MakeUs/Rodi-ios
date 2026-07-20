@@ -68,7 +68,6 @@ struct HomeView: View {
             guidanceSnackbarMessage: guidanceSnackbarMessageBinding,
             locationNoticeMessage: locationNoticeMessageBinding,
             bottomSheetState: bottomSheetState,
-            mediumOverlayBottomInset: mediumOverlayBottomInset,
             showsLocationSettingsAlert: showsLocationSettingsAlertBinding,
             scenePhase: scenePhase,
             openSettingsAction: openAppSettings,

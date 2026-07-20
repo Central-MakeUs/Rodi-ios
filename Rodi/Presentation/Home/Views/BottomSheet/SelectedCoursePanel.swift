@@ -63,6 +63,16 @@ struct SelectedCoursePanel: View {
                     bookmarkAction: bookmarkAction,
                     routeGuidanceAction: handleRouteGuidanceButtonTap
                 )
+            } else if let detail, detail.type == .parking {
+                ParkingSelectedDetailPanel(
+                    detail: detail,
+                    isBookmarkUpdating: isBookmarkUpdating,
+                    isRouteLoading: isRouteLoading,
+                    isRouteGuidanceEnabled: isRouteGuidanceButtonEnabled,
+                    closeAction: closeAction,
+                    bookmarkAction: bookmarkAction,
+                    routeGuidanceAction: handleRouteGuidanceButtonTap
+                )
             } else {
                 legacyDetailPanel
             }
@@ -78,7 +88,7 @@ struct SelectedCoursePanel: View {
 
             Button("취소", role: .cancel) {}
         } message: {
-            Text("출발지, 경유지, 도착지를 함께 전달해요.")
+            Text(routeGuidanceDialogMessage)
         }
     }
 
@@ -138,5 +148,11 @@ struct SelectedCoursePanel: View {
 
         RodiLogger.info("Route guidance chooser presented courseID=\(item.id)")
         isGuidanceDialogPresented = true
+    }
+
+    private var routeGuidanceDialogMessage: String {
+        isSingleLocationRouteGuidance
+            ? "현재 위치에서 선택한 장소까지 안내해요."
+            : "출발지, 경유지, 도착지를 함께 전달해요."
     }
 }

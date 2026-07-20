@@ -9,7 +9,6 @@ struct HomeInteractionModifier: ViewModifier {
     @Binding var guidanceSnackbarMessage: String?
     @Binding var locationNoticeMessage: String?
     let bottomSheetState: HomeBottomSheetState
-    let mediumOverlayBottomInset: CGFloat
     @Binding var showsLocationSettingsAlert: Bool
     let scenePhase: ScenePhase
     let openSettingsAction: () -> Void
@@ -40,11 +39,14 @@ struct HomeInteractionModifier: ViewModifier {
     @ViewBuilder
     private var guidanceSnackbar: some View {
         if let guidanceSnackbarMessage {
-            SnackbarView(message: guidanceSnackbarMessage)
-                .padding(.horizontal, 16)
-                .padding(.bottom, mediumOverlayBottomInset)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-                .allowsHitTesting(false)
+            GeometryReader { proxy in
+                SnackbarView(message: guidanceSnackbarMessage)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, proxy.size.height * 0.14)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .allowsHitTesting(false)
+            }
         }
     }
 
@@ -66,7 +68,6 @@ extension View {
         guidanceSnackbarMessage: Binding<String?>,
         locationNoticeMessage: Binding<String?>,
         bottomSheetState: HomeBottomSheetState,
-        mediumOverlayBottomInset: CGFloat,
         showsLocationSettingsAlert: Binding<Bool>,
         scenePhase: ScenePhase,
         openSettingsAction: @escaping () -> Void,
@@ -77,7 +78,6 @@ extension View {
                 guidanceSnackbarMessage: guidanceSnackbarMessage,
                 locationNoticeMessage: locationNoticeMessage,
                 bottomSheetState: bottomSheetState,
-                mediumOverlayBottomInset: mediumOverlayBottomInset,
                 showsLocationSettingsAlert: showsLocationSettingsAlert,
                 scenePhase: scenePhase,
                 openSettingsAction: openSettingsAction,
