@@ -59,6 +59,7 @@ Avoid:
 | Primary | `#5640FF` | `RodiColor.primary` |
 | Primary 50 | `#F0EFFF` | `RodiColor.primary50` |
 | Primary 100 | `#DBD9FF` | `RodiColor.primary100` |
+| Primary -100 | `#F5F5F0` | `RodiColor.primaryMinus100` |
 | Primary 200 | `#BAB6FF` | `RodiColor.primary200` |
 | Course text marker | `#7062FF` | `RodiColor.primary400` |
 | Gray 100 | `#F5F5F5` | `RodiColor.gray100` |
