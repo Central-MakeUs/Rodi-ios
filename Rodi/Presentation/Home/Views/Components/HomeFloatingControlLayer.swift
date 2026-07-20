@@ -12,16 +12,12 @@ struct HomeFloatingControlLayer: View {
     let allowsHitTesting: Bool
     let isAccessibilityHidden: Bool
     let spacing: CGFloat
-    let legalSettingsAction: () -> Void
     let currentLocationAction: () -> Void
 
     var body: some View {
         VStack {
             Spacer()
             HStack {
-                LegalSettingsButton(action: legalSettingsAction)
-                    .padding(.leading, spacing)
-
                 Spacer()
 
                 CurrentLocationButton(

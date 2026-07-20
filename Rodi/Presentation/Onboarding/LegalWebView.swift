@@ -30,8 +30,19 @@ struct LegalWebView: View {
 }
 
 struct LegalSettingsView: View {
+    let title: String
     var logoutAction: (() -> Void)?
     var withdrawalAction: (() -> Void)?
+
+    init(
+        title: String = "설정",
+        logoutAction: (() -> Void)? = nil,
+        withdrawalAction: (() -> Void)? = nil
+    ) {
+        self.title = title
+        self.logoutAction = logoutAction
+        self.withdrawalAction = withdrawalAction
+    }
 
     var body: some View {
         NavigationStack {
@@ -78,7 +89,7 @@ struct LegalSettingsView: View {
                     }
                 }
             }
-            .navigationTitle("설정")
+            .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
         }
     }

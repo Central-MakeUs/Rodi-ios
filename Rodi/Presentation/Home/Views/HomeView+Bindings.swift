@@ -29,11 +29,4 @@ extension HomeView {
         )
     }
 
-    var showsLegalSettingsBinding: Binding<Bool> {
-        Binding(
-            get: { homeStore.state.presentation.showsLegalSettings },
-            set: { homeStore.send(.presentationAction(.setLegalSettingsPresented($0))) }
-        )
-    }
-
 }

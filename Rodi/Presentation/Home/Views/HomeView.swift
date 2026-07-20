@@ -9,22 +9,16 @@ import SwiftUI
 
 struct HomeView: View {
     @Environment(\.scenePhase) private var scenePhase
-    @State var runtimeService = HomeRuntimeService()
+    @StateObject var runtimeService = HomeRuntimeService()
     @StateObject var homeStore = Store(state: HomeState(), reducer: HomeReducer())
     @State var networkMonitor = HomeNetworkMonitor()
     @State var containerHeight: CGFloat = 0
-    let authRepository: AuthRepository
-    let memberRepository: MemberRepository
-    let onLogout: () -> Void
+    @Binding var selectedTab: RodiTab
 
     init(
-        authRepository: AuthRepository = AuthDependencyContainer.shared.authRepository,
-        memberRepository: MemberRepository = AuthDependencyContainer.shared.memberRepository,
-        onLogout: @escaping () -> Void = {}
+        selectedTab: Binding<RodiTab> = .constant(.home)
     ) {
-        self.authRepository = authRepository
-        self.memberRepository = memberRepository
-        self.onLogout = onLogout
+        _selectedTab = selectedTab
     }
 
     enum Constants {
@@ -60,11 +54,8 @@ struct HomeView: View {
             bottomSheetState: bottomSheetState,
             mediumOverlayBottomInset: mediumOverlayBottomInset,
             showsLocationSettingsAlert: showsLocationSettingsAlertBinding,
-            showsLegalSettings: showsLegalSettingsBinding,
             scenePhase: scenePhase,
             openSettingsAction: openAppSettings,
-            logoutAction: performLogout,
-            withdrawalAction: performWithdrawal,
             refreshLocationAuthorizationAction: runtimeService.refreshLocationAuthorization
         )
     }

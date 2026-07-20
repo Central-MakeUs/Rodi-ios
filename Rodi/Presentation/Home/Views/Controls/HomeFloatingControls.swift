@@ -5,23 +5,6 @@
 
 import SwiftUI
 
-struct LegalSettingsButton: View {
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: "gearshape")
-                .font(.pretendard(size: 18, weight: .semibold))
-                .foregroundStyle(RodiColor.gray800)
-                .frame(width: 40, height: 40)
-                .background(RodiColor.white)
-                .clipShape(Circle())
-                .shadow(color: RodiColor.black.opacity(0.12), radius: 8, x: 0, y: 2)
-        }
-        .accessibilityLabel("설정")
-    }
-}
-
 struct RadiusFilterControl: View {
     let selectedFilter: HomeRadiusFilter
     let selectAction: (HomeRadiusFilter) -> Void
