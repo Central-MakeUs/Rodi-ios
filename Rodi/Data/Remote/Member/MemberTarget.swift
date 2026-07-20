@@ -8,13 +8,24 @@ import Foundation
 
 enum MemberTarget: TargetType {
     case withdraw
+    case submitOnboarding(MemberOnboardingRequestDTO)
 
     var method: HTTPMethod {
-        .delete
+        switch self {
+        case .withdraw:
+            .delete
+        case .submitOnboarding:
+            .post
+        }
     }
 
     var path: String {
-        "/api/v1/members/me"
+        switch self {
+        case .withdraw:
+            "/api/v1/members/me"
+        case .submitOnboarding:
+            "/api/v1/members/me/onboarding"
+        }
     }
 
     var optionalHeaders: HTTPHeaders? {
@@ -26,7 +37,12 @@ enum MemberTarget: TargetType {
     }
 
     var body: Data? {
-        nil
+        switch self {
+        case .withdraw:
+            nil
+        case .submitOnboarding(let request):
+            requestToBody(request)
+        }
     }
 
     var encodingType: EncodingType {

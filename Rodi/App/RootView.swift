@@ -67,6 +67,7 @@ struct RootView: View {
     }
     
     private func completeLogout() {
+        OnboardingDraftStore().clear()
         preferencesStore.resetOnboardingSeen()
         selectedTab = .home
         root = .onboarding
