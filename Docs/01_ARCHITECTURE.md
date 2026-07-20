@@ -125,10 +125,21 @@ Rules:
 
 Home marker clustering is client-rendered in `Presentation/Home/Map`.
 
-- `RodiHomeMarkerClusterIndex` groups the complete loaded marker set by global Web Mercator tile coordinates, never by the current viewport origin.
-- Tiers are `national` (map zoom `<= 10`), `district` (`11...13`), and `individual` (`>= 14`). A cluster ID is deterministic: `cluster:<tier>:<tileZoom>:<x>:<y>`.
-- Camera drag does not rebuild clusters. On KakaoMap `cameraStopped` (the practical idle event), the adapter only queries which prebuilt clusters intersect the viewport and applies a POI diff.
-- `RodiHomeMarkerBoundsCache` stores a viewport expanded by 50%. Dummy JSON is already fully loaded, so a cache miss does not make a network request yet. When the marker-list API is introduced, its request must be made only on a cache miss or tier change and return lightweight marker data.
+- `RodiHomeMarkerClusterIndex` groups the complete `/api/v1/places/coordinates` response by address, never by the current viewport origin.
+- Tiers are `province` (map zoom `<= 10`, first address token such as `인천광역시`), `district` (`11...13`, first two tokens such as `인천광역시 강화군`), and `individual` (`>= 14`, course/parking markers).
+- Camera movement does not call the Places API again. On KakaoMap `cameraStopped` (the practical idle event), the current zoom tier is rendered from the coordinates already held in Home state.
+- Viewport-aware cache/paged coordinate requests are deferred until the coordinate endpoint becomes too large to keep in memory or is replaced by a bounds-based API.
+
+### Viewport place list
+
+Home deliberately uses two public Place APIs for different jobs.
+
+- `/api/v1/places/coordinates` supplies the complete lightweight coordinate set for map markers and client-side clusters.
+- `/api/v1/places` supplies bottom-sheet cards only. It is queried with KakaoMap's full drawable south-west/north-east bounds, an origin coordinate, `size=20`, and a cursor.
+- `HomePlaceListState` owns list items, cursor metadata, query revision, loading/error state, and whether the user must tap `재검색`.
+- Initial loading occurs once after the first stable camera event. A user pan or zoom only marks the list as stale; it never starts a request automatically.
+- A programmatic camera move such as current-location focus, marker selection, or cluster drill-down must not mark the list as stale.
+- A late response is ignored when its query revision is no longer current. Cursor pages append only while the current bounds remain active.
 
 ## Onboarding Structure
 

@@ -180,6 +180,8 @@ Avoid:
 - The app-level bottom tab has `홈` and `마이`. Keep its icons in the asset catalog and render the label separately with a 3pt gap.
 - Home starts with the bottom tab and a `목록열기` button visible. Re-tapping the selected Home tab or tapping `목록열기` opens the course bottom sheet.
 - While dragging the list sheet down, reveal the tab and list button progressively; do not make them appear only after the drag ends.
+- The bottom sheet renders the current map viewport's server-backed course and parking list. Do not reintroduce the retired `전체/3km/5km/10km` radius control.
+- After a user finishes panning or zooming, show the `재검색` button 64pt below the top edge. It must request the new list only after the user taps it; programmatic camera moves do not show it.
 - Legal documents, support, logout, and withdrawal belong to the `마이` tab, not a Home floating settings button.
 - Kakao map rendering is UIKit-backed; do not replace it with a pure SwiftUI map.
 
