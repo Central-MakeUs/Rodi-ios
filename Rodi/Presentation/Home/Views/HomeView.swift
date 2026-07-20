@@ -13,15 +13,19 @@ struct HomeView: View {
     @StateObject var homeStore: StoreOf<HomeReducer>
     @State var networkMonitor = HomeNetworkMonitor()
     @State var containerHeight: CGFloat = 0
+    @State var selectedSheetContentHeight: CGFloat = 0
     @Binding var selectedTab: RodiTab
     let placeRepository: PlaceRepository
+    let onAuthenticationRequired: () -> Void
 
     init(
         selectedTab: Binding<RodiTab> = .constant(.home),
-        placeRepository: PlaceRepository = AuthDependencyContainer.shared.placeRepository
+        placeRepository: PlaceRepository = AuthDependencyContainer.shared.placeRepository,
+        onAuthenticationRequired: @escaping () -> Void = {}
     ) {
         _selectedTab = selectedTab
         self.placeRepository = placeRepository
+        self.onAuthenticationRequired = onAuthenticationRequired
         _homeStore = StateObject(
             wrappedValue: Store(
                 state: HomeState(),
@@ -70,5 +74,17 @@ struct HomeView: View {
             openSettingsAction: openAppSettings,
             refreshLocationAuthorizationAction: runtimeService.refreshLocationAuthorization
         )
+        .onChange(of: homeStore.state.presentation.authenticationRequestID) { requestID in
+            guard requestID > 0 else { return }
+            onAuthenticationRequired()
+        }
+        .onChange(of: selectedItem?.id) { _ in
+            selectedSheetContentHeight = 0
+        }
+        .onChange(of: homeStore.state.placeList.shouldAutoExpandAfterResearch) { shouldExpand in
+            guard shouldExpand else { return }
+            showResearchResultsSheet()
+            homeStore.send(.placeListAction(.consumeAutoExpandAfterResearch))
+        }
     }
 }

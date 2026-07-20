@@ -13,6 +13,8 @@ extension HomeView {
             containerHeight: containerHeight,
             sheetHeight: homeStore.state.bottomSheet.sheetHeight,
             hasSelectedBottomSheet: hasSelectedBottomSheet,
+            usesCompactSelectedDetail: selectedPlaceDetail?.type == .course && !isPlaceDetailLoading,
+            selectedSheetContentHeight: selectedSheetContentHeight,
             bottomSheetState: homeStore.state.bottomSheet.bottomSheetState,
             sheetHeightRatio: Constants.sheetHeightRatio,
             floatingControlSpacing: Constants.floatingControlSpacing,
@@ -51,6 +53,10 @@ extension HomeView {
         sheetLayout.hasFixedBottomSheet
     }
 
+    var usesContentSizedSelectedDetail: Bool {
+        selectedPlaceDetail?.type == .course && !isPlaceDetailLoading
+    }
+
     var isBottomSheetPresented: Bool {
         bottomSheetState != .collapsed
     }
@@ -64,6 +70,7 @@ extension HomeView {
             && overlayState == nil
             && shouldRenderMap
             && bottomSheetState != .expanded
+            && !hasSelectedBottomSheet
     }
 
     var availableSheetHeight: CGFloat {

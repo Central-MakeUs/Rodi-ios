@@ -13,6 +13,8 @@ struct HomeBottomSheetLayoutPolicy {
     let containerHeight: CGFloat
     let sheetHeight: CGFloat
     let hasSelectedBottomSheet: Bool
+    let usesCompactSelectedDetail: Bool
+    let selectedSheetContentHeight: CGFloat
     let bottomSheetState: HomeBottomSheetState
     let sheetHeightRatio: CGFloat
     let floatingControlSpacing: CGFloat
@@ -33,7 +35,10 @@ struct HomeBottomSheetLayoutPolicy {
 
     /// 선택 상세처럼 드래그가 잠긴 바텀싯 위 플로팅 컨트롤 여백.
     var selectedOverlayBottomInset: CGFloat {
-        fixedSheetHeight + floatingControlSpacing
+        if usesCompactSelectedDetail, selectedSheetContentHeight > 0 {
+            return selectedSheetContentHeight + floatingControlSpacing
+        }
+        return fixedSheetHeight + floatingControlSpacing
     }
 
     var floatingControlBottomInset: CGFloat {
@@ -51,7 +56,14 @@ struct HomeBottomSheetLayoutPolicy {
 
     /// 고정 바텀싯 높이. 작은 화면에서도 사용 가능한 높이를 넘지 않게 제한한다.
     var fixedSheetHeight: CGFloat {
-        min(mediumSheetHeight, availableSheetHeight)
+        if usesCompactSelectedDetail {
+            // 코스 상세는 SwiftUI가 측정한 콘텐츠 높이만큼만 차지한다.
+            // 최초 레이아웃 전에는 중간 시트 높이를 사용해 지도 보정의 급격한 변화를 막는다.
+            return selectedSheetContentHeight > 0
+                ? min(selectedSheetContentHeight, availableSheetHeight)
+                : mediumSheetHeight
+        }
+        return min(mediumSheetHeight, availableSheetHeight)
     }
 
     /// 바텀싯이 최대로 차지할 수 있는 높이.

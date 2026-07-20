@@ -83,4 +83,16 @@ extension HomeView {
     var placeListState: HomePlaceListState {
         homeStore.state.placeList
     }
+
+    var selectedPlaceDetail: PlaceDetail? {
+        homeStore.state.placeDetail.detail
+    }
+
+    var isPlaceDetailLoading: Bool {
+        homeStore.state.placeDetail.isLoading
+    }
+
+    var isBookmarkUpdating: Bool {
+        homeStore.state.placeDetail.isBookmarkUpdating
+    }
 }

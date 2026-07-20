@@ -10,6 +10,9 @@ import CoreGraphics
 struct CourseBottomSheetContentState {
     let placeItems: [PlaceListItem]
     let selectedItem: RodiCourseItem?
+    let selectedPlaceDetail: PlaceDetail?
+    let isPlaceDetailLoading: Bool
+    let isBookmarkUpdating: Bool
     let isRouteLoading: Bool
     let routeStatusMessage: String?
     let userLocation: RodiCoordinate?
@@ -21,7 +24,9 @@ struct CourseBottomSheetContentState {
     let pageProgress: CGFloat
 
     var showsListHeader: Bool {
-        selectedItem == nil
+        // 기본 시트는 피그마의 안내 상태처럼 핸들만 보이고,
+        // 전체 화면으로 확장했을 때만 목록 앱바를 노출한다.
+        selectedItem == nil && (!placeItems.isEmpty || pageProgress >= 0.98)
     }
 
     var hasSelectedItem: Bool {

@@ -31,13 +31,17 @@ struct CourseBottomSheet: View {
             if let selectedItem = content.selectedItem {
                 SelectedCoursePanel(
                     item: selectedItem,
+                    detail: content.selectedPlaceDetail,
+                    isDetailLoading: content.isPlaceDetailLoading,
+                    isBookmarkUpdating: content.isBookmarkUpdating,
                     isRouteLoading: content.isRouteLoading,
                     routeStatusMessage: content.routeStatusMessage,
                     userLocation: content.userLocation,
                     hasLocationPermission: content.hasLocationPermission,
                     closeAction: actions.clearSelection,
                     routeGuidanceMessageAction: actions.showRouteGuidanceMessage,
-                    routeGuidancePermissionAction: actions.requestLocationPermission
+                    routeGuidancePermissionAction: actions.requestLocationPermission,
+                    bookmarkAction: actions.toggleBookmark
                 )
             } else {
                 PlaceListView(
@@ -46,13 +50,18 @@ struct CourseBottomSheet: View {
                     isNextPageLoading: content.isNextPageLoading,
                     errorMessage: content.listErrorMessage,
                     hasNextPage: content.hasNextPage,
+                    isExpanded: content.pageProgress >= 0.98,
                     selectAction: actions.selectPlaceItem,
                     reloadAction: actions.reloadPlaceList,
                     loadNextPageAction: actions.loadNextPage
                 )
-            }
+                .frame(
+                    maxWidth: .infinity,
+                    maxHeight: content.pageProgress >= 0.98 ? .infinity : nil
+                )
 
-            Spacer(minLength: 0)
+                Spacer(minLength: 0)
+            }
         }
         .background(RodiColor.white)
         .clipShape(

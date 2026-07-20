@@ -10,6 +10,9 @@ extension HomeView {
         CourseBottomSheetContentState(
             placeItems: placeListState.items,
             selectedItem: selectedItem,
+            selectedPlaceDetail: selectedPlaceDetail,
+            isPlaceDetailLoading: isPlaceDetailLoading,
+            isBookmarkUpdating: isBookmarkUpdating,
             isRouteLoading: isRouteLoading,
             routeStatusMessage: routeStatusMessage,
             userLocation: userLocationCoordinate,
@@ -28,6 +31,7 @@ extension HomeView {
             clearSelection: clearSelectedCourse,
             showRouteGuidanceMessage: showRouteGuidanceMessage,
             requestLocationPermission: showLocationSettingsAlert,
+            toggleBookmark: { homeStore.send(.routeAction(.toggleBookmark)) },
             reloadPlaceList: reloadPlaceList,
             loadNextPage: loadNextPlaceListPage,
             expand: expandBottomSheet,

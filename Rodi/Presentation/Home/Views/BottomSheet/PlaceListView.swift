@@ -12,6 +12,7 @@ struct PlaceListView: View {
     let isNextPageLoading: Bool
     let errorMessage: String?
     let hasNextPage: Bool
+    let isExpanded: Bool
     let selectAction: (PlaceListItem) -> Void
     let reloadAction: () -> Void
     let loadNextPageAction: () -> Void
@@ -24,7 +25,7 @@ struct PlaceListView: View {
             } else if items.isEmpty, let errorMessage {
                 PlaceListMessageView(message: errorMessage, actionTitle: "다시 시도", action: reloadAction)
             } else if items.isEmpty {
-                PlaceListMessageView(message: "이 지도 범위에 표시할 장소가 없어요.")
+                PlaceListEmptyResultView(isExpanded: isExpanded)
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
@@ -32,9 +33,10 @@ struct PlaceListView: View {
                             PlaceListCard(item: item, selectAction: selectAction)
 
                             if item.id != items.last?.id {
-                                Divider()
-                                    .overlay(RodiColor.gray100)
-                                    .padding(.leading, 16)
+                                Rectangle()
+                                    .fill(RodiColor.primaryMinus100)
+                                    .frame(height: 2)
+                                    .padding(.horizontal, 16)
                             }
                         }
 
@@ -120,7 +122,8 @@ private struct PlaceListCard: View {
                 Text(summary)
                     .rodiTypography(.caption1Medium)
                     .foregroundStyle(RodiColor.gray700)
-                    .lineLimit(2)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(10)
                     .background(RodiColor.gray50)
@@ -141,13 +144,7 @@ private struct PlaceListCard: View {
                 .foregroundStyle(RodiColor.gray700)
                 .lineLimit(1)
 
-            PlaceListTagRow(tags: ["주차"])
-
-            if let openTime = item.openTime?.trimmingCharacters(in: .whitespacesAndNewlines), !openTime.isEmpty {
-                Text("\(openTime)에 영업 시작")
-                    .rodiTypography(.caption1Medium)
-                    .foregroundStyle(RodiColor.gray700)
-            }
+            PlaceListParkingMetaRow(openTime: item.openTime)
 
             if let capacity = item.capacity {
                 Text("총 주차 면수 · \(capacity.formatted())대")
@@ -169,15 +166,53 @@ private struct PlaceListCard: View {
     }
 }
 
-private struct PlaceListTagRow: View {
-    let tags: [String]
+private struct PlaceListParkingMetaRow: View {
+    let openTime: String?
+
+    private var normalizedOpenTime: String? {
+        guard let openTime else { return nil }
+        let value = openTime.trimmingCharacters(in: .whitespacesAndNewlines)
+        return value.isEmpty ? nil : value
+    }
 
     var body: some View {
         HStack(spacing: 4) {
-            ForEach(Array(tags.prefix(3)), id: \.self) { tag in
+            PlaceListTagRow(tags: [PlacePracticeType.parking.rawValue])
+
+            if let normalizedOpenTime {
+                Text("･")
+                    .rodiTypography(.body3Medium)
+                    .foregroundStyle(RodiColor.gray800)
+
+                HStack(spacing: 0) {
+                    Text(normalizedOpenTime)
+                        .rodiTypography(.body3Medium)
+                        .foregroundStyle(RodiColor.primary)
+                    Text("에 영업 시작")
+                        .rodiTypography(.body3Medium)
+                        .foregroundStyle(RodiColor.gray800)
+                }
+                .lineLimit(1)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .lineLimit(1)
+    }
+}
+
+private struct PlaceListTagRow: View {
+    let tags: [String]
+
+    private var displayTags: [String] {
+        tags.map(PlacePracticeType.displayName(for:))
+    }
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(Array(displayTags.prefix(3)), id: \.self) { tag in
                 Text(tag)
-                    .rodiTypography(.caption2SemiBold)
-                    .foregroundStyle(RodiColor.gray700)
+                    .rodiTypography(.caption1Medium)
+                    .foregroundStyle(RodiColor.gray600)
                     .lineLimit(1)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
@@ -208,5 +243,51 @@ private struct PlaceListMessageView: View {
             }
         }
         .frame(maxWidth: .infinity, minHeight: 140)
+    }
+}
+
+private struct PlaceListEmptyResultView: View {
+    let isExpanded: Bool
+
+    var body: some View {
+        Group {
+            if isExpanded {
+                VStack {
+                    Spacer(minLength: 0)
+                    emptyContent
+                    Spacer(minLength: 0)
+                }
+                .padding(.bottom, 56)
+            } else {
+                VStack {
+                    emptyContent
+                    Spacer(minLength: 0)
+                }
+                .padding(.top, 68)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: isExpanded ? .infinity : nil)
+    }
+
+    private var emptyContent: some View {
+        VStack(spacing: 16) {
+            Image("img_empty_radius_result")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 80, height: 80)
+
+            VStack(spacing: 8) {
+                Text("추천할 수 있는 연습 코스를 찾지 못했어요.")
+                    .rodiTypography(.headline1)
+                    .foregroundStyle(RodiColor.gray600)
+                    .multilineTextAlignment(.center)
+
+                Text("지도를 축소시켜, 전체 지역의\n연습 코스를 둘러보세요.")
+                    .rodiTypography(.body3Medium)
+                    .foregroundStyle(RodiColor.gray600)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .frame(maxWidth: .infinity)
     }
 }
