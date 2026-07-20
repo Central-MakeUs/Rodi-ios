@@ -19,6 +19,7 @@ struct SafetyAgreementView: View {
                 .resizable()
                 .frame(width: 60, height: 60)
                 .accessibilityHidden(true)
+                .padding(.top, 96)
 
             Text("운전 자격 및 주의 사항")
                 .rodiTypography(.heading2)
@@ -48,7 +49,13 @@ struct SafetyAgreementView: View {
 
             Spacer()
 
-            PrimaryBottomButton(title: "다음", isEnabled: isAllAgreed, action: onNext)
+            PrimaryBottomButton(
+                title: "다음",
+                isEnabled: isAllAgreed,
+                showsDivider: true,
+                action: onNext
+            )
+
         }
     }
 }

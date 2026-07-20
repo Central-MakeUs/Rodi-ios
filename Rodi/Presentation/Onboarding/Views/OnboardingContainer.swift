@@ -17,7 +17,7 @@ struct OnboardingContainer<Content: View>: View {
             RodiColor.white.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                if step != .entry {
+                if step.showsBackNavigation {
                     topBar
                 }
                 if let progressCount = step.progressCount {
@@ -29,7 +29,6 @@ struct OnboardingContainer<Content: View>: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .ignoresSafeArea(.keyboard, edges: .bottom)
     }
 
     private var topBar: some View {

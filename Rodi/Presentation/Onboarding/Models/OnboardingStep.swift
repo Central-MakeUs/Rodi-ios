@@ -31,6 +31,15 @@ enum OnboardingStep: Int, CaseIterable {
         progressCount != nil
     }
 
+    var showsBackNavigation: Bool {
+        switch self {
+        case .entry, .terms, .safety:
+            false
+        case .nickname, .drivingExperience, .optionalDrivingPreference, .locationPermission:
+            true
+        }
+    }
+
     var previous: OnboardingStep? {
         OnboardingStep(rawValue: rawValue - 1)
     }
