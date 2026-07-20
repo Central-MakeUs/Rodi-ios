@@ -52,7 +52,8 @@ extension SocialLoginResponseDTO {
             return AuthToken(
                 accessToken: accessToken,
                 refreshToken: refreshToken,
-                isNewMember: isNewMember ?? false
+                isNewMember: isNewMember ?? false,
+                nickname: nickname?.trimmingCharacters(in: .whitespacesAndNewlines)
             )
 
         case .withdrawalPending:
@@ -69,7 +70,8 @@ extension AuthTokenDTO {
         AuthToken(
             accessToken: accessToken,
             refreshToken: refreshToken,
-            isNewMember: isNewMember
+            isNewMember: isNewMember,
+            nickname: nil
         )
     }
 

@@ -6,6 +6,16 @@
 import SwiftUI
 
 struct OnboardingEntryView: View {
+    private enum Constants {
+        static let horizontalInset: CGFloat = 16
+        static let browseTopInset: CGFloat = 12
+        static let browseHorizontalInset: CGFloat = 12
+        static let socialButtonHeight: CGFloat = 52
+        static let socialButtonCornerRadius: CGFloat = 8
+        static let socialButtonSpacing: CGFloat = 12
+        static let socialButtonBottomInset: CGFloat = 40
+    }
+
     let isAuthenticating: Bool
     let onBrowse: () -> Void
     let onAppleLogin: () -> Void
@@ -16,53 +26,15 @@ struct OnboardingEntryView: View {
             RodiColor.white.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                HStack {
-                    Spacer()
-                    Button("둘러보기", action: onBrowse)
-                        .font(.pretendard(size: 14, weight: .medium))
-                        .foregroundStyle(Color(hex: 0xBDC4C8))
-                        .disabled(isAuthenticating)
-                }
-                .padding(.horizontal, 28)
+                browseRow
 
-                Spacer()
+                Spacer(minLength: 0)
 
-                VStack(spacing: 10) {
-                    Text("RODI")
-                        .font(.custom("Pretendard-Bold", size: 56))
-                        .italic()
-                        .tracking(-1.24)
-                        .foregroundStyle(Color(hex: 0x252525))
+                brandBlock
 
-                    Text("나에게 맞는 운전 연습 코스 탐색의 시작, Rodi")
-                        .font(.pretendard(size: 16, weight: .regular))
-                        .tracking(-1.24)
-                        .foregroundStyle(Color.black)
-                        .multilineTextAlignment(.center)
-                }
-                .offset(y: -28)
+                Spacer(minLength: 0)
 
-                Spacer()
-
-                VStack(spacing: 12) {
-                    socialButton(
-                        title: "Apple로 시작하기",
-                        systemImage: "applelogo",
-                        background: Color(hex: 0x101419),
-                        foreground: RodiColor.white,
-                        action: onAppleLogin
-                    )
-
-                    socialButton(
-                        title: "카카오로 시작하기",
-                        systemImage: "message.fill",
-                        background: Color(hex: 0xFAE100),
-                        foreground: Color.black,
-                        action: onKakaoLogin
-                    )
-                }
-                .padding(.horizontal, 38)
-                .padding(.bottom, 25)
+                socialLoginButtons
             }
 
             if isAuthenticating {
@@ -71,32 +43,96 @@ struct OnboardingEntryView: View {
                     .padding(18)
                     .background(.regularMaterial)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .accessibilityLabel("로그인 중")
             }
         }
     }
 
+    private var browseRow: some View {
+        HStack {
+            Spacer()
+
+            Button(action: onBrowse) {
+                Text("둘러보기")
+                    .font(.pretendard(size: 12, weight: .semibold))
+                    .tracking(-0.24)
+                    .foregroundStyle(RodiColor.gray500)
+                    .padding(.horizontal, Constants.browseHorizontalInset)
+                    .padding(.vertical, 8)
+            }
+            .buttonStyle(.plain)
+            .disabled(isAuthenticating)
+        }
+        .padding(.top, Constants.browseTopInset)
+        .padding(.trailing, 4)
+    }
+
+    private var brandBlock: some View {
+        VStack(spacing: 8) {
+            Image("img_rodi_login_logo")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 146, height: 45)
+                .accessibilityLabel("RODI")
+
+            Text("운전연습의 시작, 로디")
+                .font(.pretendard(size: 16, weight: .medium))
+                .tracking(-0.32)
+                .foregroundStyle(RodiColor.black)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var socialLoginButtons: some View {
+        VStack(spacing: Constants.socialButtonSpacing) {
+            socialButton(
+                title: "카카오로 시작하기",
+                assetName: "ic_login_kakao",
+                background: Color(hex: 0xFDE500),
+                foreground: RodiColor.black,
+                action: onKakaoLogin
+            )
+
+            socialButton(
+                title: "Apple ID로 시작하기",
+                assetName: "ic_login_apple",
+                background: RodiColor.black,
+                foreground: RodiColor.white,
+                action: onAppleLogin
+            )
+        }
+        .padding(.horizontal, Constants.horizontalInset)
+        .padding(.bottom, Constants.socialButtonBottomInset)
+    }
+
     private func socialButton(
         title: String,
-        systemImage: String,
+        assetName: String,
         background: Color,
         foreground: Color,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            HStack(spacing: 16) {
-                Image(systemName: systemImage)
-                    .font(.system(size: 20, weight: .semibold))
+            ZStack {
+                Image(assetName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 22, height: 22)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.leading, 16)
+
                 Text(title)
-                    .font(.pretendard(size: 15, weight: .regular))
+                    .font(.pretendard(size: 15, weight: .semibold))
                     .tracking(-0.3)
             }
             .foregroundStyle(foreground)
             .frame(maxWidth: .infinity)
-            .frame(height: 50)
+            .frame(height: Constants.socialButtonHeight)
             .background(background)
-            .clipShape(Capsule())
+            .clipShape(RoundedRectangle(cornerRadius: Constants.socialButtonCornerRadius))
         }
         .buttonStyle(.plain)
         .disabled(isAuthenticating)
+        .accessibilityLabel(title)
     }
 }

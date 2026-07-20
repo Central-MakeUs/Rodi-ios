@@ -57,7 +57,8 @@ final class AuthRepositoryImpl: AuthRepository {
         return AuthToken(
             accessToken: refreshed.accessToken,
             refreshToken: refreshed.refreshToken,
-            isNewMember: false
+            isNewMember: false,
+            nickname: nil
         )
     }
 
