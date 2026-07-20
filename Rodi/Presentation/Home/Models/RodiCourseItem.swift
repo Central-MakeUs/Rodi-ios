@@ -100,6 +100,68 @@ struct RodiCourseItem: Decodable, Identifiable {
     }
 }
 
+extension RodiCourseItem {
+    /// `/places/coordinates`의 경량 마커 응답을 홈 지도용 모델로 변환한다.
+    /// 상세 정보는 이후 `/places/{id}` 응답으로 보강한다.
+    init(placeCoordinate: PlaceCoordinate) {
+        id = placeCoordinate.id
+        type = placeCoordinate.type == .course ? .course : .parking
+        name = placeCoordinate.name
+        address = placeCoordinate.address
+        roadAddress = nil
+        jibunAddress = nil
+        lat = placeCoordinate.latitude
+        lng = placeCoordinate.longitude
+        rating = 0
+        difficultyScore = 3
+        tags = placeCoordinate.type == .course ? ["연습코스"] : ["주차"]
+        summary = "상세 정보를 불러오는 중이에요."
+        cautions = []
+        recommendedTime = nil
+        distanceKm = nil
+        estimatedMinutes = nil
+        parking = nil
+        course = nil
+    }
+
+    /// `/places` 목록 응답을 기존 선택 상세 흐름과 연결하기 위한 임시 변환이다.
+    /// 상세 경로와 주차장 부가 정보는 `/places/{id}` 연동 시 보강한다.
+    init(placeListItem: PlaceListItem) {
+        id = placeListItem.id
+        type = placeListItem.type == .course ? .course : .parking
+        name = placeListItem.name
+        address = placeListItem.address
+        roadAddress = nil
+        jibunAddress = nil
+        lat = placeListItem.latitude
+        lng = placeListItem.longitude
+        rating = 0
+        difficultyScore = 3
+        tags = placeListItem.type == .parking ? ["주차"] : placeListItem.practiceTypes
+        summary = placeListItem.summary ?? ""
+        cautions = []
+        recommendedTime = nil
+        distanceKm = placeListItem.distanceMeters.map { Double($0) / 1_000 }
+        estimatedMinutes = nil
+        parking = placeListItem.type == .parking
+            ? RodiParkingInfo(
+                managementNo: nil,
+                parkingType: nil,
+                capacity: placeListItem.capacity,
+                isFree: nil,
+                feeInfo: nil,
+                operatingHours: nil,
+                paymentMethods: nil,
+                hasAccessibleSpace: nil,
+                phone: nil,
+                operator: nil,
+                note: nil
+            )
+            : nil
+        course = nil
+    }
+}
+
 private extension String {
     var nilIfBlank: String? {
         let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)

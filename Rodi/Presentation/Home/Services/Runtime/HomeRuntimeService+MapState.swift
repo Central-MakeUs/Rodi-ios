@@ -8,10 +8,20 @@
 import SwiftUI
 
 extension HomeRuntimeService {
-    func prepareForCurrentLocationRequest(visibleItems: [RodiCourseItem]) {
-        if renderedMarkerCount <= 1 {
-            restartProgressiveMarkerRendering(for: visibleItems)
-        }
+    /// 위치 권한 결과를 기다리지 않고 전국 지도와 공개 장소 좌표를 먼저 표시한다.
+    func showInitialPlaceMapIfNeeded() {
+        guard !hasRequestedMapRendering else { return }
+
+        prepareMapRendering(
+            center: .southKoreaCenter,
+            userLocation: nil,
+            reason: "place_coordinates_bootstrap",
+            animated: false,
+            focus: .koreaOverview
+        )
+    }
+
+    func prepareForCurrentLocationRequest() {
         RodiLogger.info(
             "Runtime prepared for current location request viewportCenter=\(RodiLogger.coordinate(mapViewport.center)), markerCount=\(renderedMarkerCount)"
         )
@@ -43,10 +53,9 @@ extension HomeRuntimeService {
     }
 
     func requestCurrentLocationAfterStoreUpdate(
-        minimumCameraRequestID requestID: Int,
-        visibleItems: [RodiCourseItem]
+        minimumCameraRequestID requestID: Int
     ) {
-        prepareForCurrentLocationRequest(visibleItems: visibleItems)
+        prepareForCurrentLocationRequest()
         synchronizeCameraRequestID(minimum: requestID)
         requestCurrentLocation()
     }

@@ -17,8 +17,9 @@ extension HomeView {
     }
 
     func startHomeServices() {
-        loadHomeItems()
         runtimeService.start(onEvent: handleRuntimeEvent)
+        runtimeService.showInitialPlaceMapIfNeeded()
+        loadHomeItems()
         networkMonitor.start { isUnavailable in
             homeStore.send(.mapAction(.setNetworkUnavailable(isUnavailable)))
         }
@@ -30,14 +31,17 @@ extension HomeView {
     }
 
     func loadHomeItems() {
-        do {
-            let items = try RodiCourseLoader.loadBundledItems()
-            homeStore.send(.runtimeAction(.setItems(items)))
-            runtimeService.renderMapMarkers(for: homeStore.state.visibleItems)
-            RodiLogger.info("Rodi home items loaded count=\(items.count)")
-        } catch {
-            homeStore.send(.runtimeAction(.setItems([])))
-            RodiLogger.error("Rodi home items failed to load error=\(error)")
+        Task {
+            do {
+                let coordinates = try await placeRepository.fetchCoordinates()
+                let items = coordinates.map(RodiCourseItem.init(placeCoordinate:))
+                homeStore.send(.runtimeAction(.setItems(items)))
+                runtimeService.renderInitialMapMarkers(for: homeStore.state.visibleItems)
+                RodiLogger.info("Home place coordinates loaded count=\(items.count)")
+            } catch {
+                homeStore.send(.runtimeAction(.setItems([])))
+                RodiLogger.error("Home place coordinates failed to load error=\(error)")
+            }
         }
     }
 }

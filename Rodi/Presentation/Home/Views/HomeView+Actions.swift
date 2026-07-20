@@ -65,36 +65,25 @@ extension HomeView {
     }
 
     func handleMapMarkerTap(_ markerID: String) {
+        if runtimeService.focusClusterMarker(markerID: markerID, visibleItems: visibleItems) {
+            return
+        }
+
         withAnimation(.easeOut(duration: 0.22)) {
             homeStore.send(.routeAction(.selectMapMarker(markerID: markerID, mediumHeight: mediumSheetHeight)))
         }
     }
 
-    func handleRadiusFilterSelection(_ filter: HomeRadiusFilter) {
-        guard filter != .all else {
-            homeStore.send(.viewAction(.applyRadiusFilter(filter)))
-            runtimeService.restartProgressiveMarkerRendering(for: homeStore.state.visibleItems)
-            return
-        }
-
-        guard hasLocationPermission else {
-            homeStore.send(.viewAction(.radiusFilterNeedsLocationPermission))
-            return
-        }
-
-        guard userLocationCoordinate != nil else {
-            homeStore.send(.viewAction(.radiusFilterResolvingLocation))
-            runtimeService.requestLocation(kind: .userInitiated)
-            return
-        }
-
-        homeStore.send(.viewAction(.applyRadiusFilter(filter)))
-        runtimeService.restartProgressiveMarkerRendering(for: homeStore.state.visibleItems)
+    func handlePlaceListSelection(_ item: PlaceListItem) {
+        handleCourseSelection(RodiCourseItem(placeListItem: item))
     }
 
-    func showAllCourses() {
-        homeStore.send(.viewAction(.applyRadiusFilter(.all)))
-        runtimeService.restartProgressiveMarkerRendering(for: homeStore.state.visibleItems)
+    func reloadPlaceList() {
+        homeStore.send(.placeListAction(.reloadCurrentViewport))
+    }
+
+    func loadNextPlaceListPage() {
+        homeStore.send(.placeListAction(.loadNextPage))
     }
 
     func openAppSettings() {
@@ -123,8 +112,7 @@ extension HomeView {
         )
         homeStore.send(.viewAction(.requestCurrentLocation))
         runtimeService.requestCurrentLocationAfterStoreUpdate(
-            minimumCameraRequestID: homeStore.state.map.cameraRequestID,
-            visibleItems: homeStore.state.visibleItems
+            minimumCameraRequestID: homeStore.state.map.cameraRequestID
         )
     }
 }

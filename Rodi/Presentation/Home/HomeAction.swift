@@ -12,6 +12,7 @@ enum HomeAction {
     case runtimeAction(RuntimeAction)
     case mapAction(MapAction)
     case routeAction(RouteAction)
+    case placeListAction(PlaceListAction)
     case presentationAction(PresentationAction)
     case delegate(Delegate)
 
@@ -24,27 +25,28 @@ enum HomeAction {
         case expandSheet(availableHeight: CGFloat)
         case collapseSheet(mediumHeight: CGFloat)
         case resetSheetToMedium(mediumHeight: CGFloat)
-        case showAllCourses
-        case applyRadiusFilter(HomeRadiusFilter)
-        case radiusFilterNeedsLocationPermission
-        case radiusFilterResolvingLocation
         case requestCurrentLocation
     }
 
     enum RuntimeAction {
         case setItems([RodiCourseItem])
-        case setFilterAnchorCoordinate(RodiCoordinate)
         case setSelectedItem(RodiCourseItem?)
         case setVisibleMapMarkers([RodiMapMarker])
         case setUserLocationCoordinate(RodiCoordinate?)
         case setUserHeadingDegrees(Double?)
         case setLocationPermission(Bool)
         case setCurrentLocationButtonActive(Bool)
+        case prepareInitialPlaceListSearch(origin: RodiCoordinate)
     }
 
     enum MapAction {
         case ready
-        case viewportChanged(center: RodiCoordinate, zoomLevel: Int)
+        case viewportChanged(
+            center: RodiCoordinate,
+            zoomLevel: Int,
+            viewport: PlaceViewport,
+            isUserInitiated: Bool
+        )
         case cameraMoveFinished(requestID: Int)
         case loadingFailed(String)
         case retryLoading
@@ -72,6 +74,19 @@ enum HomeAction {
         case setSelectedRouteOverlay(RodiRouteOverlay?)
         case setRouteLoading(Bool)
         case setRouteStatusMessage(String?)
+    }
+
+    enum PlaceListAction {
+        case viewportChanged(viewport: PlaceViewport, center: RodiCoordinate, isUserInitiated: Bool)
+        case reloadCurrentViewport
+        case loadNextPage
+        case pageLoaded(
+            page: PlaceCursorPage,
+            viewport: PlaceViewport,
+            revision: Int,
+            isAppending: Bool
+        )
+        case pageFailed(message: String, revision: Int, isAppending: Bool)
     }
 
     enum PresentationAction {

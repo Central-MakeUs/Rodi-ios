@@ -13,7 +13,6 @@ struct HomeBottomSheetLayoutPolicy {
     let containerHeight: CGFloat
     let sheetHeight: CGFloat
     let hasSelectedBottomSheet: Bool
-    let showsEmptyRadiusResult: Bool
     let bottomSheetState: HomeBottomSheetState
     let sheetHeightRatio: CGFloat
     let floatingControlSpacing: CGFloat
@@ -32,7 +31,7 @@ struct HomeBottomSheetLayoutPolicy {
         mediumSheetHeight + floatingControlSpacing
     }
 
-    /// 선택 상세 또는 빈 반경 결과처럼 드래그가 잠긴 바텀싯 위 플로팅 컨트롤 여백.
+    /// 선택 상세처럼 드래그가 잠긴 바텀싯 위 플로팅 컨트롤 여백.
     var selectedOverlayBottomInset: CGFloat {
         fixedSheetHeight + floatingControlSpacing
     }
@@ -45,9 +44,9 @@ struct HomeBottomSheetLayoutPolicy {
         return hasFixedBottomSheet ? selectedOverlayBottomInset : mediumOverlayBottomInset
     }
 
-    /// 선택 상세와 빈 반경 결과는 사용자가 위로 끌어올릴 수 없는 고정 바텀싯이다.
+    /// 선택 상세는 사용자가 위로 끌어올릴 수 없는 고정 바텀싯이다.
     var hasFixedBottomSheet: Bool {
-        hasSelectedBottomSheet || showsEmptyRadiusResult
+        hasSelectedBottomSheet
     }
 
     /// 고정 바텀싯 높이. 작은 화면에서도 사용 가능한 높이를 넘지 않게 제한한다.

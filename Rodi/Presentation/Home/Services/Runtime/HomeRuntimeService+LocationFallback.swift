@@ -31,7 +31,6 @@ extension HomeRuntimeService {
         locationManager.stopUpdatingHeading()
         emit(.mapErrorMessageChanged(nil))
         emit(.selectionInvalidated)
-        emit(.radiusFilterReset(.all))
         setRenderedMapMarkers([])
         markerRenderingService.cancel()
         setUserLocationCoordinate(nil)
@@ -46,6 +45,9 @@ extension HomeRuntimeService {
             shouldMoveExistingMap: shouldMoveCamera,
             focus: .koreaOverview
         )
+        if requestKind == .initial {
+            prepareInitialPlaceListSearch(origin: .southKoreaCenter)
+        }
         finishLocationResolution(requestKind: requestKind, requestID: requestID)
         RodiLogger.info("Using fallback map center reason=\(reason), center=\(RodiLogger.coordinate(.southKoreaCenter)), permission=\(locationManager.authorizationStatus.rawValue), userMarkerVisible=false")
     }

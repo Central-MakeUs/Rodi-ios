@@ -97,6 +97,8 @@ final class RodiKakaoMapView: UIView {
     var userDirectionFanPoi: Poi?
     var renderedHomeMarkerIDs: Set<String> = []
     var homeMarkerIDsByPoiID: [String: String] = [:]
+    var renderedHomeMarkersByPoiID: [String: RodiMapMarker] = [:]
+    var renderedHomeMarkerCoordinatesByPoiID: [String: RodiCoordinate] = [:]
     var registeredHomeMarkerStyleIDs: Set<String> = []
     var routeMarkerPoiIDs: [String] = []
     var mapEventHandlers: [DisposableEventHandler] = []

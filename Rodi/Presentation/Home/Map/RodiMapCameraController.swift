@@ -12,6 +12,12 @@ extension RodiKakaoMapView {
     func moveCamera(to coordinate: RodiCoordinate, requestID: Int, animated: Bool) {
         guard let map = kakaoMap else { return }
         lastAppliedCameraRequestID = requestID
+
+        if case let .cluster(coordinates) = latestCameraFocus {
+            focusClusterArea(coordinates, requestID: requestID, animated: animated)
+            return
+        }
+
         let level = cameraLevel(for: map, animated: animated, focus: latestCameraFocus)
         let cameraTarget = adjustedCameraTarget(for: coordinate, level: level)
         RodiLogger.debug("Kakao map moveCamera requestID=\(requestID), center=\(RodiLogger.coordinate(cameraTarget)), original=\(RodiLogger.coordinate(coordinate)), level=\(level), currentLevel=\(map.zoomLevel), animated=\(animated), focus=\(latestCameraFocus), bottomInset=\(latestCameraBottomInset)")
@@ -29,6 +35,79 @@ extension RodiKakaoMapView {
             }
         } else {
             map.moveCamera(update) { [weak self] in
+                self?.coordinator?.reportCameraMoveFinished(requestID)
+            }
+        }
+    }
+
+    /// cluster drill-down에서는 다음 단계의 모든 marker가 보이도록 area fitting 카메라를 사용한다.
+    func focusClusterArea(
+        _ coordinates: [RodiCoordinate],
+        requestID: Int,
+        animated: Bool
+    ) {
+        guard let map = kakaoMap, !coordinates.isEmpty else { return }
+
+        guard coordinates.count > 1 else {
+            let coordinate = coordinates[0]
+            let point = MapPoint(longitude: coordinate.longitude, latitude: coordinate.latitude)
+            let level = min(max(Constants.oneKilometerFocusLevel, map.minLevel), map.maxLevel)
+            let update = CameraUpdate.make(target: point, zoomLevel: level, mapView: map)
+            applyClusterCamera(update, requestID: requestID, animated: animated)
+            return
+        }
+
+        let latitudes = coordinates.map(\.latitude)
+        let longitudes = coordinates.map(\.longitude)
+        guard let minLatitude = latitudes.min(),
+              let maxLatitude = latitudes.max(),
+              let minLongitude = longitudes.min(),
+              let maxLongitude = longitudes.max()
+        else {
+            return
+        }
+
+        let latitudeSpan = max(maxLatitude - minLatitude, 0.008)
+        let longitudeSpan = max(maxLongitude - minLongitude, 0.008)
+        let bottomCoverageRatio = bounds.height > 0
+            ? min(max(latestCameraBottomInset / bounds.height, 0), 0.7)
+            : 0
+        let bottomPadding = 0.25 + bottomCoverageRatio * 1.2
+        let topPadding = 0.18
+        let horizontalPadding = 0.2
+        let area = AreaRect(points: [
+            MapPoint(
+                longitude: minLongitude - longitudeSpan * horizontalPadding,
+                latitude: minLatitude - latitudeSpan * bottomPadding
+            ),
+            MapPoint(
+                longitude: maxLongitude + longitudeSpan * horizontalPadding,
+                latitude: maxLatitude + latitudeSpan * topPadding
+            )
+        ])
+        applyClusterCamera(
+            CameraUpdate.make(area: area, levelLimit: -1),
+            requestID: requestID,
+            animated: animated
+        )
+    }
+
+    private func applyClusterCamera(
+        _ update: CameraUpdate,
+        requestID: Int,
+        animated: Bool
+    ) {
+        if animated {
+            let options = CameraAnimationOptions(
+                autoElevation: true,
+                consecutive: false,
+                durationInMillis: Constants.focusAnimationDurationMillis
+            )
+            kakaoMap?.animateCamera(cameraUpdate: update, options: options) { [weak self] in
+                self?.coordinator?.reportCameraMoveFinished(requestID)
+            }
+        } else {
+            kakaoMap?.moveCamera(update) { [weak self] in
                 self?.coordinator?.reportCameraMoveFinished(requestID)
             }
         }

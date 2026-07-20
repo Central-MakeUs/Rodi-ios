@@ -28,6 +28,10 @@ final class HomeRuntimeService: NSObject, ObservableObject {
     // Runtime lifecycle flags. HomeState remains the rendering source of truth.
     private(set) var hasRequestedMapRendering = false
     private(set) var renderedMarkerCount = 0
+    var lastAppliedMarkerTier: RodiHomeMarkerClusterIndex.Tier?
+    var lastRequestedMarkerSnapshot: [RodiMapMarker] = []
+    var forcedMarkerTier: RodiHomeMarkerClusterIndex.Tier?
+    var forcedMarkerZoomLevel: Int?
 
     let markerRenderingService = HomeMarkerRenderingService()
     let locationManager = CLLocationManager()
@@ -45,6 +49,7 @@ final class HomeRuntimeService: NSObject, ObservableObject {
     var mapViewport = RodiMapViewport.initial
     var didShowDeniedLocationPermissionAlert = false
     var didRequestSystemLocationAuthorizationThisSession = false
+    var didPrepareInitialPlaceListSearch = false
 
     override init() {
         super.init()
@@ -103,14 +108,9 @@ extension HomeRuntimeService {
         ))
     }
 
-    func emitFilterAnchorCoordinate() {
-        emit(.filterAnchorCoordinateChanged(filterAnchorCoordinate))
-    }
-
     func setUserLocationCoordinate(_ coordinate: RodiCoordinate?) {
         latestUserLocationCoordinate = coordinate
         emit(.userLocationCoordinateChanged(coordinate))
-        emitFilterAnchorCoordinate()
     }
 
     func setUserHeadingDegrees(_ degrees: Double?) {
@@ -129,6 +129,12 @@ extension HomeRuntimeService {
 
     func setCurrentLocationButtonActive(_ isActive: Bool) {
         emit(.currentLocationButtonActiveChanged(isActive))
+    }
+
+    func prepareInitialPlaceListSearch(origin: RodiCoordinate) {
+        guard !didPrepareInitialPlaceListSearch else { return }
+        didPrepareInitialPlaceListSearch = true
+        emit(.initialPlaceListSearchPrepared(origin))
     }
 
     func setRenderedMapMarkers(_ markers: [RodiMapMarker]) {

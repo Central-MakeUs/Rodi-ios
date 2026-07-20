@@ -6,8 +6,6 @@
 import Foundation
 
 enum HomeRuntimeEvent {
-    case filterAnchorCoordinateChanged(RodiCoordinate)
-    case radiusFilterReset(HomeRadiusFilter)
     case selectionInvalidated
     case renderedMapMarkersChanged([RodiMapMarker])
     case mapErrorMessageChanged(String?)
@@ -23,6 +21,7 @@ enum HomeRuntimeEvent {
     case userHeadingDegreesChanged(Double?)
     case locationPermissionChanged(Bool)
     case currentLocationButtonActiveChanged(Bool)
+    case initialPlaceListSearchPrepared(RodiCoordinate)
     case locationNoticeRequested(String)
     case locationPermissionAlertRequested
 }

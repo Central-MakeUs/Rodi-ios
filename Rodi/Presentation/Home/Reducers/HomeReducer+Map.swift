@@ -13,8 +13,8 @@ extension HomeReducer {
             state.map.isReady = true
             state.map.isLoading = false
 
-        case .viewportChanged:
-            break
+        case .viewportChanged(_, let zoomLevel, _, _):
+            state.map.zoomLevel = zoomLevel
 
         case .cameraMoveFinished(let requestID):
             guard state.map.animatedCameraRequestID == requestID else { break }

@@ -14,6 +14,7 @@ struct HomeMapState {
     var isReady = false
     var shouldRender = false
     var cameraTarget = RodiCoordinate.seoulCityHall
+    var zoomLevel = RodiMapViewport.initial.zoomLevel
     var cameraRequestID = 0
     var animatedCameraRequestID: Int?
     var cameraFocus: RodiMapCameraFocus = .normal

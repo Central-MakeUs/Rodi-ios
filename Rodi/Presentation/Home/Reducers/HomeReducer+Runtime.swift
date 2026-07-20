@@ -11,9 +11,6 @@ extension HomeReducer {
         case .setItems(let items):
             state.data.items = items
 
-        case .setFilterAnchorCoordinate(let coordinate):
-            state.data.filterAnchorCoordinate = coordinate
-
         case .setSelectedItem(let item):
             state.selection.selectedItem = item
 
@@ -31,6 +28,22 @@ extension HomeReducer {
 
         case .setCurrentLocationButtonActive(let isActive):
             state.location.isCurrentLocationButtonActive = isActive
+
+        case .prepareInitialPlaceListSearch(let origin):
+            guard state.placeList.activeViewport == nil else { break }
+            state.placeList.pendingInitialSearchOrigin = origin
+
+            if let viewport = state.placeList.latestViewport,
+               let center = state.placeList.latestViewportCenter,
+               center.distanceKilometers(to: origin) <= 0.5 {
+                return .run { send in
+                    await send(.placeListAction(.viewportChanged(
+                        viewport: viewport,
+                        center: center,
+                        isUserInitiated: false
+                    )))
+                }
+            }
         }
 
         return .none

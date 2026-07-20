@@ -58,6 +58,9 @@ extension HomeRuntimeService {
                 detail: "kind=\(requestKind.logValue)"
             )
         }
+        if requestKind == .initial {
+            prepareInitialPlaceListSearch(origin: coordinate)
+        }
         finishLocationResolution(requestKind: requestKind, requestID: requestID)
     }
 
@@ -69,7 +72,6 @@ extension HomeRuntimeService {
     ) {
         let requestID = nextCameraRequest()
         mapViewport = RodiMapViewport(center: coordinate, zoomLevel: HomeMapCameraPolicy.zoomLevel(for: focus))
-        emitFilterAnchorCoordinate()
         emitCameraState(
             target: coordinate,
             requestID: requestID,
@@ -107,7 +109,6 @@ extension HomeRuntimeService {
 
         let requestID = nextCameraRequest()
         mapViewport = RodiMapViewport(center: center, zoomLevel: HomeMapCameraPolicy.zoomLevel(for: focus))
-        emitFilterAnchorCoordinate()
         emitCameraState(
             target: center,
             requestID: requestID,
@@ -123,10 +124,6 @@ extension HomeRuntimeService {
         RodiLogger.info(
             "Map rendering enabled after location decision id=\(requestID), reason=\(reason), center=\(RodiLogger.coordinate(center)), userMarkerVisible=\(userLocation != nil)"
         )
-    }
-
-    var filterAnchorCoordinate: RodiCoordinate {
-        lastValidUserCoordinate ?? latestUserLocationCoordinate ?? mapViewport.center
     }
 
     func logStartupTrace(_ event: String, detail: String? = nil) {

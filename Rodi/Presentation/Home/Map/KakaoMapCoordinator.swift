@@ -83,8 +83,18 @@ extension KakaoMapContainerView {
             eventRelay.accept(.markerTap(markerID))
         }
 
-        func reportViewportChange(center: RodiCoordinate, zoomLevel: Int) {
-            eventRelay.accept(.viewportChanged(center: center, zoomLevel: zoomLevel))
+        func reportViewportChange(
+            center: RodiCoordinate,
+            zoomLevel: Int,
+            viewport: PlaceViewport,
+            isUserInitiated: Bool
+        ) {
+            eventRelay.accept(.viewportChanged(
+                center: center,
+                zoomLevel: zoomLevel,
+                viewport: viewport,
+                isUserInitiated: isUserInitiated
+            ))
         }
 
         func reportFailure(_ message: String) {

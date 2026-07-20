@@ -10,12 +10,6 @@ import Foundation
 extension HomeView {
     func handleRuntimeEvent(_ event: HomeRuntimeEvent) {
         switch event {
-        case .filterAnchorCoordinateChanged(let coordinate):
-            homeStore.send(.runtimeAction(.setFilterAnchorCoordinate(coordinate)))
-            runtimeService.restartProgressiveMarkerRendering(for: homeStore.state.visibleItems)
-        case .radiusFilterReset(let filter):
-            homeStore.send(.viewAction(.applyRadiusFilter(filter)))
-            runtimeService.restartProgressiveMarkerRendering(for: homeStore.state.visibleItems)
         case .selectionInvalidated:
             homeStore.send(.routeAction(.clearSelection))
         case .renderedMapMarkersChanged(let markers):
@@ -41,6 +35,8 @@ extension HomeView {
             homeStore.send(.runtimeAction(.setLocationPermission(hasPermission)))
         case .currentLocationButtonActiveChanged(let isActive):
             homeStore.send(.runtimeAction(.setCurrentLocationButtonActive(isActive)))
+        case .initialPlaceListSearchPrepared(let origin):
+            homeStore.send(.runtimeAction(.prepareInitialPlaceListSearch(origin: origin)))
         case .locationNoticeRequested(let message):
             homeStore.send(.presentationAction(.showLocationNoticeMessage(message)))
         case .locationPermissionAlertRequested:

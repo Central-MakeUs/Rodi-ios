@@ -10,15 +10,24 @@ import SwiftUI
 struct HomeView: View {
     @Environment(\.scenePhase) private var scenePhase
     @StateObject var runtimeService = HomeRuntimeService()
-    @StateObject var homeStore = Store(state: HomeState(), reducer: HomeReducer())
+    @StateObject var homeStore: StoreOf<HomeReducer>
     @State var networkMonitor = HomeNetworkMonitor()
     @State var containerHeight: CGFloat = 0
     @Binding var selectedTab: RodiTab
+    let placeRepository: PlaceRepository
 
     init(
-        selectedTab: Binding<RodiTab> = .constant(.home)
+        selectedTab: Binding<RodiTab> = .constant(.home),
+        placeRepository: PlaceRepository = AuthDependencyContainer.shared.placeRepository
     ) {
         _selectedTab = selectedTab
+        self.placeRepository = placeRepository
+        _homeStore = StateObject(
+            wrappedValue: Store(
+                state: HomeState(),
+                reducer: HomeReducer(placeRepository: placeRepository)
+            )
+        )
     }
 
     enum Constants {
@@ -35,7 +44,7 @@ struct HomeView: View {
             ZStack(alignment: .bottom) {
                 mapLayer
                 statusLayer
-                radiusFilterLayer
+                placeResearchButtonLayer
                 pageMorphOverlay
                 floatingControlLayer
                 listButtonLayer
