@@ -95,12 +95,56 @@ extension OnboardingView {
         do {
             let token = try await authRepository.login(provider: provider, credential: credential)
             await MainActor.run {
-                onboardingStore.send(.entry(.authSucceeded(provider, isNewMember: token.isNewMember)))
+                onboardingStore.send(
+                    .entry(
+                        .authSucceeded(
+                            provider,
+                            isNewMember: token.isNewMember,
+                            nickname: token.nickname
+                        )
+                    )
+                )
             }
         } catch {
             await MainActor.run {
                 onboardingStore.send(.entry(.authFailed(provider, error.localizedDescription)))
             }
+        }
+    }
+
+    func submitOnboarding(drivingGoal: String, shouldSkip: Bool) {
+        guard !onboardingStore.state.isOnboardingAnalysisPresented else { return }
+
+        if shouldSkip {
+            onboardingStore.send(.optionalDrivingPreference(.skipTapped))
+        } else {
+            onboardingStore.send(.optionalDrivingPreference(.nextTapped(drivingGoal: drivingGoal)))
+        }
+
+        guard onboardingStore.state.isOnboardingAnalysisPresented,
+              let submission = onboardingStore.state.memberOnboardingSubmission
+        else {
+            return
+        }
+
+        Task {
+            let startedAt = Date()
+
+            do {
+                try await memberRepository.submitOnboarding(submission)
+                RodiLogger.info("Onboarding submission completed level=\(submission.level.rawValue)")
+            } catch {
+                // 분석 결과 화면의 흐름은 유지하고, 제출 실패는 로그로만 남깁니다.
+                RodiLogger.warning("Onboarding submission failed: \(error.localizedDescription)")
+            }
+
+            let remainingDuration = max(0, 3 - Date().timeIntervalSince(startedAt))
+            if remainingDuration > 0 {
+                try? await Task.sleep(nanoseconds: UInt64(remainingDuration * 1_000_000_000))
+            }
+
+            guard !Task.isCancelled else { return }
+            onboardingStore.send(.optionalDrivingPreference(.analysisFinished))
         }
     }
 }

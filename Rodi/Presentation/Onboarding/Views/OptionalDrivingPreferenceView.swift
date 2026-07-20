@@ -4,70 +4,89 @@
 //
 
 import SwiftUI
-import SnapKit
-import Then
 
 struct OptionalDrivingPreferenceView: View {
+    private enum Metrics {
+        static let horizontalPadding: CGFloat = 16
+        static let goalLimit = 30
+    }
+
     let selectedPracticeSituations: [PracticeSituation]
     let selectedVehicleType: VehicleType?
     let drivingGoal: String
     let canProceed: Bool
     let onTogglePracticeSituation: (PracticeSituation) -> Void
     let onSelectVehicleType: (VehicleType) -> Void
-    let onUpdateGoal: (String) -> Void
     let onSkip: () -> Void
-    let onNext: () -> Void
+    let onNext: (String) -> Void
 
-    @FocusState private var isGoalFieldFocused: Bool
+    @State private var goalText: String
+    @State private var isGoalFieldFocused = false
+
+    init(
+        selectedPracticeSituations: [PracticeSituation],
+        selectedVehicleType: VehicleType?,
+        drivingGoal: String,
+        canProceed: Bool,
+        onTogglePracticeSituation: @escaping (PracticeSituation) -> Void,
+        onSelectVehicleType: @escaping (VehicleType) -> Void,
+        onSkip: @escaping () -> Void,
+        onNext: @escaping (String) -> Void
+    ) {
+        self.selectedPracticeSituations = selectedPracticeSituations
+        self.selectedVehicleType = selectedVehicleType
+        self.drivingGoal = drivingGoal
+        self.canProceed = canProceed
+        self.onTogglePracticeSituation = onTogglePracticeSituation
+        self.onSelectVehicleType = onSelectVehicleType
+        self.onSkip = onSkip
+        self.onNext = onNext
+        _goalText = State(initialValue: drivingGoal)
+    }
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 40) {
-                    title
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        title
+                            .padding(.bottom, 40)
 
-                    VStack(alignment: .leading, spacing: 32) {
-                        OnboardingSection(title: "더 연습해보고 싶은 상황이 있나요?", trailing: "최대 3개") {
-                            practiceSituationChips
-                        }
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            dismissGoalKeyboard()
-                        }
+                        practiceSituationSection
+                            .padding(.bottom, 32)
 
-                        OnboardingSection(title: "주로 타는 차종은 무엇인가요?") {
-                            vehicleTypeChips
-                        }
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            dismissGoalKeyboard()
-                        }
+                        vehicleTypeSection
+                            .padding(.bottom, 32)
 
-                        OnboardingSection(title: "이루고 싶은 운전 목표를 입력해주세요.") {
-                            goalTextEditor
-                        }
+                        drivingGoalSection
+                            .id(ScrollTarget.drivingGoal)
+                    }
+                    .padding(.horizontal, Metrics.horizontalPadding)
+                    .padding(.bottom, isGoalFieldFocused ? 24 : 80)
+                }
+                .scrollDismissesKeyboard(.interactively)
+                .onChange(of: isGoalFieldFocused) { isFocused in
+                    guard isFocused else { return }
+
+                    var transaction = Transaction()
+                    transaction.disablesAnimations = true
+                    withTransaction(transaction) {
+                        proxy.scrollTo(ScrollTarget.drivingGoal, anchor: .bottom)
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 46 + 10 + 24)
             }
-            .scrollDismissesKeyboard(.interactively)
 
             DualBottomButton(
                 secondaryTitle: "건너뛰기",
                 primaryTitle: "다음",
                 isPrimaryEnabled: canProceed,
                 secondaryAction: onSkip,
-                primaryAction: onNext
+                primaryAction: { onNext(goalText) }
             )
             .opacity(isGoalFieldFocused ? 0 : 1)
             .allowsHitTesting(!isGoalFieldFocused)
             .accessibilityHidden(isGoalFieldFocused)
         }
-        .transaction { transaction in
-            transaction.animation = nil
-        }
-        .ignoresSafeArea(.keyboard, edges: .bottom)
     }
 
     private var title: some View {
@@ -82,9 +101,68 @@ struct OptionalDrivingPreferenceView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
-        .onTapGesture {
-            dismissGoalKeyboard()
+        .onTapGesture(perform: dismissGoalKeyboard)
+    }
+
+    private var practiceSituationSection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .lastTextBaseline, spacing: 4) {
+                Text("더 연습해보고 싶은 상황이 있나요?")
+                    .rodiTypography(.body1SemiBold)
+                    .foregroundStyle(RodiColor.black)
+
+                Text("최대 3개")
+                    .rodiTypography(.body3Medium)
+                    .foregroundStyle(RodiColor.gray600)
+            }
+
+            Text("1순위부터 순서대로 선택해주세요.")
+                .rodiTypography(.body3Medium)
+                .foregroundStyle(RodiColor.gray600)
+                .padding(.top, 10)
+
+            practiceSituationChips
+                .padding(.top, 8)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var vehicleTypeSection: some View {
+        OnboardingSection(title: "주로 타는 차종은 무엇인가요?") {
+            vehicleTypeChips
+        }
+        .contentShape(Rectangle())
+        .onTapGesture(perform: dismissGoalKeyboard)
+    }
+
+    private var drivingGoalSection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("이루고 싶은 운전 목표를 입력해주세요.")
+                .rodiTypography(.body1SemiBold)
+                .foregroundStyle(RodiColor.black)
+                .padding(.bottom, 12)
+
+            OnboardingLimitedTextField(
+                text: $goalText,
+                placeholder: "ex)강남 운전 자신있게 하기!",
+                characterLimit: Metrics.goalLimit,
+                isFocused: $isGoalFieldFocused
+            )
+            .padding(.vertical, 16)
+            .background(RodiColor.white)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay {
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(isGoalFieldFocused ? RodiColor.gray850 : RodiColor.gray300, lineWidth: 1)
+            }
+
+            Text("\(goalText.count) / \(Metrics.goalLimit)")
+                .rodiTypography(.body3Medium)
+                .foregroundStyle(RodiColor.gray600)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .padding(.top, 4)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var practiceSituationChips: some View {
@@ -106,38 +184,30 @@ struct OptionalDrivingPreferenceView: View {
     }
 
     private var vehicleTypeChips: some View {
-        OnboardingChipFlow {
-            ForEach(VehicleType.allCases) { vehicleType in
-                OnboardingChip(
-                    title: vehicleType.rawValue,
-                    isSelected: selectedVehicleType == vehicleType,
-                    action: {
-                        dismissGoalKeyboard()
-                        onSelectVehicleType(vehicleType)
-                    }
-                )
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                vehicleChip(.compact)
+                vehicleChip(.small)
+                vehicleChip(.medium)
+                vehicleChip(.semiLarge)
+            }
+
+            HStack(spacing: 6) {
+                vehicleChip(.large)
+                vehicleChip(.suv)
             }
         }
     }
 
-    private var goalTextEditor: some View {
-        OnboardingGoalTextView(
-            text: Binding(
-                get: { drivingGoal },
-                set: onUpdateGoal
-            ),
-            placeholder: "복잡한 강남 자신있게 운전하기!",
-            isFocused: $isGoalFieldFocused
+    private func vehicleChip(_ vehicleType: VehicleType) -> some View {
+        OnboardingChip(
+            title: vehicleType.rawValue,
+            isSelected: selectedVehicleType == vehicleType,
+            action: {
+                dismissGoalKeyboard()
+                onSelectVehicleType(vehicleType)
+            }
         )
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-        .frame(height: 100, alignment: .topLeading)
-        .background(RodiColor.white)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-        .overlay {
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(RodiColor.gray300, lineWidth: 1)
-        }
     }
 
     private func dismissGoalKeyboard() {
@@ -145,93 +215,8 @@ struct OptionalDrivingPreferenceView: View {
     }
 }
 
-private struct OnboardingGoalTextView: UIViewRepresentable {
-    @Binding var text: String
-
-    let placeholder: String
-    let isFocused: FocusState<Bool>.Binding
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(text: $text, isFocused: isFocused)
-    }
-
-    func makeUIView(context: Context) -> UITextView {
-        let textView = UITextView().then {
-            $0.delegate = context.coordinator
-            $0.backgroundColor = .clear
-            $0.font = .pretendard(size: 14, weight: .medium)
-            $0.textColor = UIColor(RodiColor.black)
-            $0.tintColor = UIColor(RodiColor.primary)
-            $0.returnKeyType = .done
-            $0.isScrollEnabled = false
-            $0.textContainerInset = .zero
-            $0.textContainer.lineFragmentPadding = 0
-        }
-
-        let placeholderLabel = UILabel().then {
-            $0.text = placeholder
-            $0.font = .pretendard(size: 14, weight: .medium)
-            $0.textColor = UIColor(RodiColor.gray500)
-            $0.numberOfLines = 1
-        }
-        textView.addSubview(placeholderLabel)
-        placeholderLabel.snp.makeConstraints { make in
-            make.leading.top.equalToSuperview()
-            make.trailing.lessThanOrEqualToSuperview()
-        }
-
-        context.coordinator.placeholderLabel = placeholderLabel
-        return textView
-    }
-
-    func updateUIView(_ textView: UITextView, context: Context) {
-        if textView.text != text {
-            textView.text = text
-        }
-
-        context.coordinator.placeholderLabel?.isHidden = !text.isEmpty
-
-        if isFocused.wrappedValue, !textView.isFirstResponder {
-            textView.becomeFirstResponder()
-        } else if !isFocused.wrappedValue, textView.isFirstResponder {
-            textView.resignFirstResponder()
-        }
-    }
-
-    final class Coordinator: NSObject, UITextViewDelegate {
-        @Binding private var text: String
-        private let isFocused: FocusState<Bool>.Binding
-        weak var placeholderLabel: UILabel?
-
-        init(text: Binding<String>, isFocused: FocusState<Bool>.Binding) {
-            _text = text
-            self.isFocused = isFocused
-        }
-
-        func textViewDidBeginEditing(_ textView: UITextView) {
-            isFocused.wrappedValue = true
-        }
-
-        func textViewDidEndEditing(_ textView: UITextView) {
-            isFocused.wrappedValue = false
-        }
-
-        func textViewDidChange(_ textView: UITextView) {
-            text = textView.text
-            placeholderLabel?.isHidden = !textView.text.isEmpty
-        }
-
-        func textView(
-            _ textView: UITextView,
-            shouldChangeTextIn range: NSRange,
-            replacementText replacement: String
-        ) -> Bool {
-            if replacement == "\n" {
-                textView.resignFirstResponder()
-                return false
-            }
-
-            return true
-        }
+private extension OptionalDrivingPreferenceView {
+    enum ScrollTarget {
+        case drivingGoal
     }
 }

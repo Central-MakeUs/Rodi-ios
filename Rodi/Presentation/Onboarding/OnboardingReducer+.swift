@@ -49,10 +49,13 @@ extension OnboardingReducer {
                 state.isAuthenticating = true
                 state.loginAlertMessage = nil
 
-            case .authSucceeded(_, let isNewMember):
+            case .authSucceeded(let provider, let isNewMember, let nickname):
                 state.isAuthenticating = false
                 state.loginAlertMessage = nil
+
                 if isNewMember {
+                    state.loginProvider = provider
+                    state.nickname = nickname?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                     state.step = .terms
                 } else {
                     state.didComplete = true
@@ -95,6 +98,7 @@ extension OnboardingReducer {
     func reduceNicknameAction(_ action: OnboardingAction.NicknameAction, state: inout OnboardingState) {
         switch action {
             case .nextTapped:
+                guard state.canProceedFromNickname else { return }
                 state.step = .drivingExperience
         }
     }
@@ -107,8 +111,30 @@ extension OnboardingReducer {
             case .selectRecentDrivingFrequency(let frequency):
                 state.recentDrivingFrequency = frequency
 
-            case .selectRoadDrivingExperience(let experience):
-                state.roadDrivingExperience = experience
+            case .toggleRoadDrivingExperience(let experience):
+                if experience == .none {
+                    if state.selectedRoadDrivingExperiences == [.none] {
+                        state.selectedRoadDrivingExperiences.removeAll()
+                    } else {
+                        state.selectedRoadDrivingExperiences = [.none]
+                    }
+                } else if let index = state.selectedRoadDrivingExperiences.firstIndex(of: experience) {
+                    state.selectedRoadDrivingExperiences.remove(at: index)
+                } else {
+                    state.selectedRoadDrivingExperiences.removeAll { $0 == .none }
+                    state.selectedRoadDrivingExperiences.append(experience)
+                }
+
+                if !state.selectedRoadDrivingExperiences.contains(.soloPractice) {
+                    state.soloDrivingRange = nil
+                    state.soloParkingLevel = nil
+                }
+
+            case .selectSoloDrivingRange(let range):
+                state.soloDrivingRange = range
+
+            case .selectSoloParkingLevel(let level):
+                state.soloParkingLevel = level
 
             case .nextTapped:
                 guard state.canProceedFromDrivingExperience else { return }
@@ -128,14 +154,21 @@ extension OnboardingReducer {
             case .selectVehicleType(let vehicleType):
                 state.vehicleType = vehicleType
 
-            case .updateGoal(let goal):
-                state.drivingGoal = goal
-
             case .skipTapped:
-                state.step = .safety
+                state.drivingGoal = ""
+                startOnboardingAnalysis(state: &state)
 
-            case .nextTapped:
+            case .nextTapped(let drivingGoal):
                 guard state.canProceedFromOptionalDrivingPreference else { return }
+                state.drivingGoal = drivingGoal
+                startOnboardingAnalysis(state: &state)
+
+            case .analysisFinished:
+                state.isOnboardingAnalysisPresented = false
+                state.isOnboardingAnalysisCompletionPresented = true
+
+            case .analysisCompletionConfirmed:
+                state.isOnboardingAnalysisCompletionPresented = false
                 state.step = .safety
         }
     }
@@ -162,5 +195,16 @@ extension OnboardingReducer {
                     state.selectedTermsPage = nil
                 }
         }
+    }
+
+    private func startOnboardingAnalysis(state: inout OnboardingState) {
+        guard !state.isOnboardingAnalysisPresented,
+              let submission = state.memberOnboardingSubmission
+        else {
+            return
+        }
+
+        state.onboardingAnalysis = MemberOnboardingLevelPolicy.analyze(submission)
+        state.isOnboardingAnalysisPresented = true
     }
 }
