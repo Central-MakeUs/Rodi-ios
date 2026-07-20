@@ -72,6 +72,9 @@ Current server-backed features:
 - `Data/Remote/Member` + `Domain/Member`
 - `Data/Remote/Place` + `Domain/Place`
 
+Current local features:
+- `Data/Local/Onboarding` stores an in-progress authenticated new-member onboarding draft in Realm.
+
 `Place` keeps public marker/list requests and authenticated detail/bookmark requests behind one
 repository. Presentation must receive `PlaceRepository` through dependency injection rather than
 call `NetworkManager` directly.
@@ -145,7 +148,7 @@ Home deliberately uses two public Place APIs for different jobs.
 
 `Presentation/Onboarding` owns onboarding flow state, entry/social login UI, legal agreement UI, nickname/driving preference screens, safety confirmation, and location permission prompt UI.
 
-Onboarding UI models are Presentation models, not Domain entities. The persisted "has seen onboarding" flag currently lives in Core via `AppPreferencesStore`; move it only when a local persistence refactor is explicitly requested.
+Onboarding UI models are Presentation models, not Domain entities. `Data/Local/Onboarding/OnboardingDraftStore` stores the authenticated new-member's current step and selections after every state change so an interrupted onboarding session can resume. It is cleared only after final onboarding completion or logout/withdrawal. `Core/Setting/AppPreferencesStore` continues to own the separate final `hasSeenOnboarding` flag.
 
 ## MVI Rules
 
