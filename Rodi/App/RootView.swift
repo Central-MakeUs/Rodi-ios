@@ -13,6 +13,7 @@ struct RootView: View {
     @State private var root: RootDestination
     @State private var pendingUpdate: AppVersionUpdate?
     @State private var hasCheckedAppVersion = false
+    @State private var selectedTab: RodiTab = .home
     
     init() {
         let store = AppPreferencesStore()
@@ -27,7 +28,7 @@ struct RootView: View {
             case .onboarding:
                 OnboardingView(onComplete: completeOnboarding)
             case .home:
-                HomeView(onLogout: completeLogout)
+                mainTabContent
             }
         }
         .task {
@@ -61,12 +62,32 @@ struct RootView: View {
     
     private func completeOnboarding() {
         preferencesStore.markOnboardingSeen()
+        selectedTab = .home
         root = .home
     }
     
     private func completeLogout() {
         preferencesStore.resetOnboardingSeen()
+        selectedTab = .home
         root = .onboarding
+    }
+
+    @ViewBuilder
+    private var mainTabContent: some View {
+        switch selectedTab {
+        case .home:
+            HomeView(selectedTab: $selectedTab)
+        case .my:
+            MyView(tabBar: bottomTabBar, onLogout: completeLogout)
+        }
+    }
+
+    private var bottomTabBar: RodiBottomTabBar {
+        RodiBottomTabBar(
+            selectedTab: selectedTab,
+            homeAction: { selectedTab = .home },
+            myAction: { selectedTab = .my }
+        )
     }
     
     private func checkAppVersionIfNeeded() async {
