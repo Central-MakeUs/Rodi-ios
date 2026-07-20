@@ -36,6 +36,24 @@ enum RoadDrivingExperience: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+enum SoloDrivingRange: String, CaseIterable, Identifiable {
+    case nearHome = "집 근처"
+    case familiarRoad = "익숙한 길"
+    case unfamiliarRoad = "낯선 도로"
+    case highwayLong = "고속·장거리"
+
+    var id: String { rawValue }
+}
+
+enum SoloParkingLevel: String, CaseIterable, Identifiable {
+    case none = "없음"
+    case wideOnly = "넓은 곳만"
+    case familiarPlace = "익숙한 곳에서만"
+    case mostlyPossible = "대부분 가능"
+
+    var id: String { rawValue }
+}
+
 enum PracticeSituation: String, CaseIterable, Identifiable {
     case uTurn = "유턴"
     case turning = "좌우 회전"

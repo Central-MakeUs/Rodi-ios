@@ -10,6 +10,8 @@ import SwiftUI
 struct OnboardingView: View {
     let onComplete: () -> Void
     let authRepository: AuthRepository
+    let memberRepository: MemberRepository
+    let onboardingDraftStore: OnboardingDraftStore
 
     @StateObject var onboardingStore: StoreOf<OnboardingReducer>
     @State var locationPermission: LocationPermissionRequester
@@ -18,7 +20,11 @@ struct OnboardingView: View {
     init(onComplete: @escaping () -> Void) {
         self.onComplete = onComplete
         self.authRepository = AuthDependencyContainer.shared.authRepository
-        _onboardingStore = StateObject(wrappedValue: Store(state: OnboardingState(), reducer: OnboardingReducer()))
+        self.memberRepository = AuthDependencyContainer.shared.memberRepository
+        let draftStore = OnboardingDraftStore()
+        self.onboardingDraftStore = draftStore
+        let initialState = draftStore.load().map(OnboardingState.init(draft:)) ?? OnboardingState()
+        _onboardingStore = StateObject(wrappedValue: Store(state: initialState, reducer: OnboardingReducer()))
         _locationPermission = State(initialValue: LocationPermissionRequester())
         _socialLoginService = State(initialValue: SocialLoginService())
     }
@@ -28,10 +34,14 @@ struct OnboardingView: View {
         onboardingStore: StoreOf<OnboardingReducer>,
         locationPermission: LocationPermissionRequester,
         socialLoginService: SocialLoginService,
-        authRepository: AuthRepository = AuthDependencyContainer.shared.authRepository
+        authRepository: AuthRepository = AuthDependencyContainer.shared.authRepository,
+        memberRepository: MemberRepository = AuthDependencyContainer.shared.memberRepository,
+        onboardingDraftStore: OnboardingDraftStore = OnboardingDraftStore()
     ) {
         self.onComplete = onComplete
         self.authRepository = authRepository
+        self.memberRepository = memberRepository
+        self.onboardingDraftStore = onboardingDraftStore
         _onboardingStore = StateObject(wrappedValue: onboardingStore)
         _locationPermission = State(initialValue: locationPermission)
         _socialLoginService = State(initialValue: socialLoginService)
@@ -84,7 +94,28 @@ struct OnboardingView: View {
         }
         .onChange(of: onboardingStore.state.didComplete) { didComplete in
             guard didComplete else { return }
+            onboardingDraftStore.clear()
             onComplete()
+        }
+        .onChange(of: onboardingStore.state.onboardingDraft) { draft in
+            guard let draft else { return }
+            onboardingDraftStore.save(draft)
+        }
+        .overlay {
+            if onboardingStore.state.isOnboardingAnalysisPresented {
+                OnboardingAnalysisDialog()
+                    .transition(.opacity)
+            } else if onboardingStore.state.isOnboardingAnalysisCompletionPresented,
+                      let analysis = onboardingStore.state.onboardingAnalysis {
+                OnboardingAnalysisCompletionDialog(
+                    analysis: analysis,
+                    recentFrequency: onboardingStore.state.recentDrivingFrequency,
+                    onConfirm: {
+                        onboardingStore.send(.optionalDrivingPreference(.analysisCompletionConfirmed))
+                    }
+                )
+                .transition(.opacity)
+            }
         }
     }
 
@@ -112,6 +143,7 @@ struct OnboardingView: View {
             case .nickname:
                 NicknameSetupView(
                     nickname: onboardingStore.state.nickname,
+                    isNextEnabled: onboardingStore.state.canProceedFromNickname,
                     onNext: { onboardingStore.send(.nickname(.nextTapped)) }
                 )
             
@@ -119,11 +151,15 @@ struct OnboardingView: View {
                 DrivingExperienceView(
                     selectedPeriod: onboardingStore.state.licenseDrivingPeriod,
                     selectedFrequency: onboardingStore.state.recentDrivingFrequency,
-                    selectedRoadExperience: onboardingStore.state.roadDrivingExperience,
+                    selectedRoadExperiences: onboardingStore.state.selectedRoadDrivingExperiences,
+                    selectedSoloDrivingRange: onboardingStore.state.soloDrivingRange,
+                    selectedSoloParkingLevel: onboardingStore.state.soloParkingLevel,
                     canProceed: onboardingStore.state.canProceedFromDrivingExperience,
                     onSelectPeriod: { onboardingStore.send(.drivingExperience(.selectLicenseDrivingPeriod($0))) },
                     onSelectFrequency: { onboardingStore.send(.drivingExperience(.selectRecentDrivingFrequency($0))) },
-                    onSelectRoadExperience: { onboardingStore.send(.drivingExperience(.selectRoadDrivingExperience($0))) },
+                    onToggleRoadExperience: { onboardingStore.send(.drivingExperience(.toggleRoadDrivingExperience($0))) },
+                    onSelectSoloDrivingRange: { onboardingStore.send(.drivingExperience(.selectSoloDrivingRange($0))) },
+                    onSelectSoloParkingLevel: { onboardingStore.send(.drivingExperience(.selectSoloParkingLevel($0))) },
                     onNext: { onboardingStore.send(.drivingExperience(.nextTapped)) }
                 )
             
@@ -135,9 +171,8 @@ struct OnboardingView: View {
                     canProceed: onboardingStore.state.canProceedFromOptionalDrivingPreference,
                     onTogglePracticeSituation: { onboardingStore.send(.optionalDrivingPreference(.togglePracticeSituation($0))) },
                     onSelectVehicleType: { onboardingStore.send(.optionalDrivingPreference(.selectVehicleType($0))) },
-                    onUpdateGoal: { onboardingStore.send(.optionalDrivingPreference(.updateGoal($0))) },
-                    onSkip: { onboardingStore.send(.optionalDrivingPreference(.skipTapped)) },
-                    onNext: { onboardingStore.send(.optionalDrivingPreference(.nextTapped)) }
+                    onSkip: { submitOnboarding(drivingGoal: "", shouldSkip: true) },
+                    onNext: { submitOnboarding(drivingGoal: $0, shouldSkip: false) }
                 )
             
             case .safety:

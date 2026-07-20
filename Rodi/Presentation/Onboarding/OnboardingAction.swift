@@ -31,7 +31,7 @@ enum OnboardingAction {
         case kakaoTalkFallbackAlertDismissed
         case kakaoLoginMethodSelected(KakaoLoginMethod)
         case authStarted(AuthProvider)
-        case authSucceeded(AuthProvider, isNewMember: Bool)
+        case authSucceeded(AuthProvider, isNewMember: Bool, nickname: String?)
         case authFailed(AuthProvider, String)
         case dismissLoginAlert
     }
@@ -50,16 +50,19 @@ enum OnboardingAction {
     enum DrivingExperienceAction {
         case selectLicenseDrivingPeriod(LicenseDrivingPeriod)
         case selectRecentDrivingFrequency(RecentDrivingFrequency)
-        case selectRoadDrivingExperience(RoadDrivingExperience)
+        case toggleRoadDrivingExperience(RoadDrivingExperience)
+        case selectSoloDrivingRange(SoloDrivingRange)
+        case selectSoloParkingLevel(SoloParkingLevel)
         case nextTapped
     }
 
     enum OptionalDrivingPreferenceAction {
         case togglePracticeSituation(PracticeSituation)
         case selectVehicleType(VehicleType)
-        case updateGoal(String)
         case skipTapped
-        case nextTapped
+        case nextTapped(drivingGoal: String)
+        case analysisFinished
+        case analysisCompletionConfirmed
     }
 
     enum SafetyAction {
