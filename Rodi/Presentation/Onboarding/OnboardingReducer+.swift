@@ -30,30 +30,15 @@ extension OnboardingReducer {
             case .appleLoginTapped:
                 state.isAuthenticating = true
 
-            case .kakaoLoginTapped:
-                state.isKakaoLoginMethodDialogPresented = true
-
-            case .kakaoTalkUnavailable:
-                state.isKakaoTalkFallbackAlertPresented = true
-
-            case .kakaoMethodDialogDismissed:
-                state.isKakaoLoginMethodDialogPresented = false
-
-            case .kakaoTalkFallbackAlertDismissed:
-                state.isKakaoTalkFallbackAlertPresented = false
-
-            case .kakaoLoginMethodSelected:
-                state.isKakaoLoginMethodDialogPresented = false
-                state.isKakaoTalkFallbackAlertPresented = false
-                state.isAuthenticating = true
-
             case .authStarted:
                 state.isAuthenticating = true
                 state.loginAlertMessage = nil
+                state.withdrawalDialog = nil
 
             case .authSucceeded(let provider, let isNewMember, let nickname):
                 state.isAuthenticating = false
                 state.loginAlertMessage = nil
+                state.withdrawalDialog = nil
                 state.isBrowseUser = false
 
                 if isNewMember {
@@ -67,6 +52,24 @@ extension OnboardingReducer {
             case .authFailed(_, let message):
                 state.isAuthenticating = false
                 state.loginAlertMessage = message
+
+            case .withdrawalRecoveryRequired(let recovery):
+                state.isAuthenticating = false
+                state.loginAlertMessage = nil
+                state.withdrawalDialog = .restore(recovery)
+
+            case .withdrawalRestoreStarted:
+                state.isAuthenticating = true
+                state.loginAlertMessage = nil
+                state.withdrawalDialog = nil
+
+            case .withdrawalRestoreLocked(let rejoinAvailableAt):
+                state.isAuthenticating = false
+                state.loginAlertMessage = nil
+                state.withdrawalDialog = .rejoinLocked(rejoinAvailableAt: rejoinAvailableAt)
+
+            case .dismissWithdrawalDialog:
+                state.withdrawalDialog = nil
 
             case .dismissLoginAlert:
                 state.loginAlertMessage = nil

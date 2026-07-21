@@ -24,28 +24,6 @@ extension OnboardingView {
         )
     }
 
-    var kakaoLoginMethodDialogBinding: Binding<Bool> {
-        Binding(
-            get: { onboardingStore.state.isKakaoLoginMethodDialogPresented },
-            set: { isPresented in
-                if !isPresented {
-                    onboardingStore.send(.entry(.kakaoMethodDialogDismissed))
-                }
-            }
-        )
-    }
-
-    var kakaoTalkFallbackAlertBinding: Binding<Bool> {
-        Binding(
-            get: { onboardingStore.state.isKakaoTalkFallbackAlertPresented },
-            set: { isPresented in
-                if !isPresented {
-                    onboardingStore.send(.entry(.kakaoTalkFallbackAlertDismissed))
-                }
-            }
-        )
-    }
-
     func requestLocationPermission() {
         locationPermission.requestPermission()
         onboardingStore.send(.navigation(.locationPermissionContinueTapped))
@@ -68,18 +46,10 @@ extension OnboardingView {
     }
 
     func startKakaoLogin() {
-        if socialLoginService.isKakaoTalkLoginAvailable {
-            onboardingStore.send(.entry(.kakaoLoginTapped))
-        } else {
-            onboardingStore.send(.entry(.kakaoTalkUnavailable))
-        }
-    }
-
-    func startKakaoLogin(method: KakaoLoginMethod) {
-        onboardingStore.send(.entry(.kakaoLoginMethodSelected(method)))
+        onboardingStore.send(.entry(.authStarted(.kakao)))
 
         Task {
-            let result = await socialLoginService.loginWithKakao(method: method)
+            let result = await kakaoCredentialResult()
             switch result {
             case .success(let credential):
                 await completeSocialLogin(provider: .kakao, credential: credential)
@@ -93,12 +63,81 @@ extension OnboardingView {
 
     func completeSocialLogin(provider: AuthProvider, credential: String) async {
         do {
-            let token = try await authRepository.login(provider: provider, credential: credential)
+            let result = try await authRepository.login(provider: provider, credential: credential)
+            await MainActor.run {
+                switch result {
+                case .authenticated(let token):
+                    onboardingStore.send(
+                        .entry(
+                            .authSucceeded(
+                                provider,
+                                isNewMember: token.isNewMember,
+                                nickname: token.nickname
+                            )
+                        )
+                    )
+                case .withdrawalPending(let recovery):
+                    onboardingStore.send(.entry(.withdrawalRecoveryRequired(recovery)))
+                }
+            }
+        } catch {
+            await MainActor.run {
+                onboardingStore.send(.entry(.authFailed(provider, error.localizedDescription)))
+            }
+        }
+    }
+
+    func startWithdrawalRestore(_ recovery: AuthWithdrawalRecovery) {
+        onboardingStore.send(.entry(.withdrawalRestoreStarted))
+
+        switch recovery.provider {
+        case .apple:
+            Task {
+                let result = await socialLoginService.loginWithApple()
+                await handleWithdrawalCredential(result, recovery: recovery)
+            }
+
+        case .kakao:
+            Task {
+                let result = await kakaoCredentialResult()
+                await handleWithdrawalCredential(result, recovery: recovery)
+            }
+        }
+    }
+
+    private func kakaoCredentialResult() async -> Result<String, Error> {
+        if socialLoginService.isKakaoTalkLoginAvailable {
+            await socialLoginService.loginWithKakaoTalk()
+        } else {
+            await socialLoginService.loginWithKakaoAccount()
+        }
+    }
+
+    private func handleWithdrawalCredential(
+        _ result: Result<String, Error>,
+        recovery: AuthWithdrawalRecovery
+    ) async {
+        switch result {
+        case .success(let credential):
+            await restoreWithdrawalAccount(recovery: recovery, credential: credential)
+        case .failure(let error):
+            await MainActor.run {
+                onboardingStore.send(.entry(.authFailed(recovery.provider, error.localizedDescription)))
+            }
+        }
+    }
+
+    private func restoreWithdrawalAccount(
+        recovery: AuthWithdrawalRecovery,
+        credential: String
+    ) async {
+        do {
+            let token = try await authRepository.restore(provider: recovery.provider, credential: credential)
             await MainActor.run {
                 onboardingStore.send(
                     .entry(
                         .authSucceeded(
-                            provider,
+                            recovery.provider,
                             isNewMember: token.isNewMember,
                             nickname: token.nickname
                         )
@@ -107,7 +146,14 @@ extension OnboardingView {
             }
         } catch {
             await MainActor.run {
-                onboardingStore.send(.entry(.authFailed(provider, error.localizedDescription)))
+                if case let .apiError(code, _) = error,
+                   code == "MEMBER_409_1" {
+                    onboardingStore.send(
+                        .entry(.withdrawalRestoreLocked(rejoinAvailableAt: recovery.rejoinAvailableAt))
+                    )
+                } else {
+                    onboardingStore.send(.entry(.authFailed(recovery.provider, error.localizedDescription)))
+                }
             }
         }
     }

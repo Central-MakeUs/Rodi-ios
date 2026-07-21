@@ -23,7 +23,7 @@ final class AuthRepositoryImpl: AuthRepository {
         self.recentLoginProviderStore = recentLoginProviderStore
     }
 
-    func login(provider: AuthProvider, credential: String) async throws(NetworkError) -> AuthToken {
+    func login(provider: AuthProvider, credential: String) async throws(NetworkError) -> AuthLoginResult {
         let trimmedCredential = credential.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedCredential.isEmpty else {
             throw .apiError(code: "COMMON_400", message: "로그인 정보를 확인하지 못했어요.")
@@ -39,8 +39,38 @@ final class AuthRepositoryImpl: AuthRepository {
             throw .apiError(code: response.code, message: response.message)
         }
 
-        let token = try loginResponse.validatedToken()
+        let result = try loginResponse.loginResult(provider: provider)
+        if case .authenticated(let token) = result {
+            saveAuthenticatedSession(token, provider: provider)
+        }
+        return result
+    }
 
+    func restore(provider: AuthProvider, credential: String) async throws(NetworkError) -> AuthToken {
+        let trimmedCredential = credential.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedCredential.isEmpty else {
+            throw .apiError(code: "COMMON_400", message: "로그인 정보를 확인하지 못했어요.")
+        }
+
+        let response = try await networkManager.request(
+            AuthTarget.restore(provider: provider, request: SocialLoginRequestDTO(credential: trimmedCredential)),
+            as: ServerResponse<SocialLoginResponseDTO>.self
+        )
+
+        guard response.isSuccess, let restoreResponse = response.data else {
+            throw .apiError(code: response.code, message: response.message)
+        }
+
+        switch try restoreResponse.loginResult(provider: provider) {
+        case .authenticated(let token):
+            saveAuthenticatedSession(token, provider: provider)
+            return token
+        case .withdrawalPending:
+            throw .apiError(code: "AUTH_RESTORE_PENDING", message: "계정 복구 상태를 확인하지 못했어요.")
+        }
+    }
+
+    private func saveAuthenticatedSession(_ token: AuthToken, provider: AuthProvider) {
         tokenStore.update(
             accessToken: token.accessToken,
             refreshToken: token.refreshToken
@@ -50,7 +80,6 @@ final class AuthRepositoryImpl: AuthRepository {
         RodiLogger.debug("AccessToken: \(RodiLogger.masked(token.accessToken))")
         RodiLogger.debug("RefreshToken: \(RodiLogger.masked(token.refreshToken))")
         #endif
-        return token
     }
 
     func refreshToken() async throws(NetworkError) -> AuthToken {
