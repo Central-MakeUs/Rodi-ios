@@ -8,10 +8,10 @@ import UIKit
 /// Kakao 지도 클러스터 숫자에 맞춰 폭을 계산해 직접 그리는 말풍선 마커다.
 final class RodiClusterCountMarkerView: UIView {
     private enum Constants {
-        static let horizontalPadding: CGFloat = 12
+        static let horizontalPadding: CGFloat = 10
         static let verticalPadding: CGFloat = 3
         static let cornerRadius: CGFloat = 6
-        static let tailWidth: CGFloat = 12
+        static let tailWidth: CGFloat = 10
         static let tailHeight: CGFloat = 8
         static let shadowInset: CGFloat = 4
         static let primaryColor = UIColor(red: 0.439, green: 0.384, blue: 1, alpha: 1)

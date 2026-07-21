@@ -53,6 +53,8 @@ struct HomeView: View {
         static let pageMorphStartRatio: CGFloat = 0.85
         static let expandedSheetSnapRatio: CGFloat = 0.55
         static let collapsedSheetSnapRatio: CGFloat = 0.45
+        static let defaultSheetSnapDuration: TimeInterval = 0.25
+        static let collapsedSheetSnapDuration: TimeInterval = 0.18
         static let bottomTabBarHeight: CGFloat = 80
         static let bottomSheetDragCoordinateSpace = "rodi.home.bottom-sheet.drag"
     }

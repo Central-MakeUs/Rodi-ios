@@ -88,6 +88,11 @@ extension HomeView {
         sheetLayout.renderedSheetHeight
     }
 
+    /// 화면에 실제로 노출된 목록 시트 높이. 내부 ScrollView의 viewport 기준이다.
+    var visibleSheetHeight: CGFloat {
+        hasFixedBottomSheet ? sheetLayout.fixedSheetHeight : sheetLayout.currentSheetHeight
+    }
+
     var renderedSheetOffset: CGFloat {
         sheetLayout.renderedSheetOffset
     }
