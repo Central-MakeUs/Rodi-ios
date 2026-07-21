@@ -12,6 +12,9 @@ protocol PlaceRepository {
     /// viewport 안 장소를 현위치 거리순 cursor pagination으로 조회합니다. 공개 API입니다.
     func fetchPlaces(query: PlaceListQuery) async throws(NetworkError) -> PlaceCursorPage
 
+    /// 현재 회원이 저장한 장소를 최신 저장순으로 cursor pagination 조회합니다. JWT가 필요합니다.
+    func fetchBookmarkedPlaces(query: PlaceBookmarkListQuery) async throws(NetworkError) -> PlaceCursorPage
+
     /// 장소 상세와 회원별 북마크 여부를 조회합니다. JWT가 필요합니다.
     func fetchPlaceDetail(id: Int) async throws(NetworkError) -> PlaceDetail
 

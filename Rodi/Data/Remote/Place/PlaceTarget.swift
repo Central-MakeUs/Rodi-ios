@@ -9,13 +9,14 @@ import Foundation
 enum PlaceTarget: TargetType {
     case coordinates
     case list(PlaceListQuery)
+    case bookmarks(PlaceBookmarkListQuery)
     case detail(id: Int)
     case bookmark(id: Int)
     case unbookmark(id: Int)
 
     var method: HTTPMethod {
         switch self {
-        case .coordinates, .list, .detail:
+        case .coordinates, .list, .bookmarks, .detail:
             .get
         case .bookmark:
             .post
@@ -30,6 +31,8 @@ enum PlaceTarget: TargetType {
             "/api/v1/places/coordinates"
         case .list:
             "/api/v1/places"
+        case .bookmarks:
+            "/api/v1/places/bookmarks"
         case .detail(let id):
             "/api/v1/places/\(id)"
         case .bookmark(let id), .unbookmark(let id):
@@ -40,28 +43,37 @@ enum PlaceTarget: TargetType {
     var optionalHeaders: HTTPHeaders? { nil }
 
     var parameters: Parameters? {
-        guard case .list(let query) = self else { return nil }
-
-        var parameters: Parameters = [
-            "swLat": query.viewport.southWestLatitude,
-            "swLng": query.viewport.southWestLongitude,
-            "neLat": query.viewport.northEastLatitude,
-            "neLng": query.viewport.northEastLongitude,
-            "lat": query.currentLatitude,
-            "lng": query.currentLongitude,
-            "size": query.size
-        ]
-        if let cursor = query.cursor, !cursor.isEmpty {
-            parameters["cursor"] = cursor
+        switch self {
+        case .list(let query):
+            var parameters: Parameters = [
+                "swLat": query.viewport.southWestLatitude,
+                "swLng": query.viewport.southWestLongitude,
+                "neLat": query.viewport.northEastLatitude,
+                "neLng": query.viewport.northEastLongitude,
+                "lat": query.currentLatitude,
+                "lng": query.currentLongitude,
+                "size": query.size
+            ]
+            if let cursor = query.cursor, !cursor.isEmpty {
+                parameters["cursor"] = cursor
+            }
+            return parameters
+        case .bookmarks(let query):
+            var parameters: Parameters = ["size": query.size]
+            if let cursor = query.cursor, !cursor.isEmpty {
+                parameters["cursor"] = cursor
+            }
+            return parameters
+        default:
+            return nil
         }
-        return parameters
     }
 
     var body: Data? { nil }
 
     var encodingType: EncodingType {
         switch self {
-        case .list:
+        case .list, .bookmarks:
             .url
         default:
             .json
@@ -70,7 +82,7 @@ enum PlaceTarget: TargetType {
 
     var requiresAuthentication: Bool {
         switch self {
-        case .detail, .bookmark, .unbookmark:
+        case .bookmarks, .detail, .bookmark, .unbookmark:
             true
         case .coordinates, .list:
             false
