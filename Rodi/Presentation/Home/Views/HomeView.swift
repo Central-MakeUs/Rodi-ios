@@ -15,15 +15,18 @@ struct HomeView: View {
     @State var containerHeight: CGFloat = 0
     @State var selectedSheetContentHeight: CGFloat = 0
     @Binding var selectedTab: RodiTab
+    @Binding var pendingPlaceSelection: PlaceListItem?
     let placeRepository: PlaceRepository
     let onAuthenticationRequired: () -> Void
 
     init(
         selectedTab: Binding<RodiTab> = .constant(.home),
+        pendingPlaceSelection: Binding<PlaceListItem?> = .constant(nil),
         placeRepository: PlaceRepository = AuthDependencyContainer.shared.placeRepository,
         onAuthenticationRequired: @escaping () -> Void = {}
     ) {
         _selectedTab = selectedTab
+        _pendingPlaceSelection = pendingPlaceSelection
         self.placeRepository = placeRepository
         self.onAuthenticationRequired = onAuthenticationRequired
         _homeStore = StateObject(
@@ -55,12 +58,15 @@ struct HomeView: View {
                 bottomTabBarLayer
                 bottomSheetLayer
             }
-            .onGeometryChange(for: CGFloat.self) { proxy in
-                proxy.size.height
-            } action: { height in
-                handleContainerHeightChange(height)
+//            .onGeometryChange(for: CGFloat.self) { proxy in
+//                proxy.size.height
+//            } action: { height in
+//                handleContainerHeightChange(height)
+//            }
+            .onAppear {
+                startHomeServices()
+                consumePendingPlaceSelectionIfNeeded()
             }
-            .onAppear(perform: startHomeServices)
             .onDisappear(perform: stopHomeServices)
             .animation(.easeOut(duration: 0.25), value: bottomSheetState)
         }
@@ -79,6 +85,9 @@ struct HomeView: View {
         }
         .onChange(of: selectedItem?.id) { _ in
             selectedSheetContentHeight = 0
+        }
+        .onChange(of: pendingPlaceSelection) { _ in
+            consumePendingPlaceSelectionIfNeeded()
         }
         .onChange(of: homeStore.state.placeList.shouldAutoExpandAfterResearch) { shouldExpand in
             guard shouldExpand else { return }

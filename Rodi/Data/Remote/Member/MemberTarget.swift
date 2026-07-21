@@ -7,11 +7,17 @@ import Alamofire
 import Foundation
 
 enum MemberTarget: TargetType {
+    case myProfile
+    case updateDrivingGoal(MemberDrivingGoalUpdateRequestDTO)
     case withdraw
     case submitOnboarding(MemberOnboardingRequestDTO)
 
     var method: HTTPMethod {
         switch self {
+        case .myProfile:
+            .get
+        case .updateDrivingGoal:
+            .patch
         case .withdraw:
             .delete
         case .submitOnboarding:
@@ -21,7 +27,7 @@ enum MemberTarget: TargetType {
 
     var path: String {
         switch self {
-        case .withdraw:
+        case .myProfile, .updateDrivingGoal, .withdraw:
             "/api/v1/members/me"
         case .submitOnboarding:
             "/api/v1/members/me/onboarding"
@@ -38,8 +44,10 @@ enum MemberTarget: TargetType {
 
     var body: Data? {
         switch self {
-        case .withdraw:
+        case .myProfile, .withdraw:
             nil
+        case .updateDrivingGoal(let request):
+            requestToBody(request)
         case .submitOnboarding(let request):
             requestToBody(request)
         }

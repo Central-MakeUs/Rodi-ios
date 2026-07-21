@@ -88,6 +88,17 @@ struct PlaceListQuery: Equatable {
     }
 }
 
+/// `/api/v1/places/bookmarks`의 커서 페이지 요청입니다.
+struct PlaceBookmarkListQuery: Equatable {
+    let size: Int
+    let cursor: String?
+
+    init(size: Int = 20, cursor: String? = nil) {
+        self.size = size
+        self.cursor = cursor
+    }
+}
+
 struct PlaceListItem: Equatable, Identifiable {
     let id: Int
     let type: PlaceType

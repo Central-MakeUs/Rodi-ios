@@ -30,7 +30,7 @@ struct PlaceListView: View {
                 ScrollView {
                     LazyVStack(spacing: 0) {
                         ForEach(items) { item in
-                            PlaceListCard(item: item, selectAction: selectAction)
+                            PlaceListItemCard(item: item, selectAction: selectAction)
 
                             if item.id != items.last?.id {
                                 Rectangle()
@@ -67,28 +67,39 @@ struct PlaceListView: View {
     }
 }
 
-private struct PlaceListCard: View {
+/// 홈 추천 목록과 마이 저장 목록에서 공유하는 장소 카드입니다.
+struct PlaceListItemCard: View {
     let item: PlaceListItem
-    let selectAction: (PlaceListItem) -> Void
+    var selectAction: ((PlaceListItem) -> Void)?
 
     var body: some View {
-        Button {
-            selectAction(item)
-        } label: {
-            VStack(alignment: .leading, spacing: 10) {
-                switch item.type {
-                case .course:
-                    courseContent
-                case .parking:
-                    parkingContent
+        Group {
+            if let selectAction {
+                Button {
+                    selectAction(item)
+                } label: {
+                    cardContent
                 }
+            } else {
+                cardContent
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+
+    private var cardContent: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            switch item.type {
+            case .course:
+                courseContent
+            case .parking:
+                parkingContent
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
     }
 
     private var courseContent: some View {

@@ -90,6 +90,23 @@ extension HomeView {
         handleCourseSelection(RodiCourseItem(placeListItem: item))
     }
 
+    /// 마이의 저장 목록에서 선택한 장소를 홈의 기존 상세 선택 흐름으로 연결한다.
+    func consumePendingPlaceSelectionIfNeeded() {
+        guard selectedTab == .home,
+              homeStore.state.map.isReady,
+              containerHeight > 0,
+              let item = pendingPlaceSelection
+        else {
+            return
+        }
+
+        pendingPlaceSelection = nil
+        RodiLogger.info(
+            "Saved place selection handed off to ready home map placeID=\(item.id), mapHeight=\(containerHeight)"
+        )
+        handlePlaceListSelection(item)
+    }
+
     func reloadPlaceList() {
         homeStore.send(.placeListAction(.reloadCurrentViewport))
     }

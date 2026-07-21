@@ -33,6 +33,7 @@ struct RodiBottomTabBar: View {
         .padding(.top, 8)
         .padding(.bottom, 24)
         .background(RodiColor.white)
+        .shadow(color: Color(hex: 0x222222, alpha: 0.08), radius: 4, x: 0, y: -3)
         .ignoresSafeArea(edges: .bottom)
         .accessibilityElement(children: .contain)
     }

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		041D5860300EFD09008ACB6B /* LicenseList in Frameworks */ = {isa = PBXBuildFile; productRef = 041D585F300EFD09008ACB6B /* LicenseList */; };
 		045DE9702FEF9C130060C89A /* RealmSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 045DE96F2FEF9C130060C89A /* RealmSwift */; };
 		045DE9752FEFA1000060C89A /* KakaoMapsSDK-SPM in Frameworks */ = {isa = PBXBuildFile; productRef = 045DE9762FEFA1000060C89A /* KakaoMapsSDK-SPM */; };
 		045DE9DF2FEFA5D50060C89A /* SwiftyBeaver in Frameworks */ = {isa = PBXBuildFile; productRef = 045DE9DE2FEFA5D50060C89A /* SwiftyBeaver */; };
@@ -57,6 +58,7 @@
 			files = (
 				04CA50652FF8E665003FCF19 /* RxSwift in Frameworks */,
 				04CA505B2FF8E61E003FCF19 /* Then in Frameworks */,
+				041D5860300EFD09008ACB6B /* LicenseList in Frameworks */,
 				045DE9752FEFA1000060C89A /* KakaoMapsSDK-SPM in Frameworks */,
 				045DE9E22FEFAC9E0060C89A /* KakaoSDKNavi in Frameworks */,
 				045DE9E52FEFAC9E0060C89A /* KakaoSDKUser in Frameworks */,
@@ -131,6 +133,7 @@
 				04CA50622FF8E665003FCF19 /* RxRelay */,
 				04CA50642FF8E665003FCF19 /* RxSwift */,
 				04CA50672FF8E67A003FCF19 /* NSObject-Rx */,
+				041D585F300EFD09008ACB6B /* LicenseList */,
 			);
 			productName = Rodi;
 			productReference = 042A22C62FEE58B100DB67F4 /* Rodi.app */;
@@ -169,6 +172,7 @@
 				04CA505C2FF8E63E003FCF19 /* XCRemoteSwiftPackageReference "SnapKit" */,
 				04CA505F2FF8E665003FCF19 /* XCRemoteSwiftPackageReference "RxSwift" */,
 				04CA50662FF8E67A003FCF19 /* XCRemoteSwiftPackageReference "NSObject-Rx" */,
+				041D585E300EFD09008ACB6B /* XCRemoteSwiftPackageReference "LicenseList" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 042A22C72FEE58B100DB67F4 /* Products */;
@@ -421,6 +425,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		041D585E300EFD09008ACB6B /* XCRemoteSwiftPackageReference "LicenseList" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/cybozu/LicenseList.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.5.0;
+			};
+		};
 		045DE96C2FEF9C130060C89A /* XCRemoteSwiftPackageReference "realm-swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/realm/realm-swift.git";
@@ -488,6 +500,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		041D585F300EFD09008ACB6B /* LicenseList */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 041D585E300EFD09008ACB6B /* XCRemoteSwiftPackageReference "LicenseList" */;
+			productName = LicenseList;
+		};
 		045DE96F2FEF9C130060C89A /* RealmSwift */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 045DE96C2FEF9C130060C89A /* XCRemoteSwiftPackageReference "realm-swift" */;

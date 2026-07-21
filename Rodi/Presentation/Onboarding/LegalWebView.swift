@@ -95,7 +95,7 @@ struct LegalSettingsView: View {
     }
 }
 
-private struct LegalWKWebView: UIViewRepresentable {
+struct LegalWKWebView: UIViewRepresentable {
     let url: URL
 
     func makeUIView(context: Context) -> WKWebView {
