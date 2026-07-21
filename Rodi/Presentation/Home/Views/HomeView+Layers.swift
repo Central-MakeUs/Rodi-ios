@@ -62,16 +62,20 @@ extension HomeView {
     }
 
     var floatingControlLayer: some View {
-        HomeFloatingControlLayer(
-            isCurrentLocationActive: isCurrentLocationButtonActive,
-            mapZoomLevel: mapZoomLevel,
-            bottomInset: floatingControlBottomInset,
-            opacity: locationButtonOpacity,
-            allowsHitTesting: bottomSheetState != .expanded && locationButtonOpacity > 0.95,
-            isAccessibilityHidden: bottomSheetState == .expanded,
-            spacing: Constants.floatingControlSpacing,
-            currentLocationAction: requestCurrentLocation
-        )
+        Group {
+            if bottomSheetState != .expanded || hasFixedBottomSheet {
+                HomeFloatingControlLayer(
+                    isCurrentLocationActive: isCurrentLocationButtonActive,
+                    mapZoomLevel: mapZoomLevel,
+                    bottomInset: floatingControlBottomInset,
+                    opacity: locationButtonOpacity,
+                    allowsHitTesting: locationButtonOpacity > 0.95,
+                    isAccessibilityHidden: false,
+                    spacing: Constants.floatingControlSpacing,
+                    currentLocationAction: requestCurrentLocation
+                )
+            }
+        }
     }
 
     var bottomSheetLayer: some View {
@@ -89,23 +93,6 @@ extension HomeView {
                 selectedSheetContentHeight = height
             }
         )
-    }
-
-    var bottomTabBarLayer: some View {
-        Group {
-            if bottomSheetState != .expanded, !hasSelectedBottomSheet {
-                RodiBottomTabBar(
-                    selectedTab: selectedTab,
-                    homeAction: presentBottomSheet,
-                    myAction: { selectedTab = .my }
-                )
-                .opacity(bottomTabBarOpacity)
-                .offset(y: bottomTabBarOffset)
-                .animation(.easeOut(duration: 0.18), value: bottomSheetState)
-                .allowsHitTesting(bottomTabBarOpacity > 0.95)
-                .zIndex(0.8)
-            }
-        }
     }
 
     var listButtonLayer: some View {

@@ -13,12 +13,12 @@ struct CourseBottomSheet: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Capsule()
-                .fill(RodiColor.gray400)
-                .frame(width: 60, height: 4)
-                .padding(.top, 6)
-                .padding(.bottom, 0)
-                .opacity(1 - content.pageProgress)
+            if content.pageProgress < 0.98 {
+                Capsule()
+                    .fill(RodiColor.gray400)
+                    .frame(width: 60, height: 4)
+                    .padding(.top, 6)
+            }
 
             if content.showsListHeader {
                 CourseBottomSheetHeaderView(

@@ -16,17 +16,23 @@ struct HomeView: View {
     @State var selectedSheetContentHeight: CGFloat = 0
     @Binding var selectedTab: RodiTab
     @Binding var pendingPlaceSelection: PlaceListItem?
+    @Binding var rootBottomSheetState: HomeBottomSheetState
+    @Binding var tabTapRequestID: Int
     let placeRepository: PlaceRepository
     let onAuthenticationRequired: () -> Void
 
     init(
         selectedTab: Binding<RodiTab> = .constant(.home),
         pendingPlaceSelection: Binding<PlaceListItem?> = .constant(nil),
+        bottomSheetState: Binding<HomeBottomSheetState> = .constant(.collapsed),
+        tabTapRequestID: Binding<Int> = .constant(0),
         placeRepository: PlaceRepository = AuthDependencyContainer.shared.placeRepository,
         onAuthenticationRequired: @escaping () -> Void = {}
     ) {
         _selectedTab = selectedTab
         _pendingPlaceSelection = pendingPlaceSelection
+        _rootBottomSheetState = bottomSheetState
+        _tabTapRequestID = tabTapRequestID
         self.placeRepository = placeRepository
         self.onAuthenticationRequired = onAuthenticationRequired
         _homeStore = StateObject(
@@ -55,7 +61,6 @@ struct HomeView: View {
                 pageMorphOverlay
                 floatingControlLayer
                 listButtonLayer
-                bottomTabBarLayer
                 bottomSheetLayer
             }
 //            .onGeometryChange(for: CGFloat.self) { proxy in
@@ -66,6 +71,7 @@ struct HomeView: View {
             .onAppear {
                 startHomeServices()
                 consumePendingPlaceSelectionIfNeeded()
+                rootBottomSheetState = bottomSheetState
             }
             .onDisappear(perform: stopHomeServices)
             .animation(.easeOut(duration: 0.25), value: bottomSheetState)
@@ -88,6 +94,12 @@ struct HomeView: View {
         }
         .onChange(of: pendingPlaceSelection) { _ in
             consumePendingPlaceSelectionIfNeeded()
+        }
+        .onChange(of: bottomSheetState) { state in
+            rootBottomSheetState = state
+        }
+        .onChange(of: tabTapRequestID) { _ in
+            presentBottomSheet()
         }
         .onChange(of: homeStore.state.placeList.shouldAutoExpandAfterResearch) { shouldExpand in
             guard shouldExpand else { return }
