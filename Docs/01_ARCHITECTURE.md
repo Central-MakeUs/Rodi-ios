@@ -151,7 +151,7 @@ Home deliberately uses two public Place APIs for different jobs.
 
 `Presentation/Onboarding` owns onboarding flow state, entry/social login UI, legal agreement UI, nickname/driving preference screens, safety confirmation, and location permission prompt UI.
 
-Onboarding UI models are Presentation models, not Domain entities. `Data/Local/Onboarding/OnboardingDraftStore` stores the authenticated new-member's current step and selections after every state change so an interrupted onboarding session can resume. It is cleared only after final onboarding completion or logout/withdrawal. `Core/Setting/AppPreferencesStore` continues to own the separate final `hasSeenOnboarding` flag.
+Onboarding UI models are Presentation models, not Domain entities. `Data/Local/Onboarding/OnboardingDraftStore` stores the authenticated new-member's current step and selections after every state change so an interrupted onboarding session can resume. It is cleared only after final onboarding completion or logout/withdrawal. Browse users follow the reduced `terms -> safety -> location permission` flow and never create an onboarding draft or submit member onboarding data. `Core/Setting/AppPreferencesStore` continues to own the separate final `hasSeenOnboarding` flag.
 
 ## My Structure
 

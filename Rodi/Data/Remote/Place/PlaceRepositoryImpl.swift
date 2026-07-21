@@ -55,7 +55,7 @@ final class PlaceRepositoryImpl: PlaceRepository {
     }
 
     func fetchPlaceDetail(id: Int) async throws(NetworkError) -> PlaceDetail {
-        let response = try await authenticatedNetworkManager.request(
+        let response = try await publicNetworkManager.request(
             PlaceTarget.detail(id: id),
             as: ServerResponse<PlaceDetailDTO>.self
         )
