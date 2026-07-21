@@ -17,6 +17,7 @@ struct OnboardingView: View {
     @State var locationPermission: LocationPermissionRequester
     @State var socialLoginService: SocialLoginService
 
+    @MainActor
     init(onComplete: @escaping () -> Void) {
         self.onComplete = onComplete
         self.authRepository = AuthDependencyContainer.shared.authRepository
@@ -29,19 +30,20 @@ struct OnboardingView: View {
         _socialLoginService = State(initialValue: SocialLoginService())
     }
 
+    @MainActor
     init(
         onComplete: @escaping () -> Void,
         onboardingStore: StoreOf<OnboardingReducer>,
         locationPermission: LocationPermissionRequester,
         socialLoginService: SocialLoginService,
-        authRepository: AuthRepository = AuthDependencyContainer.shared.authRepository,
-        memberRepository: MemberRepository = AuthDependencyContainer.shared.memberRepository,
-        onboardingDraftStore: OnboardingDraftStore = OnboardingDraftStore()
+        authRepository: AuthRepository? = nil,
+        memberRepository: MemberRepository? = nil,
+        onboardingDraftStore: OnboardingDraftStore? = nil
     ) {
         self.onComplete = onComplete
-        self.authRepository = authRepository
-        self.memberRepository = memberRepository
-        self.onboardingDraftStore = onboardingDraftStore
+        self.authRepository = authRepository ?? AuthDependencyContainer.shared.authRepository
+        self.memberRepository = memberRepository ?? AuthDependencyContainer.shared.memberRepository
+        self.onboardingDraftStore = onboardingDraftStore ?? OnboardingDraftStore()
         _onboardingStore = StateObject(wrappedValue: onboardingStore)
         _locationPermission = State(initialValue: locationPermission)
         _socialLoginService = State(initialValue: socialLoginService)
