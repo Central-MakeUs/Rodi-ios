@@ -17,6 +17,7 @@ This document is the main operating guide for AI agents working in this reposito
 | App startup/root flow | `Rodi/App/` | `RodiApp.swift`, `RootView.swift` own app entry and root routing. |
 | Home feature | `Rodi/Presentation/Home/` | Map, location, bottom sheet, marker, route, and Home MVI live here. |
 | Onboarding | `Rodi/Presentation/Onboarding/` | Onboarding MVI, legal agreements, and permission screen live here. |
+| My profile | `Rodi/Presentation/My/` | Profile UI, settings routing, and authenticated member summary rendering live here. |
 | Design tokens | `Rodi/Core/RodiDesignSystem.swift` | Use `RodiColor`, `RodiTypography`, and Pretendard helpers. |
 | Assets/fonts/data | `Rodi/Resources/` | Asset catalog, bundled JSON, fonts, privacy manifest. |
 | Legal pages | `Rodi/Core/LegalDocument.swift`, `Rodi/Core/LegalWebView.swift` | In-app legal document routing and WebView. |
@@ -43,6 +44,7 @@ This document is the main operating guide for AI agents working in this reposito
 | `OnboardingView` | Onboarding MVI entry view. |
 | `OnboardingReducer` | Onboarding state transitions. |
 | `SocialLoginService` | Apple/Kakao onboarding login side effects. |
+| `MyProfileViewModel` | Loads and renders the authenticated member's profile summary. |
 | `RodiDesignSystem` | Colors, typography, fonts, and design token helpers. |
 
 ## Commands
