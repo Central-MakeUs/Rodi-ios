@@ -32,6 +32,7 @@ extension HomeView {
         homeStore.send(.mapAction(.ready))
         runtimeService.markMapReady()
         runtimeService.renderInitialMapMarkers(for: homeStore.state.visibleItems)
+        consumePendingPlaceSelectionIfNeeded()
     }
 
     func handleMapViewportChange(

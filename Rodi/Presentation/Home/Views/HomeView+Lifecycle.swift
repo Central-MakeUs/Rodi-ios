@@ -14,6 +14,7 @@ extension HomeView {
             homeStore.send(.viewAction(.syncMediumSheetHeight(mediumSheetHeight)))
         }
         homeStore.send(.viewAction(.syncExpandedSheetHeight(containerHeight: height, mediumHeight: mediumSheetHeight)))
+        consumePendingPlaceSelectionIfNeeded()
     }
 
     func startHomeServices() {
