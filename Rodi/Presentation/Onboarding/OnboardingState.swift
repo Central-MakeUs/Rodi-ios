@@ -10,6 +10,7 @@ import Foundation
 struct OnboardingState {
     var step: OnboardingStep = .entry
     var loginProvider: AuthProvider?
+    var recentLoginProvider: AuthProvider?
     var agreedTerms: Set<TermsAgreement> = []
     var agreedSafetyItems: Set<SafetyAgreement> = []
     var selectedTermsPage: TermsAgreement?
@@ -81,10 +82,12 @@ struct OnboardingState {
         )
     }
 
-    init() {}
+    init(recentLoginProvider: AuthProvider? = nil) {
+        self.recentLoginProvider = recentLoginProvider
+    }
 
-    init(draft: OnboardingDraftPayload) {
-        self.init()
+    init(draft: OnboardingDraftPayload, recentLoginProvider: AuthProvider? = nil) {
+        self.init(recentLoginProvider: recentLoginProvider)
 
         guard let step = OnboardingStep(rawValue: draft.stepRawValue),
               step != .entry,

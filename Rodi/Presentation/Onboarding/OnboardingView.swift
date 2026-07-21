@@ -12,6 +12,7 @@ struct OnboardingView: View {
     let authRepository: AuthRepository
     let memberRepository: MemberRepository
     let onboardingDraftStore: OnboardingDraftStore
+    let recentLoginProviderStore: RecentLoginProviderStore
 
     @StateObject var onboardingStore: StoreOf<OnboardingReducer>
     @State var locationPermission: LocationPermissionRequester
@@ -24,7 +25,15 @@ struct OnboardingView: View {
         self.memberRepository = AuthDependencyContainer.shared.memberRepository
         let draftStore = OnboardingDraftStore()
         self.onboardingDraftStore = draftStore
-        let initialState = draftStore.load().map(OnboardingState.init(draft:)) ?? OnboardingState()
+        let recentLoginProviderStore = AuthDependencyContainer.shared.recentLoginProviderStore
+        self.recentLoginProviderStore = recentLoginProviderStore
+        let recentLoginProvider = recentLoginProviderStore.load()
+        let initialState: OnboardingState
+        if let draft = draftStore.load() {
+            initialState = OnboardingState(draft: draft, recentLoginProvider: recentLoginProvider)
+        } else {
+            initialState = OnboardingState(recentLoginProvider: recentLoginProvider)
+        }
         _onboardingStore = StateObject(wrappedValue: Store(state: initialState, reducer: OnboardingReducer()))
         _locationPermission = State(initialValue: LocationPermissionRequester())
         _socialLoginService = State(initialValue: SocialLoginService())
@@ -38,12 +47,14 @@ struct OnboardingView: View {
         socialLoginService: SocialLoginService,
         authRepository: AuthRepository? = nil,
         memberRepository: MemberRepository? = nil,
-        onboardingDraftStore: OnboardingDraftStore? = nil
+        onboardingDraftStore: OnboardingDraftStore? = nil,
+        recentLoginProviderStore: RecentLoginProviderStore? = nil
     ) {
         self.onComplete = onComplete
         self.authRepository = authRepository ?? AuthDependencyContainer.shared.authRepository
         self.memberRepository = memberRepository ?? AuthDependencyContainer.shared.memberRepository
         self.onboardingDraftStore = onboardingDraftStore ?? OnboardingDraftStore()
+        self.recentLoginProviderStore = recentLoginProviderStore ?? AuthDependencyContainer.shared.recentLoginProviderStore
         _onboardingStore = StateObject(wrappedValue: onboardingStore)
         _locationPermission = State(initialValue: locationPermission)
         _socialLoginService = State(initialValue: socialLoginService)
@@ -127,6 +138,7 @@ struct OnboardingView: View {
             case .entry:
                 OnboardingEntryView(
                     isAuthenticating: onboardingStore.state.isAuthenticating,
+                    recentLoginProvider: onboardingStore.state.recentLoginProvider,
                     onBrowse: { onboardingStore.send(.entry(.browseTapped)) },
                     onAppleLogin: startAppleLogin,
                     onKakaoLogin: startKakaoLogin
