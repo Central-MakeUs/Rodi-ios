@@ -125,69 +125,7 @@ extension RodiKakaoMapView {
     }
 
     func makeClusterCountMarkerImage(countText: String) -> UIImage {
-        let font = UIFont.pretendard(size: 14, weight: .medium)
-        let textAttributes: [NSAttributedString.Key: Any] = [
-            .font: font,
-            .foregroundColor: UIColor.white
-        ]
-        let textSize = (countText as NSString).size(withAttributes: textAttributes)
-        let horizontalPadding: CGFloat = 10
-        let verticalPadding: CGFloat = 4
-        let tailSize = CGSize(width: 14, height: 8)
-        let shadowPadding: CGFloat = 4
-        let chipSize = CGSize(
-            width: ceil(textSize.width + horizontalPadding * 2),
-            height: ceil(textSize.height + verticalPadding * 2)
-        )
-        let canvasSize = CGSize(
-            width: chipSize.width + shadowPadding * 2,
-            height: chipSize.height + tailSize.height + shadowPadding * 2
-        )
-        let renderer = UIGraphicsImageRenderer(size: canvasSize)
-
-        return renderer.image { context in
-            let chipRect = CGRect(
-                x: shadowPadding,
-                y: shadowPadding,
-                width: chipSize.width,
-                height: chipSize.height
-            )
-            let path = UIBezierPath(roundedRect: chipRect, cornerRadius: 8)
-            context.cgContext.setShadow(
-                offset: .zero,
-                blur: 1.5,
-                color: UIColor.black.withAlphaComponent(0.3).cgColor
-            )
-            UIColor(red: 0.439, green: 0.384, blue: 1.0, alpha: 1.0).setFill()
-            path.fill()
-            context.cgContext.setShadow(offset: .zero, blur: 0, color: nil)
-
-            let tailRect = CGRect(
-                x: (canvasSize.width - tailSize.width) / 2,
-                y: chipRect.maxY,
-                width: tailSize.width,
-                height: tailSize.height
-            )
-            if let tailImage = UIImage(named: "ic_map_count_chip_tail") {
-                tailImage.draw(in: tailRect)
-            } else {
-                let tail = UIBezierPath()
-                tail.move(to: CGPoint(x: tailRect.midX, y: tailRect.maxY))
-                tail.addLine(to: CGPoint(x: tailRect.minX, y: tailRect.minY))
-                tail.addLine(to: CGPoint(x: tailRect.maxX, y: tailRect.minY))
-                tail.close()
-                UIColor(red: 0.439, green: 0.384, blue: 1.0, alpha: 1.0).setFill()
-                tail.fill()
-            }
-
-            let textRect = CGRect(
-                x: chipRect.minX + horizontalPadding,
-                y: chipRect.minY + verticalPadding,
-                width: textSize.width,
-                height: textSize.height
-            )
-            (countText as NSString).draw(in: textRect, withAttributes: textAttributes)
-        }
+        RodiClusterCountMarkerView(countText: countText).renderedImage()
     }
 
     func makeFallbackParkingMarkerImage() -> UIImage {
