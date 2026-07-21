@@ -83,6 +83,7 @@ extension HomeView {
             content: bottomSheetContentState,
             actions: bottomSheetActions,
             height: renderedSheetHeight,
+            visibleHeight: visibleSheetHeight,
             usesIntrinsicHeight: usesContentSizedSelectedDetail,
             offsetY: renderedSheetOffset,
             opacity: bottomSheetOpacity,

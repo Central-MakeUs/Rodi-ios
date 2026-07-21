@@ -121,7 +121,7 @@ struct RootView: View {
                     .zIndex(1)
             }
         }
-        .animation(.easeOut(duration: 0.2), value: shouldShowBottomTabBar)
+        .animation(.easeOut(duration: 0.1), value: shouldShowBottomTabBar)
     }
 
     private func openSavedPlace(_ item: PlaceListItem) {

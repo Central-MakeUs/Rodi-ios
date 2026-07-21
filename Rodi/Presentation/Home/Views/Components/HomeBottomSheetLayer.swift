@@ -9,6 +9,7 @@ struct HomeBottomSheetLayer<Drag: Gesture>: View {
     let content: CourseBottomSheetContentState
     let actions: CourseBottomSheetActions
     let height: CGFloat
+    let visibleHeight: CGFloat
     let usesIntrinsicHeight: Bool
     let offsetY: CGFloat
     let opacity: CGFloat
@@ -22,6 +23,7 @@ struct HomeBottomSheetLayer<Drag: Gesture>: View {
                 CourseBottomSheet(
                     content: content,
                     actions: actions,
+                    visibleHeight: visibleHeight,
                     dragGesture: dragGesture,
                     shouldAllowDrag: shouldAllowDrag
                 )
@@ -41,6 +43,7 @@ struct HomeBottomSheetLayer<Drag: Gesture>: View {
                 CourseBottomSheet(
                     content: content,
                     actions: actions,
+                    visibleHeight: visibleHeight,
                     dragGesture: dragGesture,
                     shouldAllowDrag: shouldAllowDrag
                 )

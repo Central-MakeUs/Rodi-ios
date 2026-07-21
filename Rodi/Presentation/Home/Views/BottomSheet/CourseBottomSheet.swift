@@ -10,6 +10,7 @@ import SwiftUI
 struct CourseBottomSheet<Drag: Gesture>: View {
     let content: CourseBottomSheetContentState
     let actions: CourseBottomSheetActions
+    let visibleHeight: CGFloat
     let dragGesture: Drag
     let shouldAllowDrag: Bool
 
@@ -48,12 +49,14 @@ struct CourseBottomSheet<Drag: Gesture>: View {
                     reloadAction: actions.reloadPlaceList,
                     loadNextPageAction: actions.loadNextPage
                 )
-                .frame(
-                    maxWidth: .infinity,
-                    maxHeight: .infinity
-                )
+                // 시트는 전체 높이를 가진 채 offset되므로, 목록의 스크롤 영역만
+                // 실제 화면에 보이는 시트 높이로 제한한다.
+                .frame(maxWidth: .infinity)
+                .frame(height: listViewportHeight, alignment: .top)
+                .clipped()
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(RodiColor.white)
         .clipShape(
             UnevenRoundedRectangle(
@@ -67,6 +70,12 @@ struct CourseBottomSheet<Drag: Gesture>: View {
             guard !content.hasSelectedItem else { return }
             actions.expand()
         }
+    }
+
+    private var listViewportHeight: CGFloat {
+        let dragHandleHeight: CGFloat = 10
+        let listHeaderHeight: CGFloat = content.showsListHeader ? 56 : 0
+        return max(0, visibleHeight - dragHandleHeight - listHeaderHeight)
     }
 
     private var headerTitle: String { "추천 목록" }

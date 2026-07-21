@@ -129,7 +129,7 @@ struct HomeBottomSheetLayoutPolicy {
     }
 
     var bottomTabBarOpacity: CGFloat {
-        sheetDismissProgress
+        bottomSheetState == .collapsed ? 1 : dismissalControlProgress
     }
 
     var bottomTabBarOffset: CGFloat {
@@ -155,7 +155,13 @@ struct HomeBottomSheetLayoutPolicy {
         guard !hasFixedBottomSheet else { return 1 }
 
         let overlap = currentSheetHeight - mediumOverlayBottomInset
-        return 1 - clamp(overlap / currentLocationButtonSize, lowerBound: 0, upperBound: 1)
+        let expansionOpacity = 1 - clamp(
+            overlap / currentLocationButtonSize,
+            lowerBound: 0,
+            upperBound: 1
+        )
+        let dismissalOpacity = 1 - dismissalControlProgress
+        return min(expansionOpacity, dismissalOpacity)
     }
 
     /// 바텀싯이 전체 페이지처럼 보이기 시작하는 구간의 진행도.
@@ -167,6 +173,19 @@ struct HomeBottomSheetLayoutPolicy {
         let morphStartHeight = availableSheetHeight * pageMorphStartRatio
         let progress = (currentSheetHeight - morphStartHeight) / (availableSheetHeight - morphStartHeight)
         return clamp(progress, lowerBound: 0, upperBound: 1)
+    }
+
+    /// 중간 시트가 아래로 닫히기 시작하면 플로팅 컨트롤과 목록 열기 버튼을
+    /// 시트의 전체 이동 거리보다 빠르게 교차 전환한다.
+    private var dismissalControlProgress: CGFloat {
+        guard bottomSheetState == .medium, !hasFixedBottomSheet else { return 0 }
+
+        let dismissalDistance = max(mediumSheetHeight - currentSheetHeight, 0)
+        return clamp(
+            dismissalDistance / currentLocationButtonSize,
+            lowerBound: 0,
+            upperBound: 1
+        )
     }
 
     /// 드래그 translation을 바텀싯 높이로 변환한다.

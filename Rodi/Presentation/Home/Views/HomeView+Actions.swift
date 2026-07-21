@@ -24,6 +24,9 @@ extension HomeView {
     private func settleBottomSheet(from currentHeight: CGFloat, to destination: HomeBottomSheetState) {
         let settlingID = UUID()
         sheetSettlingID = settlingID
+        let duration = destination == .collapsed
+            ? Constants.collapsedSheetSnapDuration
+            : Constants.defaultSheetSnapDuration
 
         var transaction = Transaction()
         transaction.disablesAnimations = true
@@ -44,13 +47,13 @@ extension HomeView {
         DispatchQueue.main.async {
             guard sheetSettlingID == settlingID else { return }
 
-            withAnimation(.easeOut(duration: 0.25)) {
+            withAnimation(.easeOut(duration: duration)) {
                 settlingSheetHeight = targetHeight
             }
         }
 
         Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(250))
+            try? await Task.sleep(for: .milliseconds(Int(duration * 1_000)))
             guard sheetSettlingID == settlingID else { return }
 
             var completionTransaction = Transaction()
