@@ -14,6 +14,7 @@ struct RootView: View {
     @State private var pendingUpdate: AppVersionUpdate?
     @State private var hasCheckedAppVersion = false
     @State private var selectedTab: RodiTab = .home
+    @State private var pendingHomePlaceSelection: PlaceListItem?
     
     init() {
         let store = AppPreferencesStore()
@@ -79,11 +80,21 @@ struct RootView: View {
         case .home:
             HomeView(
                 selectedTab: $selectedTab,
+                pendingPlaceSelection: $pendingHomePlaceSelection,
                 onAuthenticationRequired: beginAuthentication
             )
         case .my:
-            MyView(tabBar: bottomTabBar, onLogout: completeLogout)
+            MyView(
+                tabBar: bottomTabBar,
+                onSavedPlaceSelected: openSavedPlace,
+                onLogout: completeLogout
+            )
         }
+    }
+
+    private func openSavedPlace(_ item: PlaceListItem) {
+        pendingHomePlaceSelection = item
+        selectedTab = .home
     }
 
     private func beginAuthentication() {
