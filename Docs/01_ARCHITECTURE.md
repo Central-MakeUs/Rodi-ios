@@ -16,6 +16,7 @@ Rodi/
     Repository/
   Presentation/
     Home/
+    My/
     Onboarding/
   Resources/
 ```
@@ -52,6 +53,7 @@ Owns feature UI and UI-facing logic.
 
 Current features:
 - `Presentation/Home`
+- `Presentation/My`
 - `Presentation/Onboarding`
 
 Presentation may use Core and, when introduced, Domain protocols/entities. Presentation should not contain reusable infrastructure that belongs in Core.
@@ -149,6 +151,13 @@ Home deliberately uses two public Place APIs for different jobs.
 `Presentation/Onboarding` owns onboarding flow state, entry/social login UI, legal agreement UI, nickname/driving preference screens, safety confirmation, and location permission prompt UI.
 
 Onboarding UI models are Presentation models, not Domain entities. `Data/Local/Onboarding/OnboardingDraftStore` stores the authenticated new-member's current step and selections after every state change so an interrupted onboarding session can resume. It is cleared only after final onboarding completion or logout/withdrawal. `Core/Setting/AppPreferencesStore` continues to own the separate final `hasSeenOnboarding` flag.
+
+## My Structure
+
+`Presentation/My` owns the profile screen and settings navigation. `MyProfileViewModel` is the
+single owner of the profile loading state and depends on `MemberRepository`; it does not call the
+network layer directly. `Data/Remote/Member` maps `GET /api/v1/members/me` into the pure
+`Domain/Member/MemberProfile` entity.
 
 ## MVI Rules
 
