@@ -18,6 +18,20 @@ final class MemberRepositoryImpl: MemberRepository {
             as: ServerResponse<MemberProfileResponseDTO>.self
         )
 
+        #if DEBUG
+        let profileLog: String
+        if let profile = response.data {
+            let drivingGoal = profile.drivingGoal ?? "nil"
+            profileLog = "nickname=\(profile.nickname), level=\(profile.level), recommendationTags=\(profile.recommendationTags), drivingGoal=\(drivingGoal), savedPlaceCount=\(profile.savedPlaceCount)"
+        } else {
+            profileLog = "nil"
+        }
+        let traceID = response.traceId ?? "nil"
+        RodiLogger.debug(
+            "GET /api/v1/members/me response: isSuccess=\(response.isSuccess), code=\(response.code), message=\(response.message), traceId=\(traceID), data={\(profileLog)}"
+        )
+        #endif
+
         guard response.isSuccess, let profile = response.data else {
             throw .apiError(code: response.code, message: response.message)
         }
