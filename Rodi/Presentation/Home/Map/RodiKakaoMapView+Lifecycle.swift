@@ -112,15 +112,19 @@ extension RodiKakaoMapView {
     func registerMapEventHandlers(on map: KakaoMap) {
         mapEventHandlers.removeAll()
         let cameraStoppedHandler = map.addCameraStoppedEventHandler(target: self) { target in
-            { parameter in
-                target.reportCurrentViewport(isUserInitiated: parameter.by != .notUserAction)
+            { _ in
+                target.reportCurrentViewport()
             }
         }
         mapEventHandlers.append(cameraStoppedHandler)
     }
 
-    func reportCurrentViewport(isUserInitiated: Bool) {
+    func reportCurrentViewport() {
         guard let map = kakaoMap else { return }
+        let isProgrammaticMove = pendingProgrammaticViewportRequestID != nil
+        pendingProgrammaticViewportRequestID = nil
+        programmaticViewportResetWorkItem?.cancel()
+        programmaticViewportResetWorkItem = nil
         let centerPoint = map.getPosition(CGPoint(x: bounds.midX, y: bounds.midY))
         let southWestPoint = map.getPosition(CGPoint(x: bounds.minX, y: bounds.maxY))
         let northEastPoint = map.getPosition(CGPoint(x: bounds.maxX, y: bounds.minY))
@@ -139,7 +143,7 @@ extension RodiKakaoMapView {
             center: coordinate,
             zoomLevel: map.zoomLevel,
             viewport: viewport,
-            isUserInitiated: isUserInitiated
+            isUserInitiated: !isProgrammaticMove
         )
     }
 

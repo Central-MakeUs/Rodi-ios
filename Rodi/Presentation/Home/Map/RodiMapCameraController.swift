@@ -12,6 +12,7 @@ extension RodiKakaoMapView {
     func moveCamera(to coordinate: RodiCoordinate, requestID: Int, animated: Bool) {
         guard let map = kakaoMap else { return }
         lastAppliedCameraRequestID = requestID
+        markProgrammaticViewportChange(requestID: requestID)
 
         if case let .cluster(coordinates) = latestCameraFocus {
             focusClusterArea(coordinates, requestID: requestID, animated: animated)
@@ -97,6 +98,7 @@ extension RodiKakaoMapView {
         requestID: Int,
         animated: Bool
     ) {
+        markProgrammaticViewportChange(requestID: requestID)
         if animated {
             let options = CameraAnimationOptions(
                 autoElevation: true,
@@ -111,6 +113,18 @@ extension RodiKakaoMapView {
                 self?.coordinator?.reportCameraMoveFinished(requestID)
             }
         }
+    }
+
+    private func markProgrammaticViewportChange(requestID: Int) {
+        pendingProgrammaticViewportRequestID = requestID
+        programmaticViewportResetWorkItem?.cancel()
+
+        let resetWorkItem = DispatchWorkItem { [weak self] in
+            guard self?.pendingProgrammaticViewportRequestID == requestID else { return }
+            self?.pendingProgrammaticViewportRequestID = nil
+        }
+        programmaticViewportResetWorkItem = resetWorkItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2, execute: resetWorkItem)
     }
 
     func adjustedCameraTarget(for coordinate: RodiCoordinate, level: Int) -> RodiCoordinate {

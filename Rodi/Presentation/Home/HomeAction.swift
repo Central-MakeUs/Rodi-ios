@@ -69,6 +69,7 @@ enum HomeAction {
         case selectItem(RodiCourseItem, mediumHeight: CGFloat)
         case selectMapMarker(markerID: String, mediumHeight: CGFloat)
         case detailLoaded(PlaceDetail)
+        case detailAuthenticationRequired(placeID: Int)
         case detailFailed(placeID: Int, message: String)
         case toggleBookmark
         case bookmarkUpdated(placeID: Int, isBookmarked: Bool)

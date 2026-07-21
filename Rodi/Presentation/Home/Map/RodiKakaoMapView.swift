@@ -103,6 +103,10 @@ final class RodiKakaoMapView: UIView {
     var routeMarkerPoiIDs: [String] = []
     var mapEventHandlers: [DisposableEventHandler] = []
     var viewportChangeGeneration = 0
+    /// SDK가 시뮬레이터 제스처를 notUserAction으로 보고하는 경우를 피하기 위해,
+    /// 앱이 직접 요청한 카메라 이동만 별도로 한 번 제외한다.
+    var pendingProgrammaticViewportRequestID: Int?
+    var programmaticViewportResetWorkItem: DispatchWorkItem?
     var didRegisterUserLocationStyle = false
     var didRegisterHomeMarkerStyles = false
     var didRegisterRouteStyles = false
