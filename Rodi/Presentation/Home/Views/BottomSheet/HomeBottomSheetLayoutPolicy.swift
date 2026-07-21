@@ -68,7 +68,9 @@ struct HomeBottomSheetLayoutPolicy {
 
     /// 바텀싯이 최대로 차지할 수 있는 높이.
     var availableSheetHeight: CGFloat {
-        max(containerHeight, mediumSheetHeight)
+        // 컨테이너 측정이 아직 끝나지 않아도 전체 화면 전환은 가능해야 한다.
+        // iPhone 세로 전용 홈에서는 화면 높이를 확장 시트의 안정적인 기준으로 사용한다.
+        baseHeight
     }
 
     /// 실제 렌더링에 사용할 바텀싯 높이.
@@ -177,7 +179,22 @@ struct HomeBottomSheetLayoutPolicy {
     }
 
     private var baseHeight: CGFloat {
-        containerHeight > 0 ? containerHeight : UIScreen.main.bounds.height
+        if containerHeight > 0 {
+            return containerHeight
+        }
+
+        // HomeView의 ZStack은 상단/하단 Safe Area 안에서 레이아웃된다.
+        // 전체 화면 높이를 그대로 쓰면 확장 시트가 Safe Area보다 위로 밀리므로,
+        // 시트와 헤더는 같은 콘텐츠 높이를 기준으로 계산한다.
+        let safeArea = UIApplication.shared.connectedScenes
+            .compactMap { ($0 as? UIWindowScene)?.keyWindow }
+            .first?
+            .safeAreaInsets ?? .zero
+
+        return max(
+            UIScreen.main.bounds.height - safeArea.top - safeArea.bottom,
+            0
+        )
     }
 
     private func clamp(_ value: CGFloat, lowerBound: CGFloat, upperBound: CGFloat) -> CGFloat {

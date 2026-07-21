@@ -15,6 +15,9 @@ struct RootView: View {
     @State private var hasCheckedAppVersion = false
     @State private var selectedTab: RodiTab = .home
     @State private var pendingHomePlaceSelection: PlaceListItem?
+    @State private var homeBottomSheetState: HomeBottomSheetState = .collapsed
+    @State private var homeTabTapRequestID = 0
+    @State private var isMyDetailPresented = false
     
     init() {
         let store = AppPreferencesStore()
@@ -76,20 +79,31 @@ struct RootView: View {
 
     @ViewBuilder
     private var mainTabContent: some View {
-        switch selectedTab {
-        case .home:
-            HomeView(
-                selectedTab: $selectedTab,
-                pendingPlaceSelection: $pendingHomePlaceSelection,
-                onAuthenticationRequired: beginAuthentication
-            )
-        case .my:
-            MyView(
-                tabBar: bottomTabBar,
-                onSavedPlaceSelected: openSavedPlace,
-                onLogout: completeLogout
-            )
+        ZStack(alignment: .bottom) {
+            switch selectedTab {
+            case .home:
+                HomeView(
+                    selectedTab: $selectedTab,
+                    pendingPlaceSelection: $pendingHomePlaceSelection,
+                    bottomSheetState: $homeBottomSheetState,
+                    tabTapRequestID: $homeTabTapRequestID,
+                    onAuthenticationRequired: beginAuthentication
+                )
+            case .my:
+                MyView(
+                    isDetailPresented: $isMyDetailPresented,
+                    onSavedPlaceSelected: openSavedPlace,
+                    onLogout: completeLogout
+                )
+            }
+
+            if shouldShowBottomTabBar {
+                bottomTabBar
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                    .zIndex(1)
+            }
         }
+        .animation(.easeOut(duration: 0.2), value: shouldShowBottomTabBar)
     }
 
     private func openSavedPlace(_ item: PlaceListItem) {
@@ -105,9 +119,24 @@ struct RootView: View {
     private var bottomTabBar: RodiBottomTabBar {
         RodiBottomTabBar(
             selectedTab: selectedTab,
-            homeAction: { selectedTab = .home },
+            homeAction: {
+                if selectedTab == .home {
+                    homeTabTapRequestID += 1
+                } else {
+                    selectedTab = .home
+                }
+            },
             myAction: { selectedTab = .my }
         )
+    }
+
+    private var shouldShowBottomTabBar: Bool {
+        switch selectedTab {
+        case .home:
+            homeBottomSheetState == .collapsed
+        case .my:
+            !isMyDetailPresented
+        }
     }
     
     private func checkAppVersionIfNeeded() async {

@@ -12,26 +12,26 @@ import KakaoSDKUser
 #endif
 
 struct MyView: View {
-    let tabBar: RodiBottomTabBar
     let authRepository: AuthRepository
     let memberRepository: MemberRepository
     let placeRepository: PlaceRepository
     let onSavedPlaceSelected: (PlaceListItem) -> Void
     let onLogout: () -> Void
 
+    @Binding var isDetailPresented: Bool
     @StateObject private var viewModel: MyProfileViewModel
     @State private var path = NavigationPath()
     @State private var snackbarMessage: String?
 
     init(
-        tabBar: RodiBottomTabBar,
+        isDetailPresented: Binding<Bool> = .constant(false),
         authRepository: AuthRepository = AuthDependencyContainer.shared.authRepository,
         memberRepository: MemberRepository = AuthDependencyContainer.shared.memberRepository,
         placeRepository: PlaceRepository = AuthDependencyContainer.shared.placeRepository,
         onSavedPlaceSelected: @escaping (PlaceListItem) -> Void = { _ in },
         onLogout: @escaping () -> Void
     ) {
-        self.tabBar = tabBar
+        _isDetailPresented = isDetailPresented
         self.authRepository = authRepository
         self.memberRepository = memberRepository
         self.placeRepository = placeRepository
@@ -41,24 +41,18 @@ struct MyView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            NavigationStack(path: $path) {
-                MyProfileContent(
-                    profile: viewModel.profile,
-                    isLoading: viewModel.isLoading,
-                    errorMessage: viewModel.errorMessage,
-                    openSettings: { path.append(MyRoute.settings) },
-                    openDrivingGoal: { path.append(MyRoute.drivingGoal) },
-                    openSavedPlaces: { path.append(MyRoute.savedPlaces) },
-                    retry: { Task { await viewModel.load() } }
-                )
-                .navigationDestination(for: MyRoute.self) { route in
-                    destinationView(for: route)
-                }
-            }
-
-            if path.isEmpty {
-                tabBar
+        NavigationStack(path: $path) {
+            MyProfileContent(
+                profile: viewModel.profile,
+                isLoading: viewModel.isLoading,
+                errorMessage: viewModel.errorMessage,
+                openSettings: { path.append(MyRoute.settings) },
+                openDrivingGoal: { path.append(MyRoute.drivingGoal) },
+                openSavedPlaces: { path.append(MyRoute.savedPlaces) },
+                retry: { Task { await viewModel.load() } }
+            )
+            .navigationDestination(for: MyRoute.self) { route in
+                destinationView(for: route)
             }
         }
         .overlay(alignment: .bottom) {
@@ -73,6 +67,12 @@ struct MyView: View {
         .animation(.easeInOut(duration: 0.2), value: snackbarMessage)
         .task {
             await viewModel.loadIfNeeded()
+        }
+        .onAppear {
+            isDetailPresented = !path.isEmpty
+        }
+        .onChange(of: path) { path in
+            isDetailPresented = !path.isEmpty
         }
     }
 
