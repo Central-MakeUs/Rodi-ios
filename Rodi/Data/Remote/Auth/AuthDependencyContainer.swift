@@ -14,9 +14,11 @@ final class AuthDependencyContainer {
     let authRepository: AuthRepository
     let memberRepository: MemberRepository
     let placeRepository: PlaceRepository
+    let recentLoginProviderStore: RecentLoginProviderStore
 
     private init() {
         let tokenStore = KeychainTokenStore()
+        let recentLoginProviderStore = RecentLoginProviderStore()
         let unauthenticatedNetworkManager = NetworkManager()
         let tokenRefresher = AuthTokenRefreshCoordinator(
             networkManager: unauthenticatedNetworkManager,
@@ -28,12 +30,14 @@ final class AuthDependencyContainer {
         )
 
         self.tokenStore = tokenStore
+        self.recentLoginProviderStore = recentLoginProviderStore
         self.unauthenticatedNetworkManager = unauthenticatedNetworkManager
         self.authenticatedNetworkManager = NetworkManager(authInterceptor: authInterceptor)
         self.authRepository = AuthRepositoryImpl(
             networkManager: unauthenticatedNetworkManager,
             tokenStore: tokenStore,
-            tokenRefresher: tokenRefresher
+            tokenRefresher: tokenRefresher,
+            recentLoginProviderStore: recentLoginProviderStore
         )
         self.memberRepository = MemberRepositoryImpl(
             networkManager: authenticatedNetworkManager

@@ -14,9 +14,11 @@ struct OnboardingEntryView: View {
         static let socialButtonCornerRadius: CGFloat = 8
         static let socialButtonSpacing: CGFloat = 12
         static let socialButtonBottomInset: CGFloat = 40
+        static let recentLoginTooltipWidth = UIScreen.main.bounds.width * 0.35
     }
 
     let isAuthenticating: Bool
+    let recentLoginProvider: AuthProvider?
     let onBrowse: () -> Void
     let onAppleLogin: () -> Void
     let onKakaoLogin: () -> Void
@@ -84,7 +86,36 @@ struct OnboardingEntryView: View {
     }
 
     private var socialLoginButtons: some View {
-        VStack(spacing: Constants.socialButtonSpacing) {
+        VStack(spacing: 0) {
+            if recentLoginProvider != nil {
+                Image("img_resent_login_tooltip")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: Constants.recentLoginTooltipWidth)
+                    .frame(maxWidth: .infinity)
+            }
+
+            VStack(spacing: Constants.socialButtonSpacing) {
+                socialButton(for: firstSocialProvider)
+                socialButton(for: secondSocialProvider)
+            }
+        }
+        .padding(.horizontal, Constants.horizontalInset)
+        .padding(.bottom, Constants.socialButtonBottomInset)
+    }
+
+    private var firstSocialProvider: AuthProvider {
+        recentLoginProvider ?? .kakao
+    }
+
+    private var secondSocialProvider: AuthProvider {
+        firstSocialProvider == .kakao ? .apple : .kakao
+    }
+
+    @ViewBuilder
+    private func socialButton(for provider: AuthProvider) -> some View {
+        switch provider {
+        case .kakao:
             socialButton(
                 title: "카카오로 시작하기",
                 assetName: "ic_login_kakao",
@@ -93,6 +124,7 @@ struct OnboardingEntryView: View {
                 action: onKakaoLogin
             )
 
+        case .apple:
             socialButton(
                 title: "Apple ID로 시작하기",
                 assetName: "ic_login_apple",
@@ -101,8 +133,6 @@ struct OnboardingEntryView: View {
                 action: onAppleLogin
             )
         }
-        .padding(.horizontal, Constants.horizontalInset)
-        .padding(.bottom, Constants.socialButtonBottomInset)
     }
 
     private func socialButton(

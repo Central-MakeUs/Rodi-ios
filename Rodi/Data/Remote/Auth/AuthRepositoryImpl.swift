@@ -9,15 +9,18 @@ final class AuthRepositoryImpl: AuthRepository {
     private let networkManager: NetworkManager
     private let tokenStore: TokenStoring
     private let tokenRefresher: AccessTokenRefreshing
+    private let recentLoginProviderStore: RecentLoginProviderStore
 
     init(
         networkManager: NetworkManager,
         tokenStore: TokenStoring,
-        tokenRefresher: AccessTokenRefreshing
+        tokenRefresher: AccessTokenRefreshing,
+        recentLoginProviderStore: RecentLoginProviderStore
     ) {
         self.networkManager = networkManager
         self.tokenStore = tokenStore
         self.tokenRefresher = tokenRefresher
+        self.recentLoginProviderStore = recentLoginProviderStore
     }
 
     func login(provider: AuthProvider, credential: String) async throws(NetworkError) -> AuthToken {
@@ -42,6 +45,7 @@ final class AuthRepositoryImpl: AuthRepository {
             accessToken: token.accessToken,
             refreshToken: token.refreshToken
         )
+        recentLoginProviderStore.save(provider)
         #if DEBUG
         RodiLogger.debug("AccessToken: \(RodiLogger.masked(token.accessToken))")
         RodiLogger.debug("RefreshToken: \(RodiLogger.masked(token.refreshToken))")

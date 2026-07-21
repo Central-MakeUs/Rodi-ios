@@ -15,6 +15,7 @@ struct MyView: View {
     let authRepository: AuthRepository
     let memberRepository: MemberRepository
     let placeRepository: PlaceRepository
+    let recentLoginProviderStore: RecentLoginProviderStore
     let onSavedPlaceSelected: (PlaceListItem) -> Void
     let onLogout: () -> Void
 
@@ -28,6 +29,7 @@ struct MyView: View {
         authRepository: AuthRepository = AuthDependencyContainer.shared.authRepository,
         memberRepository: MemberRepository = AuthDependencyContainer.shared.memberRepository,
         placeRepository: PlaceRepository = AuthDependencyContainer.shared.placeRepository,
+        recentLoginProviderStore: RecentLoginProviderStore = AuthDependencyContainer.shared.recentLoginProviderStore,
         onSavedPlaceSelected: @escaping (PlaceListItem) -> Void = { _ in },
         onLogout: @escaping () -> Void
     ) {
@@ -35,6 +37,7 @@ struct MyView: View {
         self.authRepository = authRepository
         self.memberRepository = memberRepository
         self.placeRepository = placeRepository
+        self.recentLoginProviderStore = recentLoginProviderStore
         self.onSavedPlaceSelected = onSavedPlaceSelected
         self.onLogout = onLogout
         _viewModel = StateObject(wrappedValue: MyProfileViewModel(memberRepository: memberRepository))
@@ -127,6 +130,7 @@ struct MyView: View {
             }
 
             authRepository.clearSession()
+            recentLoginProviderStore.clear()
             await logoutKakaoSDKSessionIfNeeded()
             onLogout()
         }
