@@ -7,25 +7,18 @@ import SwiftUI
 
 /// 홈 하단의 장소 목록/선택 상세를 전환해서 보여주는 바텀싯 컨테이너.
 /// Home 전체 상태를 직접 알지 않고, 바텀싯 전용 표시 상태와 액션만 입력받는다.
-struct CourseBottomSheet: View {
+struct CourseBottomSheet<Drag: Gesture>: View {
     let content: CourseBottomSheetContentState
     let actions: CourseBottomSheetActions
+    let dragGesture: Drag
+    let shouldAllowDrag: Bool
 
     var body: some View {
         VStack(spacing: 0) {
-            if content.pageProgress < 0.98 {
-                Capsule()
-                    .fill(RodiColor.gray400)
-                    .frame(width: 60, height: 4)
-                    .padding(.top, 6)
-            }
-
-            if content.showsListHeader {
-                CourseBottomSheetHeaderView(
-                    title: headerTitle,
-                    pageProgress: content.pageProgress,
-                    collapseAction: actions.collapse
-                )
+            if content.hasSelectedItem {
+                dragIndicator
+            } else {
+                listDragHandle
             }
 
             if let selectedItem = content.selectedItem {
@@ -50,17 +43,15 @@ struct CourseBottomSheet: View {
                     isNextPageLoading: content.isNextPageLoading,
                     errorMessage: content.listErrorMessage,
                     hasNextPage: content.hasNextPage,
-                    isExpanded: content.pageProgress >= 0.98,
+                    isExpanded: content.isExpanded,
                     selectAction: actions.selectPlaceItem,
                     reloadAction: actions.reloadPlaceList,
                     loadNextPageAction: actions.loadNextPage
                 )
                 .frame(
                     maxWidth: .infinity,
-                    maxHeight: content.pageProgress >= 0.98 ? .infinity : nil
+                    maxHeight: .infinity
                 )
-
-                Spacer(minLength: 0)
             }
         }
         .background(RodiColor.white)
@@ -79,4 +70,29 @@ struct CourseBottomSheet: View {
     }
 
     private var headerTitle: String { "추천 목록" }
+
+    private var dragIndicator: some View {
+        Capsule()
+            .fill(RodiColor.gray400)
+            .frame(width: 60, height: 4)
+            .padding(.top, 6)
+            .opacity(1 - content.pageProgress)
+    }
+
+    private var listDragHandle: some View {
+        VStack(spacing: 0) {
+            dragIndicator
+
+            if content.showsListHeader {
+                CourseBottomSheetHeaderView(
+                    title: headerTitle,
+                    pageProgress: content.pageProgress,
+                    collapseAction: actions.collapse
+                )
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .contentShape(Rectangle())
+        .gesture(dragGesture, including: shouldAllowDrag ? .all : .none)
+    }
 }

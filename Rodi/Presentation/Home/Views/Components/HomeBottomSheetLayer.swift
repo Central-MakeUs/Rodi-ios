@@ -21,7 +21,9 @@ struct HomeBottomSheetLayer<Drag: Gesture>: View {
             if usesIntrinsicHeight {
                 CourseBottomSheet(
                     content: content,
-                    actions: actions
+                    actions: actions,
+                    dragGesture: dragGesture,
+                    shouldAllowDrag: shouldAllowDrag
                 )
                 .fixedSize(horizontal: false, vertical: true)
                 .background {
@@ -38,7 +40,9 @@ struct HomeBottomSheetLayer<Drag: Gesture>: View {
             } else {
                 CourseBottomSheet(
                     content: content,
-                    actions: actions
+                    actions: actions,
+                    dragGesture: dragGesture,
+                    shouldAllowDrag: shouldAllowDrag
                 )
                 .frame(height: height)
             }
@@ -47,8 +51,6 @@ struct HomeBottomSheetLayer<Drag: Gesture>: View {
         .ignoresSafeArea(edges: .bottom)
         .offset(y: offsetY)
         .opacity(opacity)
-        // 목록이 먼저 스크롤되어 잘리는 대신, 첫 상향 드래그는 시트를 확장한다.
-        .highPriorityGesture(dragGesture, including: shouldAllowDrag ? .all : .none)
         .zIndex(1)
     }
 }

@@ -14,6 +14,9 @@ struct HomeView: View {
     @State var networkMonitor = HomeNetworkMonitor()
     @State var containerHeight: CGFloat = 0
     @State var selectedSheetContentHeight: CGFloat = 0
+    @State var settlingSheetHeight: CGFloat?
+    @State var sheetSettlingID = UUID()
+    @GestureState var sheetDragTranslation: CGFloat = 0
     @Binding var selectedTab: RodiTab
     @Binding var pendingPlaceSelection: PlaceListItem?
     @Binding var rootBottomSheetState: HomeBottomSheetState
@@ -44,12 +47,14 @@ struct HomeView: View {
     }
 
     enum Constants {
-        static let sheetHeightRatio: CGFloat = 0.48
+        static let sheetHeightRatio: CGFloat = 0.5
         static let floatingControlSpacing: CGFloat = 12
         static let currentLocationButtonSize: CGFloat = 40
         static let pageMorphStartRatio: CGFloat = 0.85
-        static let pageSnapRatio: CGFloat = 0.9
+        static let expandedSheetSnapRatio: CGFloat = 0.55
+        static let collapsedSheetSnapRatio: CGFloat = 0.45
         static let bottomTabBarHeight: CGFloat = 80
+        static let bottomSheetDragCoordinateSpace = "rodi.home.bottom-sheet.drag"
     }
 
     var body: some View {
@@ -63,6 +68,7 @@ struct HomeView: View {
                 listButtonLayer
                 bottomSheetLayer
             }
+            .coordinateSpace(name: Constants.bottomSheetDragCoordinateSpace)
 //            .onGeometryChange(for: CGFloat.self) { proxy in
 //                proxy.size.height
 //            } action: { height in

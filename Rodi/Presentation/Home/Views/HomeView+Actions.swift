@@ -8,15 +8,64 @@
 import SwiftUI
 
 extension HomeView {
-    func handleSheetDragEnded(predictedTranslation: CGFloat) {
+    func handleSheetDragEnded(translation: CGFloat) {
         guard bottomSheetState == .medium else { return }
 
-        if sheetLayout.shouldDismissAfterDrag(predictedTranslation: predictedTranslation) {
-            dismissBottomSheet()
-        } else if sheetLayout.shouldExpandAfterDrag(predictedTranslation: predictedTranslation) {
-            expandBottomSheet()
-        } else {
-            collapseBottomSheet()
+        let destination = sheetLayout.sheetStateAfterDrag(translation: translation)
+
+        settleBottomSheet(
+            from: sheetLayout.height(forDragTranslation: translation),
+            to: destination
+        )
+    }
+
+    /// GestureState가 종료와 동시에 0으로 돌아가기 전에 현재 높이를 붙잡아,
+    /// 중간 높이로 튀지 않고 실제 드래그 종료 지점에서 한 번만 스냅한다.
+    private func settleBottomSheet(from currentHeight: CGFloat, to destination: HomeBottomSheetState) {
+        let settlingID = UUID()
+        sheetSettlingID = settlingID
+
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            settlingSheetHeight = currentHeight
+        }
+
+        let targetHeight: CGFloat
+        switch destination {
+        case .collapsed:
+            targetHeight = 0
+        case .medium:
+            targetHeight = mediumSheetHeight
+        case .expanded:
+            targetHeight = availableSheetHeight
+        }
+
+        DispatchQueue.main.async {
+            guard sheetSettlingID == settlingID else { return }
+
+            withAnimation(.easeOut(duration: 0.25)) {
+                settlingSheetHeight = targetHeight
+            }
+        }
+
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(250))
+            guard sheetSettlingID == settlingID else { return }
+
+            var completionTransaction = Transaction()
+            completionTransaction.disablesAnimations = true
+            withTransaction(completionTransaction) {
+                switch destination {
+                case .collapsed:
+                    homeStore.send(.viewAction(.dismissSheet))
+                case .medium:
+                    homeStore.send(.viewAction(.collapseSheet(mediumHeight: mediumSheetHeight)))
+                case .expanded:
+                    homeStore.send(.viewAction(.expandSheet(availableHeight: availableSheetHeight)))
+                }
+                settlingSheetHeight = nil
+            }
         }
     }
 

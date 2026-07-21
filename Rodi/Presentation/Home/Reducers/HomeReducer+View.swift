@@ -17,9 +17,6 @@ extension HomeReducer {
 
     func reduceViewAction(_ action: HomeAction.ViewAction, state: inout HomeState) -> Effect<HomeAction> {
         switch action {
-        case .setSheetHeight(let height):
-            state.bottomSheet.sheetHeight = height
-
         case .syncMediumSheetHeight(let mediumHeight):
             if state.bottomSheet.bottomSheetState == .medium {
                 state.bottomSheet.sheetHeight = mediumHeight

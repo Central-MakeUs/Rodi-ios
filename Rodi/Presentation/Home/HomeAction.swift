@@ -17,7 +17,6 @@ enum HomeAction {
     case delegate(Delegate)
 
     enum ViewAction {
-        case setSheetHeight(CGFloat)
         case syncMediumSheetHeight(CGFloat)
         case syncExpandedSheetHeight(containerHeight: CGFloat, mediumHeight: CGFloat)
         case presentSheet(mediumHeight: CGFloat)
