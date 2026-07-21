@@ -23,7 +23,9 @@ extension OnboardingReducer {
     func reduceEntryAction(_ action: OnboardingAction.EntryAction, state: inout OnboardingState) {
         switch action {
             case .browseTapped:
-                state.didComplete = true
+                state.isBrowseUser = true
+                state.loginProvider = nil
+                state.step = .terms
 
             case .appleLoginTapped:
                 state.isAuthenticating = true
@@ -52,6 +54,7 @@ extension OnboardingReducer {
             case .authSucceeded(let provider, let isNewMember, let nickname):
                 state.isAuthenticating = false
                 state.loginAlertMessage = nil
+                state.isBrowseUser = false
 
                 if isNewMember {
                     state.loginProvider = provider
@@ -91,7 +94,7 @@ extension OnboardingReducer {
 
             case .nextTapped:
                 guard state.isAllTermsAgreed else { return }
-                state.step = .nickname
+                state.step = state.isBrowseUser ? .safety : .nickname
         }
     }
 

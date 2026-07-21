@@ -9,6 +9,8 @@ import SwiftUI
 
 struct OnboardingView: View {
     let onComplete: () -> Void
+    let automaticLoginProvider: AuthProvider?
+    let automaticLoginRequestConsumed: () -> Void
     let authRepository: AuthRepository
     let memberRepository: MemberRepository
     let onboardingDraftStore: OnboardingDraftStore
@@ -19,8 +21,14 @@ struct OnboardingView: View {
     @State var socialLoginService: SocialLoginService
 
     @MainActor
-    init(onComplete: @escaping () -> Void) {
+    init(
+        onComplete: @escaping () -> Void,
+        automaticLoginProvider: AuthProvider? = nil,
+        automaticLoginRequestConsumed: @escaping () -> Void = {}
+    ) {
         self.onComplete = onComplete
+        self.automaticLoginProvider = automaticLoginProvider
+        self.automaticLoginRequestConsumed = automaticLoginRequestConsumed
         self.authRepository = AuthDependencyContainer.shared.authRepository
         self.memberRepository = AuthDependencyContainer.shared.memberRepository
         let draftStore = OnboardingDraftStore()
@@ -45,12 +53,16 @@ struct OnboardingView: View {
         onboardingStore: StoreOf<OnboardingReducer>,
         locationPermission: LocationPermissionRequester,
         socialLoginService: SocialLoginService,
+        automaticLoginProvider: AuthProvider? = nil,
+        automaticLoginRequestConsumed: @escaping () -> Void = {},
         authRepository: AuthRepository? = nil,
         memberRepository: MemberRepository? = nil,
         onboardingDraftStore: OnboardingDraftStore? = nil,
         recentLoginProviderStore: RecentLoginProviderStore? = nil
     ) {
         self.onComplete = onComplete
+        self.automaticLoginProvider = automaticLoginProvider
+        self.automaticLoginRequestConsumed = automaticLoginRequestConsumed
         self.authRepository = authRepository ?? AuthDependencyContainer.shared.authRepository
         self.memberRepository = memberRepository ?? AuthDependencyContainer.shared.memberRepository
         self.onboardingDraftStore = onboardingDraftStore ?? OnboardingDraftStore()
@@ -104,6 +116,17 @@ struct OnboardingView: View {
         }
         .onOpenURL { url in
             _ = socialLoginService.handleOpenURL(url)
+        }
+        .onAppear {
+            guard let automaticLoginProvider else { return }
+            automaticLoginRequestConsumed()
+
+            switch automaticLoginProvider {
+            case .apple:
+                startAppleLogin()
+            case .kakao:
+                startKakaoLogin()
+            }
         }
         .onChange(of: onboardingStore.state.didComplete) { didComplete in
             guard didComplete else { return }

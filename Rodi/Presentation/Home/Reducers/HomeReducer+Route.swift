@@ -38,7 +38,7 @@ extension HomeReducer {
         case .detailFailed(let placeID, let message):
             guard state.placeDetail.selectedPlaceID == placeID else { return .none }
             clearSelectionState(state: &state)
-            state.presentation.guidanceSnackbarMessage = message
+            return snackbarEffect(message)
 
         case .toggleBookmark:
             guard let detail = state.placeDetail.detail,
@@ -114,12 +114,6 @@ extension HomeReducer {
         state.placeDetail.isLoading = true
         state.placeDetail.isBookmarkUpdating = false
 
-        guard hasActiveSession() else {
-            clearSelectionState(state: &state)
-            state.presentation.authenticationRequestID += 1
-            return .none
-        }
-
         return loadPlaceDetailEffect(placeID: item.id)
     }
 
@@ -175,13 +169,11 @@ extension HomeReducer {
                 RodiLogger.info("Home place detail request cancelled placeID=\(placeID)")
             } catch {
                 RodiLogger.warning("Home place detail request failed placeID=\(placeID), error=\(error.localizedDescription)")
-                if requiresAuthentication(error) {
-                    await send(.presentationAction(.requestAuthentication))
-                    return
-                }
                 await send(.routeAction(.detailFailed(
                     placeID: placeID,
-                    message: "장소 상세 정보를 불러오지 못했어요."
+                    message: requiresAuthentication(error)
+                        ? "로그인 후 이용해주세요."
+                        : "장소 상세 정보를 불러오지 못했어요."
                 )))
             }
         }

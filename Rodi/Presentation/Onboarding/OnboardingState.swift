@@ -11,6 +11,7 @@ struct OnboardingState {
     var step: OnboardingStep = .entry
     var loginProvider: AuthProvider?
     var recentLoginProvider: AuthProvider?
+    var isBrowseUser = false
     var agreedTerms: Set<TermsAgreement> = []
     var agreedSafetyItems: Set<SafetyAgreement> = []
     var selectedTermsPage: TermsAgreement?
@@ -61,7 +62,7 @@ struct OnboardingState {
 
     /// 로그인 완료 이후의 상태만 앱 종료 복원 대상으로 둡니다.
     var onboardingDraft: OnboardingDraftPayload? {
-        guard let loginProvider, !didComplete else { return nil }
+        guard let loginProvider, !isBrowseUser, !didComplete else { return nil }
 
         return OnboardingDraftPayload(
             stepRawValue: step.rawValue,

@@ -18,6 +18,9 @@ struct RootView: View {
     @State private var homeBottomSheetState: HomeBottomSheetState = .collapsed
     @State private var homeTabTapRequestID = 0
     @State private var isMyDetailPresented = false
+    @State private var isLoginRequiredDialogPresented = false
+    @State private var pendingAutomaticLoginProvider: AuthProvider?
+    private let tokenStore = AuthDependencyContainer.shared.tokenStore
     
     init() {
         let store = AppPreferencesStore()
@@ -27,12 +30,27 @@ struct RootView: View {
     }
     
     var body: some View {
-        Group {
-            switch root {
-            case .onboarding:
-                OnboardingView(onComplete: completeOnboarding)
-            case .home:
-                mainTabContent
+        ZStack {
+            Group {
+                switch root {
+                case .onboarding:
+                    OnboardingView(
+                        onComplete: completeOnboarding,
+                        automaticLoginProvider: pendingAutomaticLoginProvider,
+                        automaticLoginRequestConsumed: { pendingAutomaticLoginProvider = nil }
+                    )
+                case .home:
+                    mainTabContent
+                }
+            }
+
+            if isLoginRequiredDialogPresented {
+                LoginRequiredDialog(
+                    dismissAction: { isLoginRequiredDialogPresented = false },
+                    kakaoLoginAction: { startLogin(provider: .kakao) },
+                    appleLoginAction: { startLogin(provider: .apple) }
+                )
+                .transition(.opacity)
             }
         }
         .task {
@@ -112,8 +130,19 @@ struct RootView: View {
     }
 
     private func beginAuthentication() {
+        isLoginRequiredDialogPresented = true
+    }
+
+    private func startLogin(provider: AuthProvider) {
+        isLoginRequiredDialogPresented = false
+        pendingAutomaticLoginProvider = provider
         selectedTab = .home
         root = .onboarding
+    }
+
+    private var hasActiveSession: Bool {
+        guard let accessToken = tokenStore.accessToken else { return false }
+        return !accessToken.isEmpty
     }
 
     private var bottomTabBar: RodiBottomTabBar {
@@ -126,7 +155,13 @@ struct RootView: View {
                     selectedTab = .home
                 }
             },
-            myAction: { selectedTab = .my }
+            myAction: {
+                guard hasActiveSession else {
+                    isLoginRequiredDialogPresented = true
+                    return
+                }
+                selectedTab = .my
+            }
         )
     }
 
