@@ -12,6 +12,8 @@ extension HomeView {
         HomeBottomSheetLayoutPolicy(
             containerHeight: containerHeight,
             sheetHeight: homeStore.state.bottomSheet.sheetHeight,
+            dragTranslation: sheetDragTranslation,
+            settlingSheetHeight: settlingSheetHeight,
             hasSelectedBottomSheet: hasSelectedBottomSheet,
             usesCompactSelectedDetail: selectedPlaceDetail?.type == .course && !isPlaceDetailLoading,
             selectedSheetContentHeight: selectedSheetContentHeight,
@@ -20,7 +22,8 @@ extension HomeView {
             floatingControlSpacing: Constants.floatingControlSpacing,
             currentLocationButtonSize: Constants.currentLocationButtonSize,
             pageMorphStartRatio: Constants.pageMorphStartRatio,
-            pageSnapRatio: Constants.pageSnapRatio,
+            expandedSheetSnapRatio: Constants.expandedSheetSnapRatio,
+            collapsedSheetSnapRatio: Constants.collapsedSheetSnapRatio,
             bottomTabBarHeight: Constants.bottomTabBarHeight
         )
     }
@@ -40,6 +43,10 @@ extension HomeView {
     var cameraObscuredBottomInset: CGFloat {
         if bottomSheetState == .collapsed {
             return Constants.bottomTabBarHeight
+        }
+
+        if shouldAllowSheetDrag {
+            return mediumSheetHeight
         }
 
         return hasFixedBottomSheet ? sheetLayout.fixedSheetHeight : sheetLayout.currentSheetHeight
@@ -86,7 +93,7 @@ extension HomeView {
     }
 
     var shouldAllowSheetDrag: Bool {
-        sheetLayout.shouldAllowSheetDrag
+        settlingSheetHeight == nil && sheetLayout.shouldAllowSheetDrag
     }
 
     var locationButtonOpacity: CGFloat {

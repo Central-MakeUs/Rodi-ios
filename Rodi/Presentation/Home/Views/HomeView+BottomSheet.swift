@@ -21,7 +21,8 @@ extension HomeView {
             isNextPageLoading: placeListState.isNextPageLoading,
             listErrorMessage: placeListState.errorMessage,
             hasNextPage: placeListState.hasNext,
-            pageProgress: hasFixedBottomSheet ? 0 : pageProgress
+            pageProgress: hasFixedBottomSheet ? 0 : pageProgress,
+            isExpanded: bottomSheetState == .expanded
         )
     }
 

@@ -22,11 +22,12 @@ struct CourseBottomSheetContentState {
     let listErrorMessage: String?
     let hasNextPage: Bool
     let pageProgress: CGFloat
+    let isExpanded: Bool
 
     var showsListHeader: Bool {
         // 기본 시트는 피그마의 안내 상태처럼 핸들만 보이고,
         // 전체 화면으로 확장했을 때만 목록 앱바를 노출한다.
-        selectedItem == nil && (!placeItems.isEmpty || pageProgress >= 0.98)
+        selectedItem == nil && (!placeItems.isEmpty || isExpanded)
     }
 
     var hasSelectedItem: Bool {

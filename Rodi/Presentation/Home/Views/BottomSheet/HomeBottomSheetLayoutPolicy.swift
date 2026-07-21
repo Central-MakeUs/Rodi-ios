@@ -12,6 +12,8 @@ import SwiftUI
 struct HomeBottomSheetLayoutPolicy {
     let containerHeight: CGFloat
     let sheetHeight: CGFloat
+    let dragTranslation: CGFloat
+    let settlingSheetHeight: CGFloat?
     let hasSelectedBottomSheet: Bool
     let usesCompactSelectedDetail: Bool
     let selectedSheetContentHeight: CGFloat
@@ -20,7 +22,8 @@ struct HomeBottomSheetLayoutPolicy {
     let floatingControlSpacing: CGFloat
     let currentLocationButtonSize: CGFloat
     let pageMorphStartRatio: CGFloat
-    let pageSnapRatio: CGFloat
+    let expandedSheetSnapRatio: CGFloat
+    let collapsedSheetSnapRatio: CGFloat
     let bottomTabBarHeight: CGFloat
 
     /// 기본 상태의 바텀싯 높이. 현재 홈 화면은 기기 높이의 비율로 고정한다.
@@ -90,7 +93,15 @@ struct HomeBottomSheetLayoutPolicy {
 
     /// 드래그 중인 현재 바텀싯 높이.
     var currentSheetHeight: CGFloat {
-        clamp(sheetHeight, lowerBound: 0, upperBound: availableSheetHeight)
+        let resolvedHeight: CGFloat
+        if let settlingSheetHeight {
+            resolvedHeight = settlingSheetHeight
+        } else if shouldAllowSheetDrag {
+            resolvedHeight = height(forDragTranslation: dragTranslation)
+        } else {
+            resolvedHeight = sheetHeight
+        }
+        return clamp(resolvedHeight, lowerBound: 0, upperBound: availableSheetHeight)
     }
 
     /// 전체 높이에서 현재 높이를 뺀 만큼 아래로 내려 바텀싯을 표현한다.
@@ -167,15 +178,19 @@ struct HomeBottomSheetLayoutPolicy {
         )
     }
 
-    /// 예측 드래그 위치가 기준을 넘으면 확장 페이지로 스냅한다.
-    func shouldExpandAfterDrag(predictedTranslation: CGFloat) -> Bool {
-        let predictedHeight = height(forDragTranslation: predictedTranslation)
-        return predictedHeight / availableSheetHeight >= pageSnapRatio || predictedTranslation < -80
-    }
+    /// 드래그 종료 시 실제 시트 높이 비율로 최종 상태를 정한다.
+    func sheetStateAfterDrag(translation: CGFloat) -> HomeBottomSheetState {
+        let heightRatio = height(forDragTranslation: translation) / availableSheetHeight
 
-    /// 목록 시트를 충분히 아래로 끌면 탭 바로 돌아간다.
-    func shouldDismissAfterDrag(predictedTranslation: CGFloat) -> Bool {
-        predictedTranslation > 96
+        if heightRatio >= expandedSheetSnapRatio {
+            return .expanded
+        }
+
+        if heightRatio <= collapsedSheetSnapRatio {
+            return .collapsed
+        }
+
+        return .medium
     }
 
     private var baseHeight: CGFloat {

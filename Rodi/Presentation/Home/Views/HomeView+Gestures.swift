@@ -7,13 +7,15 @@ import SwiftUI
 
 extension HomeView {
     var sheetDragGesture: some Gesture {
-        DragGesture(minimumDistance: 8)
-            .onChanged { value in
-                guard bottomSheetState == .medium else { return }
-                homeStore.send(.viewAction(.setSheetHeight(sheetLayout.height(forDragTranslation: value.translation.height))))
+        DragGesture(
+            minimumDistance: 8,
+            coordinateSpace: .named(Constants.bottomSheetDragCoordinateSpace)
+        )
+            .updating($sheetDragTranslation) { value, state, _ in
+                state = value.translation.height
             }
             .onEnded { value in
-                handleSheetDragEnded(predictedTranslation: value.predictedEndTranslation.height)
+                handleSheetDragEnded(translation: value.translation.height)
             }
     }
 }
