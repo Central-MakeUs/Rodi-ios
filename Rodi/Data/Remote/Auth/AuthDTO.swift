@@ -41,7 +41,7 @@ struct SocialLoginResponseDTO: Decodable {
 }
 
 extension SocialLoginResponseDTO {
-    func validatedToken() throws(NetworkError) -> AuthToken {
+    func loginResult(provider: AuthProvider) throws(NetworkError) -> AuthLoginResult {
         switch status {
         case .success:
             guard let accessToken, !accessToken.isEmpty,
@@ -49,19 +49,36 @@ extension SocialLoginResponseDTO {
             else {
                 throw .apiError(code: "AUTH_INVALID_TOKEN_RESPONSE", message: "로그인 토큰을 확인하지 못했어요.")
             }
-            return AuthToken(
-                accessToken: accessToken,
-                refreshToken: refreshToken,
-                isNewMember: isNewMember ?? false,
-                nickname: nickname?.trimmingCharacters(in: .whitespacesAndNewlines)
+            return .authenticated(
+                AuthToken(
+                    accessToken: accessToken,
+                    refreshToken: refreshToken,
+                    isNewMember: isNewMember ?? false,
+                    nickname: nickname?.trimmingCharacters(in: .whitespacesAndNewlines)
+                )
             )
 
         case .withdrawalPending:
-            throw .apiError(
-                code: "AUTH_WITHDRAWAL_PENDING",
-                message: "탈퇴 처리 중인 계정입니다. 복구가 필요하면 고객지원에 문의해주세요."
+            return .withdrawalPending(
+                AuthWithdrawalRecovery(
+                    provider: provider,
+                    withdrawalRequestedAt: Self.date(from: withdrawalRequestedAt),
+                    recoverableUntil: Self.date(from: recoverableUntil)
+                )
             )
         }
+    }
+
+    private static func date(from value: String?) -> Date? {
+        guard let value, !value.isEmpty else { return nil }
+
+        let fractionalFormatter = ISO8601DateFormatter()
+        fractionalFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = fractionalFormatter.date(from: value) {
+            return date
+        }
+
+        return ISO8601DateFormatter().date(from: value)
     }
 }
 

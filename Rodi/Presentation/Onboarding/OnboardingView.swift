@@ -88,32 +88,6 @@ struct OnboardingView: View {
         } message: {
             Text(onboardingStore.state.loginAlertMessage ?? "")
         }
-        .confirmationDialog("카카오 로그인 방식을 선택해주세요", isPresented: kakaoLoginMethodDialogBinding, titleVisibility: .visible) {
-            Button("카카오톡 앱으로 진행") {
-                startKakaoLogin(method: .kakaoTalk)
-            }
-
-            Button("웹으로 진행") {
-                startKakaoLogin(method: .account)
-            }
-
-            Button("취소", role: .cancel) {
-                onboardingStore.send(.entry(.kakaoMethodDialogDismissed))
-            }
-        } message: {
-            Text("카카오톡 앱 또는 카카오계정 웹 로그인으로 계속할 수 있어요.")
-        }
-        .alert("카카오톡 앱을 사용할 수 없어요", isPresented: kakaoTalkFallbackAlertBinding) {
-            Button("웹으로 진행") {
-                startKakaoLogin(method: .account)
-            }
-
-            Button("취소", role: .cancel) {
-                onboardingStore.send(.entry(.kakaoTalkFallbackAlertDismissed))
-            }
-        } message: {
-            Text("카카오계정 웹 로그인으로 계속 진행할 수 있어요.")
-        }
         .onOpenURL { url in
             _ = socialLoginService.handleOpenURL(url)
         }
@@ -138,7 +112,19 @@ struct OnboardingView: View {
             onboardingDraftStore.save(draft)
         }
         .overlay {
-            if onboardingStore.state.isOnboardingAnalysisPresented {
+            if let withdrawalDialog = onboardingStore.state.withdrawalDialog {
+                WithdrawalAccountDialog(
+                    state: withdrawalDialog,
+                    restoreAction: {
+                        guard case .restore(let recovery) = withdrawalDialog else { return }
+                        startWithdrawalRestore(recovery)
+                    },
+                    dismissAction: {
+                        onboardingStore.send(.entry(.dismissWithdrawalDialog))
+                    }
+                )
+                .transition(.opacity)
+            } else if onboardingStore.state.isOnboardingAnalysisPresented {
                 OnboardingAnalysisDialog()
                     .transition(.opacity)
             } else if onboardingStore.state.isOnboardingAnalysisCompletionPresented,

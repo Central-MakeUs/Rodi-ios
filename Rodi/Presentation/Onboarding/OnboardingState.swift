@@ -18,8 +18,7 @@ struct OnboardingState {
     var didComplete = false
     var isAuthenticating = false
     var loginAlertMessage: String?
-    var isKakaoLoginMethodDialogPresented = false
-    var isKakaoTalkFallbackAlertPresented = false
+    var withdrawalDialog: OnboardingWithdrawalDialogState?
     var nickname = ""
     var licenseDrivingPeriod: LicenseDrivingPeriod?
     var recentDrivingFrequency: RecentDrivingFrequency?

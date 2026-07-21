@@ -25,14 +25,13 @@ enum OnboardingAction {
     enum EntryAction {
         case browseTapped
         case appleLoginTapped
-        case kakaoLoginTapped
-        case kakaoTalkUnavailable
-        case kakaoMethodDialogDismissed
-        case kakaoTalkFallbackAlertDismissed
-        case kakaoLoginMethodSelected(KakaoLoginMethod)
         case authStarted(AuthProvider)
         case authSucceeded(AuthProvider, isNewMember: Bool, nickname: String?)
         case authFailed(AuthProvider, String)
+        case withdrawalRecoveryRequired(AuthWithdrawalRecovery)
+        case withdrawalRestoreStarted
+        case withdrawalRestoreLocked(rejoinAvailableAt: Date?)
+        case dismissWithdrawalDialog
         case dismissLoginAlert
     }
 

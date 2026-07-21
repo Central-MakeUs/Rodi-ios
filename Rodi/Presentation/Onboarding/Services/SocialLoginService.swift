@@ -42,7 +42,21 @@ final class SocialLoginService: NSObject {
         }
     }
 
-    func loginWithKakao(method: KakaoLoginMethod) async -> Result<String, Error> {
+    func loginWithKakaoTalk() async -> Result<String, Error> {
+        await loginWithKakao { completion in
+            UserApi.shared.loginWithKakaoTalk(completion: completion)
+        }
+    }
+
+    func loginWithKakaoAccount() async -> Result<String, Error> {
+        await loginWithKakao { completion in
+            UserApi.shared.loginWithKakaoAccount(completion: completion)
+        }
+    }
+
+    private func loginWithKakao(
+        request: @escaping (@escaping (OAuthToken?, Error?) -> Void) -> Void
+    ) async -> Result<String, Error> {
         #if canImport(KakaoSDKUser)
         await withCheckedContinuation { continuation in
             let completion: (OAuthToken?, Error?) -> Void = { token, error in
@@ -58,12 +72,7 @@ final class SocialLoginService: NSObject {
                 }
             }
 
-            switch method {
-            case .kakaoTalk:
-                UserApi.shared.loginWithKakaoTalk(completion: completion)
-            case .account:
-                UserApi.shared.loginWithKakaoAccount(completion: completion)
-            }
+            request(completion)
         }
         #else
         .failure(SocialLoginError.kakaoSDKUnavailable)
