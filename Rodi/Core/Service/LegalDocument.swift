@@ -41,5 +41,5 @@ enum LegalDocument: String, CaseIterable, Identifiable {
     }
 
     static let supportURL = URL(string: "https://sites.google.com/view/dororong/홈")!
-    static let openSourceLicenseURL = URL(string: "https://app.notion.com/p/3a493d5b4d4880d48625e977496a70c8?source=copy_link")!
+    static let openSourceLicenseURL = URL(string: "https://sites.google.com/view/dororororong/%ED%99%88")!
 }
