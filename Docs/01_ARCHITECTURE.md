@@ -75,7 +75,7 @@ Current server-backed features:
 - `Data/Remote/Place` + `Domain/Place`
 
 Current local features:
-- `Data/Local/Onboarding` stores an in-progress authenticated new-member onboarding draft in Realm.
+- `Data/Local/Onboarding` stores an in-progress authenticated new-member onboarding draft in UserDefaults.
 - `Data/Local/Auth` uses `UserDefaults` to store only the device's most recently successful social login provider for entry-screen ordering. It never stores OAuth credentials or tokens.
 
 `Place` keeps public marker/list requests and authenticated detail/bookmark requests behind one
@@ -90,7 +90,7 @@ Domain must not import:
 - SwiftUI
 - UIKit
 - KakaoMapsSDK
-- RealmSwift
+- UserDefaults
 - URLSession
 - Bundle
 

@@ -6,60 +6,27 @@
 //
 
 import Foundation
-import RealmSwift
-
-final class AppPreferenceObject: Object {
-    @Persisted(primaryKey: true) var id: String
-    @Persisted var hasSeenOnboarding: Bool
-}
 
 struct AppPreferencesStore {
-    private static let defaultID = "default"
+    private enum Key {
+        static let hasSeenOnboarding = "rodi.preferences.hasSeenOnboarding"
+    }
+
+    private let userDefaults: UserDefaults
+
+    init(userDefaults: UserDefaults = .standard) {
+        self.userDefaults = userDefaults
+    }
 
     func hasSeenOnboarding() -> Bool {
-        do {
-            let realm = try Realm()
-            return realm.object(ofType: AppPreferenceObject.self, forPrimaryKey: Self.defaultID)?.hasSeenOnboarding ?? false
-        } catch {
-            return false
-        }
+        userDefaults.bool(forKey: Key.hasSeenOnboarding)
     }
 
     func markOnboardingSeen() {
-        do {
-            let realm = try Realm()
-            try realm.write {
-                let object: AppPreferenceObject
-                if let existingObject = realm.object(ofType: AppPreferenceObject.self, forPrimaryKey: Self.defaultID) {
-                    object = existingObject
-                } else {
-                    object = AppPreferenceObject()
-                    object.id = Self.defaultID
-                }
-                object.hasSeenOnboarding = true
-                realm.add(object, update: .modified)
-            }
-        } catch {
-            assertionFailure("Failed to write onboarding preference: \(error)")
-        }
+        userDefaults.set(true, forKey: Key.hasSeenOnboarding)
     }
 
     func resetOnboardingSeen() {
-        do {
-            let realm = try Realm()
-            try realm.write {
-                let object: AppPreferenceObject
-                if let existingObject = realm.object(ofType: AppPreferenceObject.self, forPrimaryKey: Self.defaultID) {
-                    object = existingObject
-                } else {
-                    object = AppPreferenceObject()
-                    object.id = Self.defaultID
-                }
-                object.hasSeenOnboarding = false
-                realm.add(object, update: .modified)
-            }
-        } catch {
-            assertionFailure("Failed to reset onboarding preference: \(error)")
-        }
+        userDefaults.set(false, forKey: Key.hasSeenOnboarding)
     }
 }

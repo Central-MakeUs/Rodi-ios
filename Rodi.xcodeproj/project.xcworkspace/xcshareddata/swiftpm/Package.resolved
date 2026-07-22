@@ -1,5 +1,5 @@
 {
-  "originHash" : "d9874371ed5859b2e388c148469cf60795f67ed102fb34e4d96e12d5b9d89a37",
+  "originHash" : "da189f7e46cf9bb75b48068992f9ea16aab361f26e07391c2b1cf8f93d20668b",
   "pins" : [
     {
       "identity" : "alamofire",
@@ -29,30 +29,21 @@
       }
     },
     {
+      "identity" : "licenselist",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/cybozu/LicenseList.git",
+      "state" : {
+        "revision" : "ee1e897acb2c8f3061fca4434cb702e8ddb7a72c",
+        "version" : "2.5.0"
+      }
+    },
+    {
       "identity" : "nsobject-rx",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/RxSwiftCommunity/NSObject-Rx.git",
       "state" : {
         "revision" : "6134a640808db7390d3dfcb32ef5f0a12b7a644d",
         "version" : "5.2.2"
-      }
-    },
-    {
-      "identity" : "realm-core",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/realm/realm-core.git",
-      "state" : {
-        "revision" : "b4192c46305570577c4d08df790fddec5ab3aa04",
-        "version" : "20.1.5"
-      }
-    },
-    {
-      "identity" : "realm-swift",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/realm/realm-swift.git",
-      "state" : {
-        "branch" : "community",
-        "revision" : "ca03df491ec5e4bb8af0bca1e9957d08c10ec2da"
       }
     },
     {

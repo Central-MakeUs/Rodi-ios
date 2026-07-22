@@ -66,7 +66,7 @@ Privacy Label must be confirmed against the actual backend and third-party SDK b
 
 Current implementation:
 - supports guest browsing and Kakao/Apple social login
-- stores authentication tokens in Keychain, incomplete onboarding drafts in Realm, and recent login provider/onboarding display state in UserDefaults
+- stores authentication tokens in Keychain, incomplete onboarding drafts, recent login provider, and onboarding display state in UserDefaults
 - sends current location or viewport coordinates to the Rodi server for place discovery and can pass route coordinates to Kakao services
 - provides member onboarding profiles, calculated driving level, bookmarks, saved places, my page, driving-goal updates, account withdrawal, and account recovery
 - does not store location history as a separate movement history
