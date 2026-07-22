@@ -21,7 +21,7 @@ struct OptionalDrivingPreferenceView: View {
     let onNext: (String) -> Void
 
     @State private var goalText: String
-    @State private var isGoalFieldFocused = false
+    @FocusState private var isGoalFieldFocused: Bool
 
     init(
         selectedPracticeSituations: [PracticeSituation],
@@ -58,22 +58,13 @@ struct OptionalDrivingPreferenceView: View {
                         vehicleTypeSection
                             .padding(.bottom, 32)
 
-                        drivingGoalSection
+                        drivingGoalSection(proxy: proxy)
                             .id(ScrollTarget.drivingGoal)
                     }
                     .padding(.horizontal, Metrics.horizontalPadding)
                     .padding(.bottom, isGoalFieldFocused ? 24 : 80)
                 }
                 .scrollDismissesKeyboard(.interactively)
-                .onChange(of: isGoalFieldFocused) { isFocused in
-                    guard isFocused else { return }
-
-                    var transaction = Transaction()
-                    transaction.disablesAnimations = true
-                    withTransaction(transaction) {
-                        proxy.scrollTo(ScrollTarget.drivingGoal, anchor: .bottom)
-                    }
-                }
             }
 
             DualBottomButton(
@@ -135,14 +126,14 @@ struct OptionalDrivingPreferenceView: View {
         .onTapGesture(perform: dismissGoalKeyboard)
     }
 
-    private var drivingGoalSection: some View {
+    private func drivingGoalSection(proxy: ScrollViewProxy) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("이루고 싶은 운전 목표를 입력해주세요.")
                 .rodiTypography(.body1SemiBold)
                 .foregroundStyle(RodiColor.black)
                 .padding(.bottom, 12)
 
-            OnboardingLimitedTextField(
+            RodiLimitedTextField(
                 text: $goalText,
                 placeholder: "ex)강남 운전 자신있게 하기!",
                 characterLimit: Metrics.goalLimit,
@@ -154,6 +145,15 @@ struct OptionalDrivingPreferenceView: View {
             .overlay {
                 RoundedRectangle(cornerRadius: 8)
                     .stroke(isGoalFieldFocused ? RodiColor.gray850 : RodiColor.gray300, lineWidth: 1)
+            }
+            .overlay {
+                if !isGoalFieldFocused {
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            focusGoalField(using: proxy)
+                        }
+                }
             }
 
             Text("\(goalText.count) / \(Metrics.goalLimit)")
@@ -212,6 +212,20 @@ struct OptionalDrivingPreferenceView: View {
 
     private func dismissGoalKeyboard() {
         isGoalFieldFocused = false
+    }
+
+    private func focusGoalField(using proxy: ScrollViewProxy) {
+        guard !isGoalFieldFocused else { return }
+
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            proxy.scrollTo(ScrollTarget.drivingGoal, anchor: .bottom)
+        }
+
+        DispatchQueue.main.async {
+            isGoalFieldFocused = true
+        }
     }
 }
 
