@@ -18,11 +18,18 @@ extension HomeReducer {
             return select(item, state: &state)
 
         case .selectMapMarker(let markerID, let mediumHeight):
-            state.bottomSheet.bottomSheetState = .medium
-            state.bottomSheet.sheetHeight = mediumHeight
             guard let item = state.visibleItems.first(where: {
                 $0.mapMarker?.id == markerID
             }) else { break }
+
+            // 클러스터는 별도 카메라 drill-down으로 처리되고, 단일 장소 상세는 로그인 후 제공한다.
+            guard hasActiveSession() else {
+                state.presentation.authenticationRequestID += 1
+                return .none
+            }
+
+            state.bottomSheet.bottomSheetState = .medium
+            state.bottomSheet.sheetHeight = mediumHeight
             return select(item, state: &state)
 
         case .detailLoaded(let detail):
