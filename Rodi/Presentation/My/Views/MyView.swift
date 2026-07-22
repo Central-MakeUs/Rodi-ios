@@ -272,6 +272,7 @@ private struct MyProfileContent: View {
                     .foregroundStyle(RodiColor.gray700)
                     .frame(width: 20, height: 20)
             }
+            .contentShape(Rectangle())
             .frame(maxWidth: .infinity, minHeight: 20)
         }
         .buttonStyle(.plain)
@@ -336,12 +337,12 @@ private struct MyProfileCard: View {
 
             Spacer(minLength: 0)
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text("운전 목표")
-                    .rodiTypography(.caption1Medium)
-                    .foregroundStyle(RodiColor.gray700)
+            Button(action: openDrivingGoal) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("운전 목표")
+                        .rodiTypography(.caption1Medium)
+                        .foregroundStyle(RodiColor.gray700)
 
-                Button(action: openDrivingGoal) {
                     HStack(spacing: 8) {
                         Text(profile.drivingGoal?.isEmpty == false ? profile.drivingGoal! : "아직 설정한 운전 목표가 없어요.")
                             .rodiTypography(.body3Medium)
@@ -355,9 +356,11 @@ private struct MyProfileCard: View {
                             .foregroundStyle(RodiColor.gray700)
                     }
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("운전 목표")
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel("운전 목표")
         }
         .padding(.horizontal, 11)
         .padding(.vertical, 15)
