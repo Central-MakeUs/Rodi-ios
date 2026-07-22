@@ -68,7 +68,7 @@ Useful static checks:
 
 ```sh
 rg "<stale path or boilerplate keyword>" AGENTS.md Docs Rodi
-rg "SwiftUI|UIKit|KakaoMapsSDK|RealmSwift|URLSession|Bundle" Rodi/Domain
+rg "SwiftUI|UIKit|KakaoMapsSDK|UserDefaults|URLSession|Bundle" Rodi/Domain
 rg "KAKAO_NATIVE_APP_KEY|KAKAO_REST_API_KEY|AuthKey_.*\\.p8" .
 ```
 
