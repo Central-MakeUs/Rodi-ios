@@ -15,7 +15,7 @@ struct MyDrivingGoalView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var drivingGoal: String
-    @State private var isFieldFocused = false
+    @FocusState private var isFieldFocused: Bool
     @State private var isSaving = false
     @State private var errorToastMessage: String?
 
@@ -39,7 +39,7 @@ struct MyDrivingGoalView: View {
                     .foregroundStyle(RodiColor.black)
                     .padding(.bottom, 12)
 
-                OnboardingLimitedTextField(
+                RodiLimitedTextField(
                     text: $drivingGoal,
                     placeholder: "ex)강남 운전 자신있게 하기!",
                     characterLimit: Metrics.characterLimit,
@@ -64,6 +64,11 @@ struct MyDrivingGoalView: View {
             .padding(.top, 24)
 
             Spacer()
+                .frame(maxWidth: .infinity)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    isFieldFocused = false
+                }
         }
         .background(RodiColor.white)
         .toolbar(.hidden, for: .navigationBar)
