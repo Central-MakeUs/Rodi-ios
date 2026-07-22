@@ -82,9 +82,9 @@ enum PlaceTarget: TargetType {
 
     var requiresAuthentication: Bool {
         switch self {
-        case .bookmarks, .bookmark, .unbookmark:
+        case .bookmarks, .detail, .bookmark, .unbookmark:
             true
-        case .coordinates, .list, .detail:
+        case .coordinates, .list:
             false
         }
     }
