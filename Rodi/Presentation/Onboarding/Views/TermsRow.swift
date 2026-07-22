@@ -32,6 +32,7 @@ struct TermsRow: View {
                         .font(.pretendard(size: 13, weight: .medium))
                         .foregroundStyle(RodiColor.gray600)
                 }
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
         }

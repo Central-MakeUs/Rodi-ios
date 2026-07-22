@@ -72,7 +72,12 @@ struct TermsAgreementView: View {
 
             Spacer()
 
-            PrimaryBottomButton(title: "다음", isEnabled: isAllAgreed, action: onNext)
+            PrimaryBottomButton(
+                title: "다음",
+                isEnabled: isAllAgreed,
+                showsDivider: true,
+                action: onNext
+            )
         }
     }
 }
