@@ -48,6 +48,7 @@ struct MyView: View {
             MyProfileContent(
                 profile: viewModel.profile,
                 isLoading: viewModel.isLoading,
+                hasCompletedInitialLoad: viewModel.hasCompletedInitialLoad,
                 errorMessage: viewModel.errorMessage,
                 openSettings: { path.append(MyRoute.settings) },
                 openDrivingGoal: { path.append(MyRoute.drivingGoal) },
@@ -171,6 +172,7 @@ private enum MyRoute: Hashable {
 private struct MyProfileContent: View {
     let profile: MemberProfile?
     let isLoading: Bool
+    let hasCompletedInitialLoad: Bool
     let errorMessage: String?
     let openSettings: () -> Void
     let openDrivingGoal: () -> Void
@@ -230,11 +232,8 @@ private struct MyProfileContent: View {
         if let profile {
             MyProfileCard(profile: profile, openDrivingGoal: openDrivingGoal)
                 .padding(.top, 16)
-        } else if isLoading {
-            ProgressView()
-                .tint(RodiColor.primary)
-                .frame(maxWidth: .infinity)
-                .frame(height: 227)
+        } else if isLoading || !hasCompletedInitialLoad {
+            MyProfileSkeleton()
                 .padding(.top, 16)
         } else {
             VStack(spacing: 12) {
@@ -278,6 +277,79 @@ private struct MyProfileContent: View {
         .buttonStyle(.plain)
         .disabled(profile == nil)
         .accessibilityLabel("저장 목록 \(profile?.savedPlaceCount ?? 0)개")
+    }
+}
+
+private struct MyProfileSkeleton: View {
+    @State private var isAnimating = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .top, spacing: 16) {
+                placeholder(cornerRadius: 8)
+                    .frame(width: 90, height: 90)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    placeholder()
+                        .frame(width: 82, height: 18)
+
+                    placeholder()
+                        .frame(width: 30, height: 12)
+                        .padding(.top, 4)
+
+                    placeholder()
+                        .frame(width: 52, height: 16)
+                }
+
+                Spacer(minLength: 0)
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                placeholder()
+                    .frame(width: 64, height: 12)
+
+                HStack(spacing: 4) {
+                    placeholder(cornerRadius: 2)
+                        .frame(width: 52, height: 20)
+                    placeholder(cornerRadius: 2)
+                        .frame(width: 64, height: 20)
+                    placeholder(cornerRadius: 2)
+                        .frame(width: 44, height: 20)
+                }
+            }
+            .padding(.top, 12)
+
+            Spacer(minLength: 0)
+
+            VStack(alignment: .leading, spacing: 8) {
+                placeholder()
+                    .frame(width: 48, height: 12)
+                placeholder()
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 16)
+            }
+        }
+        .padding(.horizontal, 11)
+        .padding(.vertical, 15)
+        .frame(maxWidth: .infinity, minHeight: 227, maxHeight: 227, alignment: .top)
+        .background(RodiColor.gray50)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay {
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(RodiColor.primary50, lineWidth: 1)
+        }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 0.85).repeatForever(autoreverses: true)) {
+                isAnimating = true
+            }
+        }
+        .accessibilityLabel("내 정보 불러오는 중")
+    }
+
+    private func placeholder(cornerRadius: CGFloat = 4) -> some View {
+        RoundedRectangle(cornerRadius: cornerRadius)
+            .fill(RodiColor.gray200)
+            .opacity(isAnimating ? 0.55 : 1)
     }
 }
 
