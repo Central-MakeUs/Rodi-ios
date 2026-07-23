@@ -31,8 +31,14 @@ extension HomeRuntimeService {
         locationManager.stopUpdatingHeading()
         emit(.mapErrorMessageChanged(nil))
         emit(.selectionInvalidated)
-        setRenderedMapMarkers([])
-        markerRenderingService.cancel()
+
+        // 장소 마커는 현재 위치와 무관한 전체 좌표 데이터다. 이미 표시 중인 snapshot을
+        // fallback 처리에서 비우면, 해외 좌표를 반환하는 시뮬레이터와 지원 지역 밖 사용자에게
+        // 내 위치 버튼 탭만으로 모든 마커가 사라지는 문제가 생긴다.
+        if lastRequestedMarkerSnapshot.isEmpty {
+            setRenderedMapMarkers([])
+            markerRenderingService.cancel()
+        }
         setUserLocationCoordinate(nil)
         setUserHeadingDegrees(nil)
         lastValidUserCoordinate = nil
