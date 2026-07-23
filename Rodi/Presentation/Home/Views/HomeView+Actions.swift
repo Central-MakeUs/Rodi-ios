@@ -195,4 +195,18 @@ extension HomeView {
             minimumCameraRequestID: homeStore.state.map.cameraRequestID
         )
     }
+
+    func requestCurrentLocationFromCourseDetail() {
+        RodiLogger.info(
+            "Course detail current location tapped selectedItem=\(selectedItem?.id.description ?? "nil"), userLocation=\(userLocationCoordinate.logDescription), cameraTarget=\(RodiLogger.coordinate(cameraTarget)), cameraRequestID=\(cameraRequestID)"
+        )
+        homeStore.send(
+            .viewAction(
+                .requestCurrentLocationFromCourseDetail(mediumHeight: mediumSheetHeight)
+            )
+        )
+        runtimeService.requestCurrentLocationAfterStoreUpdate(
+            minimumCameraRequestID: homeStore.state.map.cameraRequestID
+        )
+    }
 }

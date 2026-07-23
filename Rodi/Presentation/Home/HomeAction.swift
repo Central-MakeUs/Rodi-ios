@@ -25,6 +25,7 @@ enum HomeAction {
         case collapseSheet(mediumHeight: CGFloat)
         case resetSheetToMedium(mediumHeight: CGFloat)
         case requestCurrentLocation
+        case requestCurrentLocationFromCourseDetail(mediumHeight: CGFloat)
     }
 
     enum RuntimeAction {
