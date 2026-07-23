@@ -133,7 +133,7 @@ struct OptionalDrivingPreferenceView: View {
                 .foregroundStyle(RodiColor.black)
                 .padding(.bottom, 12)
 
-            RodiLimitedTextField(
+            RodiTextField(
                 text: $goalText,
                 placeholder: "ex)강남 운전 자신있게 하기!",
                 characterLimit: Metrics.goalLimit,

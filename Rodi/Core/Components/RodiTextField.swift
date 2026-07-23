@@ -5,9 +5,7 @@
 
 import SwiftUI
 
-/// 한 줄 제한 입력에 사용하는 SwiftUI 전용 텍스트필드다.
-/// UIKit first responder를 수동으로 제어하지 않아 키보드 전환과 네비게이션 갱신이 충돌하지 않는다.
-struct RodiLimitedTextField: View {
+struct RodiTextField: View {
     @Binding private var text: String
     private var isFocused: FocusState<Bool>.Binding
 
