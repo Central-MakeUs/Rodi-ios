@@ -12,10 +12,12 @@ struct SelectedCourseDetailContent: View {
     let orderedPoints: [RodiRouteOverlayPoint]
 
     var body: some View {
-        if item.type == .course {
-            CourseDetailContent(item: item, orderedPoints: orderedPoints)
-        } else {
-            SingleLocationDetailContent(item: item)
+        switch item.type {
+            case .course:
+                CourseDetailContent(item: item, orderedPoints: orderedPoints)
+
+            case .parking, .single:
+                SingleLocationDetailContent(item: item)
         }
     }
 }
