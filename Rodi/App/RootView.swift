@@ -40,7 +40,8 @@ struct RootView: View {
                         automaticLoginRequestConsumed: { pendingAutomaticLoginProvider = nil }
                     )
                 case .home:
-                    mainTabContent
+//                    mainTabContent
+                    OnboardingView2()
                 }
             }
 
