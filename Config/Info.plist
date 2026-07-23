@@ -49,7 +49,7 @@
 		<string>kakaolink</string>
 	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>현재 위치를 기반으로 주변 운전 연습 코스와 주차장을 표시하고, 반경 필터 및 길안내 연동을 제공하기 위해 위치정보를 사용합니다.</string>
+	<string>현재 위치를 기반으로 주변 운전 연습 코스와 주차장을 표시하고, 거리 정렬과 길안내 연동을 제공하기 위해 위치정보를 사용합니다.</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Pretendard-Regular.otf</string>

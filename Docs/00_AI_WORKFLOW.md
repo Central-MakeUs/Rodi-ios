@@ -21,7 +21,7 @@ This document is the main operating guide for AI agents working in this reposito
 | Design tokens | `Rodi/Core/RodiDesignSystem.swift` | Use `RodiColor`, `RodiTypography`, and Pretendard helpers. |
 | Assets/fonts/data | `Rodi/Resources/` | Asset catalog, bundled JSON, fonts, privacy manifest. |
 | Legal pages | `Rodi/Core/LegalDocument.swift`, `Rodi/Core/LegalWebView.swift` | In-app legal document routing and WebView. |
-| Onboarding local state | `Rodi/Data/Local/Onboarding/OnboardingDraftStore.swift`, `Rodi/Core/Setting/AppPreferencesStore.swift` | Realm-backed in-progress draft and final completion flag. |
+| Onboarding local state | `Rodi/Data/Local/Onboarding/OnboardingDraftStore.swift`, `Rodi/Core/Setting/AppPreferencesStore.swift` | UserDefaults-backed in-progress draft and final completion flag. |
 | Logging | `Rodi/Core/RodiLogger.swift` | Release logs must not expose keys or precise coordinates. |
 | Transient feedback | `Rodi/Core/Feedback/RodiSnackbar.swift` | Use the shared snackbar for transient success, failure, and informational feedback. |
 | Networking primitives | `Rodi/Core/Network/` | Generic network layer foundation, not yet full server integration. |
