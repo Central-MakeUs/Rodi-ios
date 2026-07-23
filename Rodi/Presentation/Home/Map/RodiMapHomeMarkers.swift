@@ -163,7 +163,9 @@ extension RodiKakaoMapView {
         case .course:
             "\(Constants.homeCourseMarkerStyleID)_\(stableStyleIdentifier(for: "\(marker.id):\(marker.title)"))"
         case .parking:
-            Constants.homeParkingMarkerStyleID
+            marker.isSelected
+                ? Constants.homeParkingActiveMarkerStyleID
+                : Constants.homeParkingInactiveMarkerStyleID
         case .cluster:
             "rodi_home_cluster_\(stableStyleIdentifier(for: "\(marker.id):\(marker.title)"))"
         }

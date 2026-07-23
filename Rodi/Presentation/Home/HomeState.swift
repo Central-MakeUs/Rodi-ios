@@ -50,7 +50,17 @@ struct HomeState {
         }
 
         if let selectedItem = selection.selectedItem {
-            return selectedItem.mapMarker.map { [$0] } ?? []
+            return selectedItem.mapMarker.map {
+                [
+                    RodiMapMarker(
+                        id: $0.id,
+                        kind: $0.kind,
+                        title: $0.title,
+                        coordinate: $0.coordinate,
+                        isSelected: true
+                    )
+                ]
+            } ?? []
         }
 
         return selection.visibleMapMarkers

@@ -25,6 +25,21 @@ struct RodiMapMarker: Equatable, Identifiable {
     let kind: RodiMapMarkerKind
     let title: String
     let coordinate: RodiCoordinate
+    let isSelected: Bool
+
+    init(
+        id: String,
+        kind: RodiMapMarkerKind,
+        title: String,
+        coordinate: RodiCoordinate,
+        isSelected: Bool = false
+    ) {
+        self.id = id
+        self.kind = kind
+        self.title = title
+        self.coordinate = coordinate
+        self.isSelected = isSelected
+    }
 }
 
 enum RodiMapMarkerKind: Equatable {

@@ -41,17 +41,15 @@ final class RodiKakaoMapView: UIView {
         static let userDirectionFanPoiID = "rodi_user_direction_fan_poi"
         static let userLocationStyleID = "rodi_user_location_marker"
         static let userDirectionFanStyleID = "rodi_user_direction_fan_marker"
-        static let sdkMarkerResourceBundleNames = ["KakaoMapsSDK-SPM_KakaoMapsSDK-SPM", "KakaoMapsSDKBundle"]
-        static let sdkMarkerRelativePath = "assets/svc/images/symbols/map_ico_marker.png"
-        static let sdkDirectionFanRelativePath = "assets/svc/images/symbols/map_ico_marker_direction.png"
-        static let userLocationMarkerScale: CGFloat = 0.35
-        static let userDirectionMarkerScale: CGFloat = 0.5
         static let userDirectionFanCanvasPadding: CGFloat = 8
-        static let userDirectionFanOverlap: CGFloat = 11
-        static let fallbackLocationAssetName = "rodi_user_location_marker_fallback"
-        static let fallbackDirectionFanAssetName = "rodi_user_direction_marker_fallback"
-        static let fallbackLocationMarkerSize = CGSize(width: 64, height: 64)
-        static let fallbackDirectionFanMarkerSize = CGSize(width: 96, height: 96)
+        // 8x6 방향 삼각형이 위치 원 뒤에 가려지지 않도록 원의 상단에 맞춘다.
+        static let userDirectionFanOverlap: CGFloat = 2
+        static let userLocationMarkerCanvasSize = CGSize(width: 30, height: 30)
+        // 외곽 반지름 7pt, 2pt 흰 테두리, 내부 반지름 5pt.
+        static let userLocationMarkerDiameter: CGFloat = 14
+        static let userLocationMarkerBorderWidth: CGFloat = 2
+        static let directionMarkerSize = CGSize(width: 8, height: 6)
+        static let directionMarkerCanvasInset: CGFloat = 3
         static let routeMarkerLayerID = "rodi_route_marker_layer"
         static let routeShapeLayerID = "rodi_route_shape_layer"
         static let routePolylineShapeID = "rodi_route_polyline"
@@ -61,7 +59,8 @@ final class RodiKakaoMapView: UIView {
         static let routeEndMarkerStyleID = "rodi_route_end_marker"
         static let homeMarkerLayerID = "rodi_home_marker_layer"
         static let homeCourseMarkerStyleID = "rodi_home_course_marker"
-        static let homeParkingMarkerStyleID = "rodi_home_parking_marker"
+        static let homeParkingInactiveMarkerStyleID = "rodi_home_parking_inactive_marker"
+        static let homeParkingActiveMarkerStyleID = "rodi_home_parking_active_marker"
         static let parkingMarkerVisualHeight: CGFloat = 34
         static let duplicateMarkerLongitudeOffset = 0.00055
     }
