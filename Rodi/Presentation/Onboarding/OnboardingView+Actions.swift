@@ -29,6 +29,13 @@ extension OnboardingView {
         onboardingStore.send(.navigation(.locationPermissionContinueTapped))
     }
 
+    func startBrowse() {
+        // Keychain persists across app deletion, so guest entry must explicitly end any old session.
+        authRepository.clearSession()
+        RodiLogger.info("Browse mode started; local auth session cleared")
+        onboardingStore.send(.entry(.browseTapped))
+    }
+
     func startAppleLogin() {
         onboardingStore.send(.entry(.authStarted(.apple)))
 
