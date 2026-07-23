@@ -62,6 +62,7 @@ enum OnboardingAction {
         case skipTapped
         case nextTapped(drivingGoal: String)
         case analysisFinished
+        case analysisFailed(String)
         case analysisCompletionConfirmed
     }
 
@@ -72,5 +73,7 @@ enum OnboardingAction {
 
     enum PresentationAction {
         case setTermsSheet(isPresented: Bool)
+        case showSnackbar(String)
+        case dismissSnackbar
     }
 }

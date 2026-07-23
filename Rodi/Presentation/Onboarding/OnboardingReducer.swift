@@ -12,7 +12,6 @@ struct OnboardingReducer: Reducer {
         switch action {
             case .navigation(let action):
                 reduceNavigationAction(action, state: &state)
-            
             case .entry(let action):
                 reduceEntryAction(action, state: &state)
             

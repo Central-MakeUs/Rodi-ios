@@ -15,7 +15,7 @@ public enum NetworkError: Error, Equatable {
     case timeOut
     case networkUnavailable
     case httpStatusCode(Int)
-    case apiError(code: String, message: String)
+    case apiError(code: String, message: String, httpStatusCode: Int? = nil)
     case unknown(errorCode: String)
     case cancel
     case errorModelDecodingFail
@@ -39,7 +39,7 @@ extension NetworkError: LocalizedError {
             return "네트워크 연결을 확인해 주세요."
         case .httpStatusCode(let statusCode):
             return "서버 응답이 올바르지 않습니다. (HTTP \(statusCode))"
-        case .apiError(_, let message):
+        case .apiError(_, let message, _):
             return message
         case .unknown(let errorCode):
             return "알 수 없는 오류가 발생했습니다. (\(errorCode))"

@@ -73,7 +73,7 @@ final class AuthTokenRefreshCoordinator: AccessTokenRefreshing {
 private extension NetworkError {
     var requiresSessionClear: Bool {
         switch self {
-        case .apiError(let code, _):
+        case .apiError(let code, _, _):
             code == "AUTH_401_2" || code == "AUTH_401_3" || code == "AUTH_401_4"
         case .refreshFailGoRoot:
             true
