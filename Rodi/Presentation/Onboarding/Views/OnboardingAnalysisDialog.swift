@@ -46,10 +46,7 @@ struct OnboardingAnalysisCompletionDialog: View {
                     .rodiTypography(.headline1)
                     .foregroundStyle(RodiColor.black)
 
-                Image("img_profile_dummy")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 100, height: 100)
+                RodiLevelProfileImage(level: analysis.level, size: 100)
                     .padding(.top, 14)
 
                 Text(analysis.level.displayName)

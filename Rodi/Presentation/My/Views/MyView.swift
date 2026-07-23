@@ -351,12 +351,13 @@ private struct MyProfileCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top, spacing: 16) {
-                Image("img_profile_dummy_2")
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 90, height: 90)
-                    .background(RodiColor.primary100)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                RodiLevelProfileImage(
+                    level: profile.level,
+                    size: 90,
+                    backgroundColor: RodiColor.primary100,
+                    cornerRadius: 8,
+                    imageOffsetY: 10
+                )
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(profile.nickname)
