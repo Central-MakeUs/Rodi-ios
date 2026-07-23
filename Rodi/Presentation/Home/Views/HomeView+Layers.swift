@@ -10,15 +10,7 @@ import SwiftUI
 extension HomeView {
     var mapLayer: some View {
         HomeMapLayer(
-            shouldRenderMap: shouldRenderMap,
-            cameraTarget: cameraTarget,
-            cameraRequestID: cameraRequestID,
-            animatedCameraRequestID: animatedCameraRequestID,
-            cameraFocus: cameraFocus,
-            userLocation: userLocationCoordinate,
-            userHeadingDegrees: userHeadingDegrees,
-            routeOverlay: selectedRouteOverlay,
-            mapMarkers: displayedMapMarkers,
+            homeStore: homeStore,
             logoBottomInset: floatingControlBottomInset,
             cameraBottomInset: cameraObscuredBottomInset,
             isInteractionEnabled: bottomSheetState != .expanded,
@@ -30,7 +22,7 @@ extension HomeView {
 
     var statusLayer: some View {
         HomeStatusLayer(
-            overlayState: overlayState,
+            homeStore: homeStore,
             retryAction: retryMapLoadingFromNetworkError
         )
     }
