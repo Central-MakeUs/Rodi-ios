@@ -31,7 +31,7 @@ struct SelectedCoursePanel: View {
     }
 
     private var isSingleLocationRouteGuidance: Bool {
-        item.type == .single || item.type == .parking
+        item.type == .parking
     }
 
     private var isRouteGuidanceButtonEnabled: Bool {
