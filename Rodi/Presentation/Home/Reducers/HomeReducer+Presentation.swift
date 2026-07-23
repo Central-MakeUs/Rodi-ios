@@ -8,49 +8,27 @@ import Foundation
 extension HomeReducer {
     func reducePresentationAction(_ action: HomeAction.PresentationAction, state: inout HomeState) -> Effect<HomeAction> {
         switch action {
-        case .showRouteGuidanceMessage(let message):
-            state.presentation.guidanceSnackbarMessage = message
+        case .showSnackbar(let message):
+            state.presentation.snackbarMessage = message
             return .run { send in
-                try? await Task.sleep(for: .milliseconds(2000))
-                await send(.presentationAction(.dismissGuidanceSnackbar))
+                try? await Task.sleep(for: .seconds(3))
+                await send(.presentationAction(.dismissSnackbar))
             }
-            .cancelTask(id: HomeEffectID.guidanceSnackbarDismissal)
+            .cancelTask(id: HomeEffectID.snackbarDismissal)
 
-        case .setGuidanceSnackbarMessage(let message):
-            state.presentation.guidanceSnackbarMessage = message
+        case .setSnackbarMessage(let message):
+            state.presentation.snackbarMessage = message
             guard message != nil else {
-                return .cancel(id: HomeEffectID.guidanceSnackbarDismissal)
+                return .cancel(id: HomeEffectID.snackbarDismissal)
             }
             return .run { send in
-                try? await Task.sleep(for: .milliseconds(2000))
-                await send(.presentationAction(.dismissGuidanceSnackbar))
+                try? await Task.sleep(for: .seconds(3))
+                await send(.presentationAction(.dismissSnackbar))
             }
-            .cancelTask(id: HomeEffectID.guidanceSnackbarDismissal)
+            .cancelTask(id: HomeEffectID.snackbarDismissal)
 
-        case .dismissGuidanceSnackbar:
-            state.presentation.guidanceSnackbarMessage = nil
-
-        case .showLocationNoticeMessage(let message):
-            state.presentation.locationNoticeMessage = message
-            return .run { send in
-                try? await Task.sleep(for: .milliseconds(1800))
-                await send(.presentationAction(.dismissLocationNoticeMessage))
-            }
-            .cancelTask(id: HomeEffectID.locationNoticeDismissal)
-
-        case .setLocationNoticeMessage(let message):
-            state.presentation.locationNoticeMessage = message
-            guard message != nil else {
-                return .cancel(id: HomeEffectID.locationNoticeDismissal)
-            }
-            return .run { send in
-                try? await Task.sleep(for: .milliseconds(1800))
-                await send(.presentationAction(.dismissLocationNoticeMessage))
-            }
-            .cancelTask(id: HomeEffectID.locationNoticeDismissal)
-
-        case .dismissLocationNoticeMessage:
-            state.presentation.locationNoticeMessage = nil
+        case .dismissSnackbar:
+            state.presentation.snackbarMessage = nil
 
         case .showLocationSettingsAlert:
             state.presentation.showsLocationSettingsAlert = true

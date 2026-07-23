@@ -38,7 +38,7 @@ extension HomeView {
         case .initialPlaceListSearchPrepared(let origin):
             homeStore.send(.runtimeAction(.prepareInitialPlaceListSearch(origin: origin)))
         case .locationNoticeRequested(let message):
-            homeStore.send(.presentationAction(.showLocationNoticeMessage(message)))
+            homeStore.send(.presentationAction(.showSnackbar(message)))
         case .locationPermissionAlertRequested:
             homeStore.send(.presentationAction(.showLocationSettingsAlert))
         }

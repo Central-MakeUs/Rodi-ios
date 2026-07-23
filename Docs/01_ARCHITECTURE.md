@@ -42,6 +42,7 @@ Examples:
 - network primitives
 - app preferences store
 - haptic manager
+- shared transient feedback (`RodiSnackbar`)
 - extensions
 - MVI core primitives
 

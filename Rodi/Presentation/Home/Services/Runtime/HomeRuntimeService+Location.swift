@@ -34,7 +34,7 @@ extension HomeRuntimeService {
         guard HomeLocationPolicy.isSupportedServiceCoordinate(coordinate) else {
             RodiLogger.warning("Location outside Korea bounds. raw=\(RodiLogger.coordinate(coordinate)), using fallback map")
             if requestKind == .userInitiated {
-                emit(.locationNoticeRequested("현재 위치가 서비스 지원 지역 밖이에요."))
+                emit(.locationNoticeRequested("현재 위치를 지도에 표시할 수 없어요."))
             }
             useFallbackLocation(reason: "outside_korea_bounds", shouldMoveCamera: requestKind == .userInitiated, requestKind: requestKind, requestID: requestID)
             return

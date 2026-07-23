@@ -80,10 +80,7 @@ struct HomeView: View {
             .animation(.easeOut(duration: 0.25), value: bottomSheetState)
         }
         .homeInteractions(
-            guidanceSnackbarMessage: guidanceSnackbarMessageBinding,
-            locationNoticeMessage: locationNoticeMessageBinding,
-            bottomSheetState: bottomSheetState,
-            showsLocationSettingsAlert: showsLocationSettingsAlertBinding,
+            homeStore: homeStore,
             scenePhase: scenePhase,
             openSettingsAction: openAppSettings,
             refreshLocationAuthorizationAction: runtimeService.refreshLocationAuthorization

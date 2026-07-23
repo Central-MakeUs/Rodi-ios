@@ -31,7 +31,7 @@ struct NetworkUnavailableContent: View {
 
             VStack {
                 Spacer()
-                NetworkRetrySnackbar(retryAction: retryAction)
+                NetworkRetryBanner(retryAction: retryAction)
                     .padding(.horizontal, 16)
                     .padding(.bottom, 36)
             }

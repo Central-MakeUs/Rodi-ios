@@ -23,6 +23,7 @@ This document is the main operating guide for AI agents working in this reposito
 | Legal pages | `Rodi/Core/LegalDocument.swift`, `Rodi/Core/LegalWebView.swift` | In-app legal document routing and WebView. |
 | Onboarding local state | `Rodi/Data/Local/Onboarding/OnboardingDraftStore.swift`, `Rodi/Core/Setting/AppPreferencesStore.swift` | Realm-backed in-progress draft and final completion flag. |
 | Logging | `Rodi/Core/RodiLogger.swift` | Release logs must not expose keys or precise coordinates. |
+| Transient feedback | `Rodi/Core/Feedback/RodiSnackbar.swift` | Use the shared snackbar for transient success, failure, and informational feedback. |
 | Networking primitives | `Rodi/Core/Network/` | Generic network layer foundation, not yet full server integration. |
 | Fastlane/release | `fastlane/`, `Docs/03_RELEASE_APPSTORE_LEGAL.md` | Local Mac fastlane only; no GitHub Actions. |
 
@@ -94,6 +95,13 @@ Use when splitting views, reducing view responsibility, or improving UI structur
 7. Build after code changes.
 
 Do not create abstractions just to reduce line count. Do not move feature-only UI into Core. Preserve iOS 16 compatibility.
+
+## Transient Feedback Rule
+
+- Use `RodiSnackbar` via `.rodiSnackbar(message:)` for every transient snackbar or toast.
+- The standard presentation is 3 seconds, horizontal inset `16pt`, black background, bottom entry transition, and a bottom position equal to `14%` of the current screen height.
+- Do not create feature-local toast or snackbar views, feature-local placement rules, or a second top-down snackbar.
+- Keep persistent errors with an explicit recovery action, such as `다시 시도`, as an inline error state, banner, or dialog rather than a transient snackbar.
 
 ## MVI Change Playbook
 

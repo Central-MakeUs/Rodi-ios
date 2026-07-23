@@ -17,7 +17,7 @@ struct MyDrivingGoalView: View {
     @State private var drivingGoal: String
     @FocusState private var isFieldFocused: Bool
     @State private var isSaving = false
-    @State private var errorToastMessage: String?
+    @State private var snackbarMessage: String?
 
     init(
         initialDrivingGoal: String,
@@ -39,7 +39,7 @@ struct MyDrivingGoalView: View {
                     .foregroundStyle(RodiColor.black)
                     .padding(.bottom, 12)
 
-                RodiLimitedTextField(
+                RodiTextField(
                     text: $drivingGoal,
                     placeholder: "ex)강남 운전 자신있게 하기!",
                     characterLimit: Metrics.characterLimit,
@@ -72,15 +72,7 @@ struct MyDrivingGoalView: View {
         }
         .background(RodiColor.white)
         .toolbar(.hidden, for: .navigationBar)
-        .overlay(alignment: .bottom) {
-            if let errorToastMessage {
-                MyDrivingGoalErrorToast(message: errorToastMessage)
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 32)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
-        }
-        .animation(.easeInOut(duration: 0.2), value: errorToastMessage)
+        .rodiSnackbar(message: snackbarMessage)
     }
 
     private var header: some View {
@@ -145,44 +137,20 @@ struct MyDrivingGoalView: View {
                 onUpdated(updatedProfile)
                 dismiss()
             } catch {
-                showErrorToast()
+                showSnackbar()
             }
             isSaving = false
         }
     }
 
-    private func showErrorToast() {
+    private func showSnackbar() {
         let message = "작성해주신 목표가 정상적으로 처리되지 못했어요.\n다시 한번 시도해주세요."
-        errorToastMessage = message
+        snackbarMessage = message
 
         Task {
             try? await Task.sleep(for: .seconds(3))
-            guard errorToastMessage == message else { return }
-            errorToastMessage = nil
+            guard snackbarMessage == message else { return }
+            snackbarMessage = nil
         }
-    }
-}
-
-private struct MyDrivingGoalErrorToast: View {
-    let message: String
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "exclamationmark.circle")
-                .font(.system(size: 20, weight: .regular))
-                .foregroundStyle(RodiColor.white)
-                .frame(width: 24, height: 24)
-
-            Text(message)
-                .rodiTypography(.body3Medium)
-                .foregroundStyle(RodiColor.white)
-                .multilineTextAlignment(.leading)
-
-            Spacer(minLength: 0)
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, minHeight: 68, alignment: .leading)
-        .background(RodiColor.gray800)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }

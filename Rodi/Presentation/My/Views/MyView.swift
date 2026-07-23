@@ -59,16 +59,7 @@ struct MyView: View {
                 destinationView(for: route)
             }
         }
-        .overlay(alignment: .bottom) {
-            if let snackbarMessage {
-                SnackbarView(message: snackbarMessage)
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 92)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .allowsHitTesting(false)
-            }
-        }
-        .animation(.easeInOut(duration: 0.2), value: snackbarMessage)
+        .rodiSnackbar(message: snackbarMessage)
         .task {
             await viewModel.loadIfNeeded()
         }

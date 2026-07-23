@@ -11,8 +11,7 @@ extension HomeReducer {
         static let placeDetailLoading = "home.place-detail.loading"
         static let bookmarkUpdating = "home.place-detail.bookmark-updating"
         static let placeListLoading = "home.place-list.loading"
-        static let guidanceSnackbarDismissal = "home.presentation.guidance-snackbar-dismissal"
-        static let locationNoticeDismissal = "home.presentation.location-notice-dismissal"
+        static let snackbarDismissal = "home.presentation.snackbar-dismissal"
     }
 
     func reduceViewAction(_ action: HomeAction.ViewAction, state: inout HomeState) -> Effect<HomeAction> {

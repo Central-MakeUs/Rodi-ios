@@ -6,25 +6,15 @@
 import SwiftUI
 
 struct HomeInteractionModifier: ViewModifier {
-    @Binding var guidanceSnackbarMessage: String?
-    @Binding var locationNoticeMessage: String?
-    let bottomSheetState: HomeBottomSheetState
-    @Binding var showsLocationSettingsAlert: Bool
+    @ObservedObject var homeStore: StoreOf<HomeReducer>
     let scenePhase: ScenePhase
     let openSettingsAction: () -> Void
     let refreshLocationAuthorizationAction: () -> Void
 
     func body(content: Content) -> some View {
         content
-            .overlay(alignment: .bottom) {
-                guidanceSnackbar
-            }
-            .overlay(alignment: .top) {
-                locationNoticeSnackbar
-            }
-            .animation(.easeInOut(duration: 0.2), value: locationNoticeMessage)
-            .animation(.easeInOut(duration: 0.2), value: guidanceSnackbarMessage)
-            .alert("위치 접근 권한이 필요해요", isPresented: $showsLocationSettingsAlert) {
+            .rodiSnackbar(message: homeStore.state.presentation.snackbarMessage)
+            .alert("위치 접근 권한이 필요해요", isPresented: locationSettingsAlertBinding) {
                 Button("취소", role: .cancel) {}
                 Button("확인", action: openSettingsAction)
             } message: {
@@ -36,49 +26,25 @@ struct HomeInteractionModifier: ViewModifier {
             }
     }
 
-    @ViewBuilder
-    private var guidanceSnackbar: some View {
-        if let guidanceSnackbarMessage {
-            GeometryReader { proxy in
-                SnackbarView(message: guidanceSnackbarMessage)
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, proxy.size.height * 0.14)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .allowsHitTesting(false)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var locationNoticeSnackbar: some View {
-        if let locationNoticeMessage, bottomSheetState == .medium {
-            SnackbarView(message: locationNoticeMessage)
-                .padding(.horizontal, 16)
-                .padding(.top, 12)
-                .transition(.move(edge: .top).combined(with: .opacity))
-                .allowsHitTesting(false)
-        }
+    private var locationSettingsAlertBinding: Binding<Bool> {
+        Binding(
+            get: { homeStore.state.presentation.showsLocationSettingsAlert },
+            set: { homeStore.send(.presentationAction(.setLocationSettingsAlertPresented($0))) }
+        )
     }
 
 }
 
 extension View {
     func homeInteractions(
-        guidanceSnackbarMessage: Binding<String?>,
-        locationNoticeMessage: Binding<String?>,
-        bottomSheetState: HomeBottomSheetState,
-        showsLocationSettingsAlert: Binding<Bool>,
+        homeStore: StoreOf<HomeReducer>,
         scenePhase: ScenePhase,
         openSettingsAction: @escaping () -> Void,
         refreshLocationAuthorizationAction: @escaping () -> Void
     ) -> some View {
         modifier(
             HomeInteractionModifier(
-                guidanceSnackbarMessage: guidanceSnackbarMessage,
-                locationNoticeMessage: locationNoticeMessage,
-                bottomSheetState: bottomSheetState,
-                showsLocationSettingsAlert: showsLocationSettingsAlert,
+                homeStore: homeStore,
                 scenePhase: scenePhase,
                 openSettingsAction: openSettingsAction,
                 refreshLocationAuthorizationAction: refreshLocationAuthorizationAction
