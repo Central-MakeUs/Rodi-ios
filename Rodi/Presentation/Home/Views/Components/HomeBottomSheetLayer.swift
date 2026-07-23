@@ -15,6 +15,9 @@ struct HomeBottomSheetLayer<Drag: Gesture>: View {
     let opacity: CGFloat
     let dragGesture: Drag
     let shouldAllowDrag: Bool
+    let showsCourseDetailLocationControl: Bool
+    let isCurrentLocationActive: Bool
+    let currentLocationAction: () -> Void
     let contentHeightAction: (CGFloat) -> Void
 
     var body: some View {
@@ -25,7 +28,10 @@ struct HomeBottomSheetLayer<Drag: Gesture>: View {
                     actions: actions,
                     visibleHeight: visibleHeight,
                     dragGesture: dragGesture,
-                    shouldAllowDrag: shouldAllowDrag
+                    shouldAllowDrag: shouldAllowDrag,
+                    showsCourseDetailLocationControl: showsCourseDetailLocationControl,
+                    isCurrentLocationActive: isCurrentLocationActive,
+                    currentLocationAction: currentLocationAction
                 )
                 .fixedSize(horizontal: false, vertical: true)
                 .background {
@@ -45,7 +51,10 @@ struct HomeBottomSheetLayer<Drag: Gesture>: View {
                     actions: actions,
                     visibleHeight: visibleHeight,
                     dragGesture: dragGesture,
-                    shouldAllowDrag: shouldAllowDrag
+                    shouldAllowDrag: shouldAllowDrag,
+                    showsCourseDetailLocationControl: showsCourseDetailLocationControl,
+                    isCurrentLocationActive: isCurrentLocationActive,
+                    currentLocationAction: currentLocationAction
                 )
                 .frame(height: height)
             }

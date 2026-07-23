@@ -13,6 +13,9 @@ struct CourseBottomSheet<Drag: Gesture>: View {
     let visibleHeight: CGFloat
     let dragGesture: Drag
     let shouldAllowDrag: Bool
+    let showsCourseDetailLocationControl: Bool
+    let isCurrentLocationActive: Bool
+    let currentLocationAction: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
@@ -69,6 +72,16 @@ struct CourseBottomSheet<Drag: Gesture>: View {
             )
         )
         .shadow(color: RodiColor.black.opacity(0.08 * (1 - content.pageProgress)), radius: 4, x: 0, y: -3)
+        .overlay(alignment: .topTrailing) {
+            if showsCourseDetailLocationControl {
+                CurrentLocationButton(
+                    isActive: isCurrentLocationActive,
+                    action: currentLocationAction
+                )
+                .offset(y: -(courseLocationButtonSize + courseLocationButtonSpacing))
+                .padding(.trailing, 12)
+            }
+        }
         .ignoresSafeArea(edges: .bottom)
         .accessibilityAction(named: Text("펼치기")) {
             guard !content.hasSelectedItem else { return }
@@ -83,6 +96,9 @@ struct CourseBottomSheet<Drag: Gesture>: View {
     }
 
     private var headerTitle: String { "추천 목록" }
+
+    private let courseLocationButtonSize: CGFloat = 40
+    private let courseLocationButtonSpacing: CGFloat = 12
 
     private var dragIndicator: some View {
         Capsule()

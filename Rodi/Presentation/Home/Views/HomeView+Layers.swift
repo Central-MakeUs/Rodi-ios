@@ -55,7 +55,8 @@ extension HomeView {
 
     var floatingControlLayer: some View {
         Group {
-            if bottomSheetState != .expanded || hasFixedBottomSheet {
+            if !usesContentSizedSelectedDetail,
+               bottomSheetState != .expanded || hasFixedBottomSheet {
                 HomeFloatingControlLayer(
                     isCurrentLocationActive: isCurrentLocationButtonActive,
                     mapZoomLevel: mapZoomLevel,
@@ -81,6 +82,9 @@ extension HomeView {
             opacity: bottomSheetOpacity,
             dragGesture: sheetDragGesture,
             shouldAllowDrag: shouldAllowSheetDrag,
+            showsCourseDetailLocationControl: usesContentSizedSelectedDetail,
+            isCurrentLocationActive: isCurrentLocationButtonActive,
+            currentLocationAction: requestCurrentLocationFromCourseDetail,
             contentHeightAction: { height in
                 guard abs(selectedSheetContentHeight - height) > 0.5 else { return }
                 selectedSheetContentHeight = height
