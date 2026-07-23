@@ -146,7 +146,6 @@ extension HomeView {
     func consumePendingPlaceSelectionIfNeeded() {
         guard selectedTab == .home,
               homeStore.state.map.isReady,
-              containerHeight > 0,
               let item = pendingPlaceSelection
         else {
             return
@@ -154,7 +153,7 @@ extension HomeView {
 
         pendingPlaceSelection = nil
         RodiLogger.info(
-            "Saved place selection handed off to ready home map placeID=\(item.id), mapHeight=\(containerHeight)"
+            "Saved place selection handed off to ready home map placeID=\(item.id)"
         )
         handlePlaceListSelection(item)
     }
