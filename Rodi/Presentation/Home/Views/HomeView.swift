@@ -71,11 +71,6 @@ struct HomeView: View {
                 bottomSheetLayer
             }
             .coordinateSpace(name: Constants.bottomSheetDragCoordinateSpace)
-//            .onGeometryChange(for: CGFloat.self) { proxy in
-//                proxy.size.height
-//            } action: { height in
-//                handleContainerHeightChange(height)
-//            }
             .onAppear {
                 startHomeServices()
                 consumePendingPlaceSelectionIfNeeded()
