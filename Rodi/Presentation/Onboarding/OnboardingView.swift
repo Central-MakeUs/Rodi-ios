@@ -148,7 +148,7 @@ struct OnboardingView: View {
                 OnboardingEntryView(
                     isAuthenticating: onboardingStore.state.isAuthenticating,
                     recentLoginProvider: onboardingStore.state.recentLoginProvider,
-                    onBrowse: { onboardingStore.send(.entry(.browseTapped)) },
+                    onBrowse: startBrowse,
                     onAppleLogin: startAppleLogin,
                     onKakaoLogin: startKakaoLogin
                 )
