@@ -82,7 +82,7 @@ struct RodiCourseItem: Decodable, Identifiable {
 
     var mapMarker: RodiMapMarker? {
         switch type {
-        case .single, .course:
+        case .course:
             RodiMapMarker(
                 id: "course-\(id)",
                 kind: .course,

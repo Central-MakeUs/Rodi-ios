@@ -15,7 +15,7 @@ struct RouteGuidancePayload {
     init?(item: RodiCourseItem, userLocation: RodiCoordinate?) {
         guard let userLocation else { return nil }
 
-        if item.type == .single || item.type == .parking {
+        if item.type == .parking {
             start = RouteGuidancePoint(name: "현재 위치", coordinate: userLocation)
             waypoints = []
             destination = RouteGuidancePoint(name: item.name, coordinate: item.coordinate)

@@ -152,7 +152,7 @@ extension HomeReducer {
             state.route.isRouteLoading = true
             return loadRoadRouteEffect(courseID: item.id, points: points)
 
-        case .single, .parking:
+        case .parking:
             state.route.selectedRouteOverlay = nil
             state.route.isRouteLoading = false
             state.map.cameraTarget = item.coordinate
