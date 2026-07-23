@@ -2,7 +2,7 @@
 //  Effect.swift
 //  Rodi
 //
-//  Created by Yundal8755 on 7/1/26.
+//  Created by mac on 7/1/26.
 //
 
 import Foundation

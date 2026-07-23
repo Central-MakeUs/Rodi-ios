@@ -2,7 +2,7 @@
 //  SelectedCourseDetailContent.swift
 //  Rodi
 //
-//  Created by Codex on 7/1/26.
+//  Created by mac on 7/1/26.
 //
 
 import SwiftUI
@@ -16,12 +16,13 @@ struct SelectedCourseDetailContent: View {
             case .course:
                 CourseDetailContent(item: item, orderedPoints: orderedPoints)
 
-            case .parking, .single:
+            case .parking:
                 SingleLocationDetailContent(item: item)
         }
     }
 }
 
+// MARK: 코스 상세 화면
 private struct CourseDetailContent: View {
     let item: RodiCourseItem
     let orderedPoints: [RodiRouteOverlayPoint]
@@ -40,6 +41,7 @@ private struct CourseDetailContent: View {
     }
 }
 
+// MARK: 단일 스팟 상세 화면
 private struct SingleLocationDetailContent: View {
     let item: RodiCourseItem
 
