@@ -56,7 +56,11 @@ struct CourseBottomSheet<Drag: Gesture>: View {
                 .clipped()
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .frame(
+            maxWidth: .infinity,
+            maxHeight: content.hasSelectedItem ? nil : .infinity,
+            alignment: .top
+        )
         .background(RodiColor.white)
         .clipShape(
             UnevenRoundedRectangle(

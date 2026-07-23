@@ -43,6 +43,12 @@ struct HomeState {
     }
 
     var displayedMapMarkers: [RodiMapMarker] {
+        // 코스 상세에서는 시작·경유·도착 경로 마커만 보여 대표 코스 마커와 겹치지 않게 한다.
+        if selection.selectedItem?.type == .course,
+           route.selectedRouteOverlay != nil {
+            return []
+        }
+
         if let selectedItem = selection.selectedItem {
             return selectedItem.mapMarker.map { [$0] } ?? []
         }
