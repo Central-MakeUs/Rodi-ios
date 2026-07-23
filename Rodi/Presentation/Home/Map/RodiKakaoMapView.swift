@@ -118,16 +118,21 @@ final class RodiKakaoMapView: UIView {
 
     override init(frame: CGRect) {
         super.init(frame: frame)
+        configureView()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        configureView()
+    }
+
+    private func configureView() {
         RodiLogger.debug("RodiKakaoMapView init")
         backgroundColor = .systemBackground
         addSubview(mapContainer)
         mapContainer.snp.makeConstraints { make in
             make.edges.equalToSuperview()
         }
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
     }
 
     override func layoutSubviews() {

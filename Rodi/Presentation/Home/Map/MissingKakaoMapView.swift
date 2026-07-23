@@ -17,15 +17,20 @@ final class MissingKakaoMapView: UIView {
 
     override init(frame: CGRect) {
         super.init(frame: frame)
+        configureView()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        configureView()
+    }
+
+    private func configureView() {
         backgroundColor = UIColor(red: 0.95, green: 0.96, blue: 0.98, alpha: 1)
         addSubview(messageLabel)
         messageLabel.snp.makeConstraints { make in
             make.edges.equalToSuperview().inset(24)
         }
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
     }
 
     func configure(message: String) {
