@@ -120,7 +120,14 @@ extension SocialLoginService: ASAuthorizationControllerDelegate {
 
     nonisolated func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
         Task { @MainActor in
-            appleContinuation?.resume(returning: .failure(error))
+            let result: Result<String, Error>
+            if let authorizationError = error as? ASAuthorizationError,
+               authorizationError.code == .canceled {
+                result = .failure(SocialLoginError.appleAuthorizationCancelled)
+            } else {
+                result = .failure(error)
+            }
+            appleContinuation?.resume(returning: result)
             appleContinuation = nil
         }
     }
@@ -136,6 +143,7 @@ extension SocialLoginService: ASAuthorizationControllerPresentationContextProvid
 }
 
 enum SocialLoginError: LocalizedError {
+    case appleAuthorizationCancelled
     case invalidAppleCredential
     case invalidAppleAuthorizationCode
     case kakaoSDKUnavailable
@@ -143,6 +151,8 @@ enum SocialLoginError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
+        case .appleAuthorizationCancelled:
+            "Apple 로그인을 취소했어요."
         case .invalidAppleCredential:
             "Apple 로그인 정보를 확인하지 못했어요."
         case .invalidAppleAuthorizationCode:
@@ -152,5 +162,15 @@ enum SocialLoginError: LocalizedError {
         case .emptyKakaoToken:
             "카카오 로그인 토큰을 확인하지 못했어요."
         }
+    }
+}
+
+extension Error {
+    var isAppleAuthorizationCancelled: Bool {
+        guard let error = self as? SocialLoginError else { return false }
+        if case .appleAuthorizationCancelled = error {
+            return true
+        }
+        return false
     }
 }

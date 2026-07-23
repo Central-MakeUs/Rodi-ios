@@ -46,7 +46,11 @@ extension OnboardingView {
                 await completeSocialLogin(provider: .apple, credential: credential)
             case .failure(let error):
                 await MainActor.run {
-                    onboardingStore.send(.entry(.authFailed(.apple, error.localizedDescription)))
+                    if error.isAppleAuthorizationCancelled {
+                        onboardingStore.send(.entry(.authCancelled(.apple)))
+                    } else {
+                        onboardingStore.send(.entry(.authFailed(.apple, error.localizedDescription)))
+                    }
                 }
             }
         }
@@ -129,7 +133,11 @@ extension OnboardingView {
             await restoreWithdrawalAccount(recovery: recovery, credential: credential)
         case .failure(let error):
             await MainActor.run {
-                onboardingStore.send(.entry(.authFailed(recovery.provider, error.localizedDescription)))
+                if error.isAppleAuthorizationCancelled {
+                    onboardingStore.send(.entry(.withdrawalRecoveryRequired(recovery)))
+                } else {
+                    onboardingStore.send(.entry(.authFailed(recovery.provider, error.localizedDescription)))
+                }
             }
         }
     }
