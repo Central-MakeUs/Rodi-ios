@@ -10,6 +10,7 @@ import Foundation
 final class MyProfileViewModel: ObservableObject {
     @Published private(set) var profile: MemberProfile?
     @Published private(set) var isLoading = false
+    @Published private(set) var hasCompletedInitialLoad = false
     @Published private(set) var errorMessage: String?
 
     private let memberRepository: MemberRepository
@@ -26,6 +27,10 @@ final class MyProfileViewModel: ObservableObject {
     func load() async {
         isLoading = true
         errorMessage = nil
+        defer {
+            isLoading = false
+            hasCompletedInitialLoad = true
+        }
 
         do {
             profile = try await memberRepository.fetchMyProfile()
@@ -35,7 +40,6 @@ final class MyProfileViewModel: ObservableObject {
             RodiLogger.warning("My profile load failed. error=\(error.localizedDescription)")
         }
 
-        isLoading = false
     }
 
     func replaceProfile(_ profile: MemberProfile) {
