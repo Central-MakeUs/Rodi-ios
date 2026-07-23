@@ -8,17 +8,10 @@
 import SwiftUI
 
 extension HomeView {
-    var guidanceSnackbarMessageBinding: Binding<String?> {
+    var snackbarMessageBinding: Binding<String?> {
         Binding(
-            get: { homeStore.state.presentation.guidanceSnackbarMessage },
-            set: { homeStore.send(.presentationAction(.setGuidanceSnackbarMessage($0))) }
-        )
-    }
-
-    var locationNoticeMessageBinding: Binding<String?> {
-        Binding(
-            get: { homeStore.state.presentation.locationNoticeMessage },
-            set: { homeStore.send(.presentationAction(.setLocationNoticeMessage($0))) }
+            get: { homeStore.state.presentation.snackbarMessage },
+            set: { homeStore.send(.presentationAction(.setSnackbarMessage($0))) }
         )
     }
 

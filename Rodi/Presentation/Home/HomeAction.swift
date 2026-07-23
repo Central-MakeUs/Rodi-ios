@@ -97,12 +97,9 @@ enum HomeAction {
     }
 
     enum PresentationAction {
-        case showRouteGuidanceMessage(String)
-        case setGuidanceSnackbarMessage(String?)
-        case dismissGuidanceSnackbar
-        case showLocationNoticeMessage(String)
-        case setLocationNoticeMessage(String?)
-        case dismissLocationNoticeMessage
+        case showSnackbar(String)
+        case setSnackbarMessage(String?)
+        case dismissSnackbar
         case showLocationSettingsAlert
         case setLocationSettingsAlertPresented(Bool)
         case requestAuthentication

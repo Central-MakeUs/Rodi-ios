@@ -179,7 +179,7 @@ extension HomeView {
     }
 
     func showRouteGuidanceMessage(_ message: String) {
-        homeStore.send(.presentationAction(.showRouteGuidanceMessage(message)))
+        homeStore.send(.presentationAction(.showSnackbar(message)))
     }
 
     func showLocationSettingsAlert() {

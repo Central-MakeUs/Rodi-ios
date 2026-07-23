@@ -250,7 +250,7 @@ extension HomeReducer {
 
     func snackbarEffect(_ message: String) -> Effect<HomeAction> {
         .run { send in
-            await send(.presentationAction(.showRouteGuidanceMessage(message)))
+            await send(.presentationAction(.showSnackbar(message)))
         }
     }
 
