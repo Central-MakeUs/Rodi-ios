@@ -35,6 +35,10 @@ extension OnboardingReducer {
                 state.loginAlertMessage = nil
                 state.withdrawalDialog = nil
 
+            case .authCancelled:
+                state.isAuthenticating = false
+                state.loginAlertMessage = nil
+
             case .authSucceeded(let provider, let isNewMember, let nickname):
                 state.isAuthenticating = false
                 state.loginAlertMessage = nil

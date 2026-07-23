@@ -26,6 +26,7 @@ enum OnboardingAction {
         case browseTapped
         case appleLoginTapped
         case authStarted(AuthProvider)
+        case authCancelled(AuthProvider)
         case authSucceeded(AuthProvider, isNewMember: Bool, nickname: String?)
         case authFailed(AuthProvider, String)
         case withdrawalRecoveryRequired(AuthWithdrawalRecovery)
