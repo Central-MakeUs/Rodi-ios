@@ -88,6 +88,7 @@ struct OnboardingView: View {
         } message: {
             Text(onboardingStore.state.loginAlertMessage ?? "")
         }
+        .rodiSnackbar(message: onboardingStore.state.snackbarMessage)
         .onOpenURL { url in
             _ = socialLoginService.handleOpenURL(url)
         }
@@ -106,6 +107,15 @@ struct OnboardingView: View {
             guard didComplete else { return }
             onboardingDraftStore.clear()
             onComplete()
+        }
+        .onChange(of: onboardingStore.state.snackbarMessage) { message in
+            guard let message else { return }
+
+            Task {
+                try? await Task.sleep(for: .seconds(3))
+                guard onboardingStore.state.snackbarMessage == message else { return }
+                onboardingStore.send(.presentation(.dismissSnackbar))
+            }
         }
         .onChange(of: onboardingStore.state.onboardingDraft) { draft in
             guard let draft else { return }

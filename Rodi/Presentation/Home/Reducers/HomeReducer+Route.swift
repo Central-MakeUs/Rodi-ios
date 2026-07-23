@@ -239,7 +239,7 @@ extension HomeReducer {
             return "인터넷 연결을 확인한 뒤 다시 시도해주세요."
         case .httpStatusCode(let statusCode) where statusCode >= 500:
             return "서버 오류로 북마크를 \(action)하지 못했어요."
-        case .apiError(_, let message) where !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty:
+        case .apiError(_, let message, _) where !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty:
             return message
         case .refreshFailGoRoot, .httpStatusCode(401):
             return "로그인이 만료됐어요. 다시 로그인해주세요."
@@ -259,7 +259,7 @@ extension HomeReducer {
         return switch networkError {
         case .refreshFailGoRoot, .httpStatusCode(401):
             true
-        case .apiError(let code, _):
+        case .apiError(let code, _, _):
             code.hasPrefix("AUTH_401") || code == "AUTH_400_1"
         default:
             false

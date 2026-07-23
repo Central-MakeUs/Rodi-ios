@@ -31,6 +31,7 @@ struct OnboardingState {
     var isOnboardingAnalysisPresented = false
     var isOnboardingAnalysisCompletionPresented = false
     var onboardingAnalysis: MemberOnboardingAnalysis?
+    var snackbarMessage: String?
 
     var isAllTermsAgreed: Bool {
         agreedTerms.count == TermsAgreement.allCases.count

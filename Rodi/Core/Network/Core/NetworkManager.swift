@@ -59,7 +59,7 @@ private extension NetworkManager {
         switch error {
         case .httpStatusCode(401):
             true
-        case .apiError(let code, _):
+        case .apiError(let code, _, _):
             code == "AUTH_401_1" || code == "AUTH_401_6"
         default:
             false
@@ -114,7 +114,11 @@ private extension NetworkManager {
             }
 
             if let serverError = decodeServerError(from: response.data) {
-                throw .apiError(code: serverError.code, message: serverError.message)
+                throw .apiError(
+                    code: serverError.code,
+                    message: serverError.message,
+                    httpStatusCode: response.response?.statusCode
+                )
             }
 
             if let statusCode = response.response?.statusCode {

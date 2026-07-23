@@ -177,6 +177,11 @@ extension OnboardingReducer {
                 state.isOnboardingAnalysisPresented = false
                 state.isOnboardingAnalysisCompletionPresented = true
 
+            case .analysisFailed(let message):
+                state.isOnboardingAnalysisPresented = false
+                state.onboardingAnalysis = nil
+                state.snackbarMessage = message
+
             case .analysisCompletionConfirmed:
                 state.isOnboardingAnalysisCompletionPresented = false
                 state.step = .safety
@@ -204,6 +209,12 @@ extension OnboardingReducer {
                 if !isPresented {
                     state.selectedTermsPage = nil
                 }
+
+            case .showSnackbar(let message):
+                state.snackbarMessage = message
+
+            case .dismissSnackbar:
+                state.snackbarMessage = nil
         }
     }
 

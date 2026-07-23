@@ -161,7 +161,7 @@ extension OnboardingView {
             }
         } catch {
             await MainActor.run {
-                if case let .apiError(code, _) = error,
+                if case let .apiError(code, _, _) = error,
                    code == "MEMBER_409_1" {
                     onboardingStore.send(
                         .entry(.withdrawalRestoreLocked(rejoinAvailableAt: recovery.rejoinAvailableAt))
@@ -191,12 +191,17 @@ extension OnboardingView {
         Task {
             let startedAt = Date()
 
+            let outcome: OnboardingSubmissionOutcome
             do {
                 try await memberRepository.submitOnboarding(submission)
                 RodiLogger.info("Onboarding submission completed level=\(submission.level.rawValue)")
-            } catch {
-                // 분석 결과 화면의 흐름은 유지하고, 제출 실패는 로그로만 남깁니다.
+                outcome = .completed
+            } catch let error as NetworkError {
                 RodiLogger.warning("Onboarding submission failed: \(error.localizedDescription)")
+                outcome = onboardingSubmissionOutcome(for: error)
+            } catch {
+                RodiLogger.warning("Onboarding submission failed with an unexpected error: \(error.localizedDescription)")
+                outcome = .failed("온보딩 정보를 저장하지 못했어요. 다시 시도해 주세요.")
             }
 
             let remainingDuration = max(0, 3 - Date().timeIntervalSince(startedAt))
@@ -205,7 +210,52 @@ extension OnboardingView {
             }
 
             guard !Task.isCancelled else { return }
-            onboardingStore.send(.optionalDrivingPreference(.analysisFinished))
+            switch outcome {
+            case .completed:
+                onboardingStore.send(.optionalDrivingPreference(.analysisFinished))
+            case .failed(let message):
+                onboardingStore.send(.optionalDrivingPreference(.analysisFailed(message)))
+            }
+        }
+    }
+
+    private func onboardingSubmissionOutcome(for error: NetworkError) -> OnboardingSubmissionOutcome {
+        if error.isAlreadyCompletedOnboardingSubmission {
+            // 앱 재설치 또는 로컬 초안 복원으로 이미 제출된 온보딩을 다시 전송한 경우입니다.
+            return .completed
+        }
+
+        switch error {
+        case .networkUnavailable, .timeOut:
+            return .failed("네트워크 연결을 확인한 뒤 다시 시도해 주세요.")
+        case .httpStatusCode(let statusCode) where statusCode >= 500:
+            return .failed("서버 오류가 발생했어요. 잠시 후 다시 시도해 주세요.")
+        case .apiError(_, _, let statusCode?) where statusCode >= 500:
+            return .failed("서버 오류가 발생했어요. 잠시 후 다시 시도해 주세요.")
+        case .refreshFailGoRoot, .httpStatusCode(401):
+            return .failed("로그인 상태를 확인하지 못했어요. 다시 로그인해 주세요.")
+        case .apiError(_, _, let statusCode?) where statusCode == 401:
+            return .failed("로그인 상태를 확인하지 못했어요. 다시 로그인해 주세요.")
+        default:
+            return .failed("온보딩 정보를 저장하지 못했어요. 다시 시도해 주세요.")
+        }
+    }
+}
+
+private enum OnboardingSubmissionOutcome {
+    case completed
+    case failed(String)
+}
+
+private extension NetworkError {
+    var isAlreadyCompletedOnboardingSubmission: Bool {
+        switch self {
+        case .httpStatusCode(409):
+            true
+        case .apiError(_, _, let statusCode):
+            statusCode == 409
+        default:
+            false
         }
     }
 }
