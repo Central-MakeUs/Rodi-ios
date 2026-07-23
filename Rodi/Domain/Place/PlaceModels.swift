@@ -26,22 +26,28 @@ enum PlacePracticeType: String, CaseIterable, Equatable {
     case multilane = "MULTILANE"
     case merging = "MERGING"
     case straight = "STRAIGHT"
+    case registerCourse = "REGISTER_COURSE"
+    case writeReview = "WRITE_REVIEW"
+    case shareCourse = "SHARE_COURSE"
 
     nonisolated var displayName: String {
         switch self {
         case .uTurn: "유턴"
-        case .leftRightTurn: "좌우 회전"
+        case .leftRightTurn: "좌우회전"
         case .parking: "주차"
         case .laneChange: "차선변경"
         case .intersection: "교차로"
-        case .roundabout: "회전 교차로"
-        case .unprotectedLeftTurn: "비보호 좌회전"
-        case .highwayEntry: "고속진입"
+        case .roundabout: "회전교차로"
+        case .unprotectedLeftTurn: "비보호좌회전"
+        case .highwayEntry: "고속도로"
         case .cornering: "코너링"
-        case .narrowRoad: "좁은 도로 주행"
-        case .multilane: "다차로 주행"
+        case .narrowRoad: "좁은도로"
+        case .multilane: "다차로주행"
         case .merging: "합류"
         case .straight: "직선주행"
+        case .registerCourse: "코스등록"
+        case .writeReview: "리뷰작성"
+        case .shareCourse: "추천코스공유"
         }
     }
 

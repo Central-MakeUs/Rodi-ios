@@ -189,6 +189,9 @@ extension MemberOnboardingSubmission {
         case multiLane = "MULTILANE"
         case merging = "MERGING"
         case straight = "STRAIGHT"
+        case registerCourse = "REGISTER_COURSE"
+        case writeReview = "WRITE_REVIEW"
+        case shareCourse = "SHARE_COURSE"
     }
 
     enum CarType: String {
