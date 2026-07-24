@@ -7,11 +7,11 @@ import Foundation
 
 enum LicenseDrivingPeriod: String, CaseIterable, Identifiable {
     case lessThanOneMonth = "1개월 미만"
-    case oneToThreeMonths = "1~3개월"
-    case threeToSixMonths = "3~6개월"
-    case sixMonthsToOneYear = "6~1년"
+    case oneToTwoMonths = "1~2개월"
+    case threeToFiveMonths = "3~5개월"
+    case sixToElevenMonths = "6~11개월"
     case oneToTwoYears = "1~2년"
-    case twoToTenYears = "2~10년"
+    case threeToNineYears = "3~9년"
     case overTenYears = "10년 이상"
 
     var id: String { rawValue }
