@@ -77,3 +77,25 @@ extension NetworkError {
         }
     }
 }
+
+extension NetworkError {
+    /// refresh endpoint가 "현재 refresh token으로는 세션을 복구할 수 없다"고
+    /// 명확히 응답한 경우에만 로컬 세션을 제거한다.
+    var invalidatesAuthSession: Bool {
+        switch self {
+        case .httpStatusCode(let statusCode):
+            return [400, 401, 403].contains(statusCode)
+        case .apiError(let code, _, let httpStatusCode):
+            if let httpStatusCode, [400, 401, 403].contains(httpStatusCode) {
+                return true
+            }
+            return code.hasPrefix("AUTH_400")
+                || code.hasPrefix("AUTH_401")
+                || code.hasPrefix("AUTH_403")
+        case .refreshFailGoRoot:
+            return true
+        default:
+            return false
+        }
+    }
+}
