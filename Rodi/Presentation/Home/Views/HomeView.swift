@@ -64,23 +64,25 @@ struct HomeView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack(alignment: .bottom) {
-                mapLayer
-                statusLayer
-                placeResearchButtonLayer
-                pageMorphOverlay
-                floatingControlLayer
-                listButtonLayer
-                bottomSheetLayer
+            HomeStoreObservedContainer(homeStore: homeStore) {
+                ZStack(alignment: .bottom) {
+                    mapLayer
+                    statusLayer
+                    placeResearchButtonLayer
+                    pageMorphOverlay
+                    floatingControlLayer
+                    listButtonLayer
+                    bottomSheetLayer
+                }
+                .coordinateSpace(name: Constants.bottomSheetDragCoordinateSpace)
+                .onAppear {
+                    startHomeServices()
+                    consumePendingPlaceSelectionIfNeeded()
+                    rootBottomSheetState = bottomSheetState
+                }
+                .onDisappear(perform: stopHomeServices)
+                .animation(.easeOut(duration: 0.25), value: bottomSheetState)
             }
-            .coordinateSpace(name: Constants.bottomSheetDragCoordinateSpace)
-            .onAppear {
-                startHomeServices()
-                consumePendingPlaceSelectionIfNeeded()
-                rootBottomSheetState = bottomSheetState
-            }
-            .onDisappear(perform: stopHomeServices)
-            .animation(.easeOut(duration: 0.25), value: bottomSheetState)
         }
         .homeInteractions(
             homeStore: homeStore,
@@ -109,5 +111,17 @@ struct HomeView: View {
             showResearchResultsSheet()
             homeStore.send(.placeListAction(.consumeAutoExpandAfterResearch))
         }
+    }
+}
+
+/// HomeView의 최상위 레이어도 Store 상태를 직접 관찰하도록 만드는 컨테이너다.
+/// 지도는 별도 관찰 레이어였지만, 목록 버튼과 시트는 부모의 간접 상태 읽기에 의존해
+/// 최초 마운트 시 갱신을 놓칠 수 있었다.
+private struct HomeStoreObservedContainer<Content: View>: View {
+    @ObservedObject var homeStore: StoreOf<HomeReducer>
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        content()
     }
 }

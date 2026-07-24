@@ -27,7 +27,11 @@ final class Store<State, Action>: ObservableObject {
     }
 
     func send(_ action: Action) {
-        let effect = reducer.reduce(&state, with: action)
+        // @Published 저장 프로퍼티를 inout으로 직접 변경하면 일부 SwiftUI 런타임에서
+        // objectWillChange 전달이 누락될 수 있다. Reducer 결과를 재할당해 갱신을 보장한다.
+        var nextState = state
+        let effect = reducer.reduce(&nextState, with: action)
+        state = nextState
         handleEffect(effect)
     }
 }
