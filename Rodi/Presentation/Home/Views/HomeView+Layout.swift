@@ -37,7 +37,13 @@ extension HomeView {
     }
 
     var floatingControlBottomInset: CGFloat {
-        sheetLayout.floatingControlBottomInset
+        let bottomInset = sheetLayout.floatingControlBottomInset
+        guard hasFixedBottomSheet else { return bottomInset }
+
+        return max(
+            Constants.bottomTabBarHeight + Constants.floatingControlSpacing,
+            bottomInset - selectedDetailDismissOffset
+        )
     }
 
     var cameraObscuredBottomInset: CGFloat {
@@ -94,11 +100,24 @@ extension HomeView {
     }
 
     var renderedSheetOffset: CGFloat {
-        sheetLayout.renderedSheetOffset
+        sheetLayout.renderedSheetOffset + selectedDetailDismissOffset
     }
 
     var shouldAllowSheetDrag: Bool {
-        settlingSheetHeight == nil && sheetLayout.shouldAllowSheetDrag
+        settlingSheetHeight == nil
+            && selectedDetailSettlingOffset == nil
+            && (sheetLayout.shouldAllowSheetDrag || hasSelectedBottomSheet)
+    }
+
+    var selectedDetailDismissOffset: CGFloat {
+        guard hasFixedBottomSheet else { return 0 }
+        return selectedDetailSettlingOffset ?? max(sheetDragTranslation, 0)
+    }
+
+    var selectedDetailDismissOpacity: CGFloat {
+        guard hasFixedBottomSheet else { return 1 }
+        let distance = max(sheetLayout.fixedSheetHeight, 1)
+        return 1 - min(selectedDetailDismissOffset / distance, 1)
     }
 
     var locationButtonOpacity: CGFloat {
@@ -114,7 +133,7 @@ extension HomeView {
     }
 
     var bottomSheetOpacity: CGFloat {
-        sheetLayout.bottomSheetOpacity
+        sheetLayout.bottomSheetOpacity * selectedDetailDismissOpacity
     }
 
     var pageProgress: CGFloat {

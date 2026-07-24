@@ -12,7 +12,9 @@ extension HomeView {
             coordinateSpace: .named(Constants.bottomSheetDragCoordinateSpace)
         )
             .updating($sheetDragTranslation) { value, state, _ in
-                state = value.translation.height
+                state = hasSelectedBottomSheet
+                    ? max(value.translation.height, 0)
+                    : value.translation.height
             }
             .onEnded { value in
                 handleSheetDragEnded(translation: value.translation.height)
