@@ -129,12 +129,7 @@ extension RodiKakaoMapView {
     func registerUserLocationStyleIfNeeded(with manager: LabelManager) {
         guard !didRegisterUserLocationStyle else { return }
 
-        let locationImage = loadSDKMarkerImage(
-            relativePath: Constants.sdkMarkerRelativePath,
-            fallbackAssetName: Constants.fallbackLocationAssetName,
-            generatedFallback: makeFallbackUserLocationImage(),
-            logName: "location"
-        ).scaled(by: Constants.userLocationMarkerScale)
+        let locationImage = makeUserLocationMarkerImage()
         let iconStyle = PoiIconStyle(symbol: locationImage, anchorPoint: CGPoint(x: 0.5, y: 0.5))
         let locationStyle = PoiStyle(
             styleID: Constants.userLocationStyleID,
@@ -143,13 +138,11 @@ extension RodiKakaoMapView {
         manager.addPoiStyle(locationStyle)
 
         let fanImage = makeOrbitingDirectionFanImage(
-            from: loadSDKMarkerImage(
-                relativePath: Constants.sdkDirectionFanRelativePath,
-                fallbackAssetName: Constants.fallbackDirectionFanAssetName,
-            generatedFallback: makeFallbackUserDirectionFanImage(),
-            logName: "direction_fan"
-            ).scaled(by: Constants.userDirectionMarkerScale),
-            bodySize: locationImage.size
+            from: makeUserDirectionMarkerImage(),
+            bodySize: CGSize(
+                width: Constants.userLocationMarkerDiameter,
+                height: Constants.userLocationMarkerDiameter
+            )
         )
         let fanIconStyle = PoiIconStyle(symbol: fanImage, anchorPoint: CGPoint(x: 0.5, y: 0.5))
         let fanStyle = PoiStyle(

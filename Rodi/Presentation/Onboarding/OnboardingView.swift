@@ -8,7 +8,24 @@
 import SwiftUI
 
 struct OnboardingView: View {
+    enum Mode: Equatable {
+        case production
+#if DEBUG
+        case debugTesting
+#endif
+
+        var persistsDraft: Bool {
+#if DEBUG
+            self != .debugTesting
+#else
+            true
+#endif
+        }
+    }
+
     let onComplete: () -> Void
+    let mode: Mode
+    let onDebugOnboarding: () -> Void
     let automaticLoginProvider: AuthProvider?
     let automaticLoginRequestConsumed: () -> Void
     let authRepository: AuthRepository
@@ -23,10 +40,14 @@ struct OnboardingView: View {
     @MainActor
     init(
         onComplete: @escaping () -> Void,
+        mode: Mode = .production,
+        onDebugOnboarding: @escaping () -> Void = {},
         automaticLoginProvider: AuthProvider? = nil,
         automaticLoginRequestConsumed: @escaping () -> Void = {}
     ) {
         self.onComplete = onComplete
+        self.mode = mode
+        self.onDebugOnboarding = onDebugOnboarding
         self.automaticLoginProvider = automaticLoginProvider
         self.automaticLoginRequestConsumed = automaticLoginRequestConsumed
         self.authRepository = AuthDependencyContainer.shared.authRepository
@@ -35,13 +56,26 @@ struct OnboardingView: View {
         self.onboardingDraftStore = draftStore
         let recentLoginProviderStore = AuthDependencyContainer.shared.recentLoginProviderStore
         self.recentLoginProviderStore = recentLoginProviderStore
-        let recentLoginProvider = recentLoginProviderStore.load()
         let initialState: OnboardingState
+#if DEBUG
+        if mode == .debugTesting {
+            initialState = .debugTesting
+        } else {
+            let recentLoginProvider = recentLoginProviderStore.load()
+            if let draft = draftStore.load() {
+                initialState = OnboardingState(draft: draft, recentLoginProvider: recentLoginProvider)
+            } else {
+                initialState = OnboardingState(recentLoginProvider: recentLoginProvider)
+            }
+        }
+#else
+        let recentLoginProvider = recentLoginProviderStore.load()
         if let draft = draftStore.load() {
             initialState = OnboardingState(draft: draft, recentLoginProvider: recentLoginProvider)
         } else {
             initialState = OnboardingState(recentLoginProvider: recentLoginProvider)
         }
+#endif
         _onboardingStore = StateObject(wrappedValue: Store(state: initialState, reducer: OnboardingReducer()))
         _locationPermission = State(initialValue: LocationPermissionRequester())
         _socialLoginService = State(initialValue: SocialLoginService())
@@ -53,6 +87,8 @@ struct OnboardingView: View {
         onboardingStore: StoreOf<OnboardingReducer>,
         locationPermission: LocationPermissionRequester,
         socialLoginService: SocialLoginService,
+        mode: Mode = .production,
+        onDebugOnboarding: @escaping () -> Void = {},
         automaticLoginProvider: AuthProvider? = nil,
         automaticLoginRequestConsumed: @escaping () -> Void = {},
         authRepository: AuthRepository? = nil,
@@ -61,6 +97,8 @@ struct OnboardingView: View {
         recentLoginProviderStore: RecentLoginProviderStore? = nil
     ) {
         self.onComplete = onComplete
+        self.mode = mode
+        self.onDebugOnboarding = onDebugOnboarding
         self.automaticLoginProvider = automaticLoginProvider
         self.automaticLoginRequestConsumed = automaticLoginRequestConsumed
         self.authRepository = authRepository ?? AuthDependencyContainer.shared.authRepository
@@ -105,7 +143,9 @@ struct OnboardingView: View {
         }
         .onChange(of: onboardingStore.state.didComplete) { didComplete in
             guard didComplete else { return }
-            onboardingDraftStore.clear()
+            if mode.persistsDraft {
+                onboardingDraftStore.clear()
+            }
             onComplete()
         }
         .onChange(of: onboardingStore.state.snackbarMessage) { message in
@@ -118,6 +158,7 @@ struct OnboardingView: View {
             }
         }
         .onChange(of: onboardingStore.state.onboardingDraft) { draft in
+            guard mode.persistsDraft else { return }
             guard let draft else { return }
             onboardingDraftStore.save(draft)
         }
@@ -160,7 +201,8 @@ struct OnboardingView: View {
                     recentLoginProvider: onboardingStore.state.recentLoginProvider,
                     onBrowse: startBrowse,
                     onAppleLogin: startAppleLogin,
-                    onKakaoLogin: startKakaoLogin
+                    onKakaoLogin: startKakaoLogin,
+                    onDebugOnboarding: onDebugOnboarding
                 )
             
             case .terms:

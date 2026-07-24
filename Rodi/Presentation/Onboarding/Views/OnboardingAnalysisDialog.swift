@@ -46,10 +46,11 @@ struct OnboardingAnalysisCompletionDialog: View {
                     .rodiTypography(.headline1)
                     .foregroundStyle(RodiColor.black)
 
-                Image("img_profile_dummy")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 100, height: 100)
+                RodiLevelProfileImage(
+                    level: analysis.level,
+                    size: 100,
+                    containerHeight: 110
+                )
                     .padding(.top, 14)
 
                 Text(analysis.level.displayName)
@@ -74,8 +75,8 @@ struct OnboardingAnalysisCompletionDialog: View {
                         .foregroundStyle(RodiColor.black)
 
                     FlowLayout(spacing: 8) {
-                        ForEach(analysis.level.recommendedPracticeTitles, id: \.self) { title in
-                            Text(title)
+                        ForEach(analysis.level.recommendedPracticeTypes, id: \.self) { practiceType in
+                            Text(practiceType.displayName)
                                 .rodiTypography(.caption1Medium)
                                 .foregroundStyle(RodiColor.gray800)
                                 .padding(.horizontal, 6)
@@ -120,18 +121,18 @@ private extension MemberOnboardingSubmission.DrivingLevel {
         }
     }
 
-    var recommendedPracticeTitles: [String] {
+    var recommendedPracticeTypes: [PlacePracticeType] {
         switch self {
         case .seed:
-            ["직선주행", "좌우 회전", "차선변경"]
+            [.straight, .leftRightTurn, .laneChange]
         case .rookie:
-            ["유턴", "교차로", "주차"]
+            [.uTurn, .intersection, .parking]
         case .owner:
-            ["고속진입", "합류", "다차로 주행"]
+            [.highwayEntry, .merging, .multilane]
         case .explorer:
-            ["비보호 좌회전", "회전 교차로", "좁은 도로 주행", "코너링"]
+            [.unprotectedLeftTurn, .roundabout, .narrowRoad, .cornering]
         case .navigator:
-            ["코스 등록", "리뷰 작성", "추천 코스 공유"]
+            [.registerCourse, .writeReview, .shareCourse]
         }
     }
 

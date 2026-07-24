@@ -15,6 +15,7 @@ struct HomeView: View {
     @State var containerHeight: CGFloat = 0
     @State var selectedSheetContentHeight: CGFloat = 0
     @State var settlingSheetHeight: CGFloat?
+    @State var selectedDetailSettlingOffset: CGFloat?
     @State var sheetSettlingID = UUID()
     @GestureState var sheetDragTranslation: CGFloat = 0
     @Binding var selectedTab: RodiTab
@@ -55,6 +56,8 @@ struct HomeView: View {
         static let collapsedSheetSnapRatio: CGFloat = 0.45
         static let defaultSheetSnapDuration: TimeInterval = 0.25
         static let collapsedSheetSnapDuration: TimeInterval = 0.18
+        static let selectedDetailDismissThreshold: CGFloat = 48
+        static let selectedDetailDismissSnapDuration: TimeInterval = 0.18
         static let bottomTabBarHeight: CGFloat = 80
         static let bottomSheetDragCoordinateSpace = "rodi.home.bottom-sheet.drag"
     }

@@ -20,7 +20,7 @@ struct CourseBottomSheet<Drag: Gesture>: View {
     var body: some View {
         VStack(spacing: 0) {
             if content.hasSelectedItem {
-                dragIndicator
+                selectedDetailDragHandle
             } else {
                 listDragHandle
             }
@@ -106,6 +106,13 @@ struct CourseBottomSheet<Drag: Gesture>: View {
             .frame(width: 60, height: 4)
             .padding(.top, 6)
             .opacity(1 - content.pageProgress)
+    }
+
+    private var selectedDetailDragHandle: some View {
+        dragIndicator
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+            .gesture(dragGesture, including: shouldAllowDrag ? .all : .none)
     }
 
     private var listDragHandle: some View {

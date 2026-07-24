@@ -13,7 +13,7 @@ struct MemberOnboardingSubmission {
     let soloDrivingRange: SoloDrivingRange?
     let soloParkingLevel: SoloParkingLevel?
     let level: DrivingLevel
-    let practiceTypes: [PracticeType]
+    let practiceTypes: [PlacePracticeType]
     let carType: CarType?
     let drivingGoal: String?
 }
@@ -26,7 +26,7 @@ struct MemberOnboardingAnalysis: Equatable {
 
 enum MemberOnboardingLevelPolicy {
     static func analyze(_ submission: MemberOnboardingSubmission) -> MemberOnboardingAnalysis {
-        if submission.drivingPeriod == .yearsTwoToTen || submission.drivingPeriod == .overTenYears {
+        if submission.drivingPeriod == .yearsThreeToNine || submission.drivingPeriod == .overTenYears {
             return MemberOnboardingAnalysis(level: .navigator, score: nil)
         }
 
@@ -55,11 +55,11 @@ enum MemberOnboardingLevelPolicy {
 private extension MemberOnboardingLevelPolicy {
     static func drivingPeriodScore(for period: MemberOnboardingSubmission.DrivingPeriod) -> Int {
         switch period {
-        case .underOneMonth, .monthsOneToThree, .monthsThreeToSix:
+        case .underOneMonth, .monthsOneToTwo, .monthsThreeToFive:
             return 0
-        case .monthsSixToTwelve, .yearsOneToTwo:
+        case .monthsSixToEleven, .yearsOneToTwo:
             return 1
-        case .yearsTwoToTen, .overTenYears:
+        case .yearsThreeToNine, .overTenYears:
             return 0
         }
     }
@@ -130,11 +130,11 @@ private extension MemberOnboardingLevelPolicy {
 extension MemberOnboardingSubmission {
     enum DrivingPeriod: String {
         case underOneMonth = "UNDER_1_MONTH"
-        case monthsOneToThree = "MONTHS_1_3"
-        case monthsThreeToSix = "MONTHS_3_6"
-        case monthsSixToTwelve = "MONTHS_6_12"
+        case monthsOneToTwo = "MONTHS_1_2"
+        case monthsThreeToFive = "MONTHS_3_5"
+        case monthsSixToEleven = "MONTHS_6_11"
         case yearsOneToTwo = "YEARS_1_2"
-        case yearsTwoToTen = "YEARS_2_10"
+        case yearsThreeToNine = "YEARS_3_9"
         case overTenYears = "OVER_10_YEARS"
     }
 
@@ -173,25 +173,6 @@ extension MemberOnboardingSubmission {
         case owner = "OWNER"
         case explorer = "EXPLORER"
         case navigator = "NAVIGATOR"
-    }
-
-    enum PracticeType: String {
-        case uTurn = "U_TURN"
-        case leftRightTurn = "LEFT_RIGHT_TURN"
-        case parking = "PARKING"
-        case laneChange = "LANE_CHANGE"
-        case intersection = "INTERSECTION"
-        case roundabout = "ROUNDABOUT"
-        case unprotectedLeftTurn = "UNPROTECTED_LEFT_TURN"
-        case highwayEntry = "HIGHWAY_ENTRY"
-        case cornering = "CORNERING"
-        case narrowRoad = "NARROW_ROAD"
-        case multiLane = "MULTILANE"
-        case merging = "MERGING"
-        case straight = "STRAIGHT"
-        case registerCourse = "REGISTER_COURSE"
-        case writeReview = "WRITE_REVIEW"
-        case shareCourse = "SHARE_COURSE"
     }
 
     enum CarType: String {

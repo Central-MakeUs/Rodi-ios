@@ -42,7 +42,7 @@ struct RoutePointRow: View {
         case .start:
             "ic_start_pin"
         case .waypoint:
-            "ic_parking_pin"
+            "ic_route_waypoint"
         case .end:
             "ic_arrival_pin"
         }

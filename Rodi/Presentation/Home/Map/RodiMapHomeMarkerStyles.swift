@@ -16,13 +16,23 @@ extension RodiKakaoMapView {
 
         manager.addPoiStyle(
             makeImageMarkerStyle(
-                styleID: Constants.homeParkingMarkerStyleID,
-                assetName: "ic_parking_pin",
+                styleID: Constants.homeParkingInactiveMarkerStyleID,
+                assetName: "ic_parking_inactive",
                 fallbackImage: makeFallbackParkingMarkerImage(),
                 anchorPoint: CGPoint(x: 0.5, y: 1.0)
             )
         )
-        registeredHomeMarkerStyleIDs.insert(Constants.homeParkingMarkerStyleID)
+        registeredHomeMarkerStyleIDs.insert(Constants.homeParkingInactiveMarkerStyleID)
+
+        manager.addPoiStyle(
+            makeImageMarkerStyle(
+                styleID: Constants.homeParkingActiveMarkerStyleID,
+                assetName: "ic_parking_active",
+                fallbackImage: makeFallbackParkingMarkerImage(),
+                anchorPoint: CGPoint(x: 0.5, y: 1.0)
+            )
+        )
+        registeredHomeMarkerStyleIDs.insert(Constants.homeParkingActiveMarkerStyleID)
 
         didRegisterHomeMarkerStyles = true
     }

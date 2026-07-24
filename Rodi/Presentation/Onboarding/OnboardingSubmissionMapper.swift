@@ -19,7 +19,7 @@ extension OnboardingState {
             soloDrivingRange: soloDrivingRange?.memberSoloDrivingRange,
             soloParkingLevel: soloParkingLevel?.memberSoloParkingLevel,
             level: .seed,
-            practiceTypes: selectedPracticeSituations.map(\.memberPracticeType),
+            practiceTypes: selectedPracticeSituations.map(\.placePracticeType),
             carType: vehicleType?.memberCarType,
             drivingGoal: drivingGoal.trimmedOrNil
         )
@@ -44,11 +44,11 @@ private extension LicenseDrivingPeriod {
     var memberDrivingPeriod: MemberOnboardingSubmission.DrivingPeriod {
         switch self {
         case .lessThanOneMonth: .underOneMonth
-        case .oneToThreeMonths: .monthsOneToThree
-        case .threeToSixMonths: .monthsThreeToSix
-        case .sixMonthsToOneYear: .monthsSixToTwelve
+        case .oneToTwoMonths: .monthsOneToTwo
+        case .threeToFiveMonths: .monthsThreeToFive
+        case .sixToElevenMonths: .monthsSixToEleven
         case .oneToTwoYears: .yearsOneToTwo
-        case .twoToTenYears: .yearsTwoToTen
+        case .threeToNineYears: .yearsThreeToNine
         case .overTenYears: .overTenYears
         }
     }
@@ -100,7 +100,7 @@ private extension SoloParkingLevel {
 }
 
 private extension PracticeSituation {
-    var memberPracticeType: MemberOnboardingSubmission.PracticeType {
+    var placePracticeType: PlacePracticeType {
         switch self {
         case .uTurn: .uTurn
         case .turning: .leftRightTurn
@@ -112,7 +112,7 @@ private extension PracticeSituation {
         case .highwayEntry: .highwayEntry
         case .cornering: .cornering
         case .narrowRoad: .narrowRoad
-        case .multiLane: .multiLane
+        case .multiLane: .multilane
         case .merging: .merging
         case .straight: .straight
         }

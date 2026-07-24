@@ -20,6 +20,9 @@ struct RootView: View {
     @State private var isMyDetailPresented = false
     @State private var isLoginRequiredDialogPresented = false
     @State private var pendingAutomaticLoginProvider: AuthProvider?
+#if DEBUG
+    @State private var isDebugOnboardingPresented = false
+#endif
     private let tokenStore = AuthDependencyContainer.shared.tokenStore
     
     init() {
@@ -36,6 +39,11 @@ struct RootView: View {
                 case .onboarding:
                     OnboardingView(
                         onComplete: completeOnboarding,
+                        onDebugOnboarding: {
+#if DEBUG
+                            isDebugOnboardingPresented = true
+#endif
+                        },
                         automaticLoginProvider: pendingAutomaticLoginProvider,
                         automaticLoginRequestConsumed: { pendingAutomaticLoginProvider = nil }
                     )
@@ -54,6 +62,14 @@ struct RootView: View {
                 .transition(.opacity)
             }
         }
+#if DEBUG
+        .fullScreenCover(isPresented: $isDebugOnboardingPresented) {
+            OnboardingView(
+                onComplete: { isDebugOnboardingPresented = false },
+                mode: .debugTesting
+            )
+        }
+#endif
         .task {
             await checkAppVersionIfNeeded()
         }
