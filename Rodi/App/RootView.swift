@@ -9,10 +9,12 @@ import SwiftUI
 
 struct RootView: View {
     @Environment(\.openURL) private var openURL
+    @Environment(\.scenePhase) private var scenePhase
     private let preferencesStore = AppPreferencesStore()
     @State private var root: RootDestination
     @State private var pendingUpdate: AppVersionUpdate?
     @State private var hasCheckedAppVersion = false
+    @State private var isRestoringSession = false
     @State private var selectedTab: RodiTab = .home
     @State private var pendingHomePlaceSelection: PlaceListItem?
     @State private var homeBottomSheetState: HomeBottomSheetState = .collapsed
@@ -24,6 +26,7 @@ struct RootView: View {
     @State private var isDebugOnboardingPresented = false
 #endif
     private let tokenStore = AuthDependencyContainer.shared.tokenStore
+    private let authRepository = AuthDependencyContainer.shared.authRepository
     
     init() {
         let store = AppPreferencesStore()
@@ -70,7 +73,15 @@ struct RootView: View {
         }
 #endif
         .task {
+            await restoreSessionIfNeeded()
             await checkAppVersionIfNeeded()
+        }
+        .onChange(of: scenePhase) { phase in
+            guard phase == .active else { return }
+
+            Task {
+                await restoreSessionIfNeeded()
+            }
         }
         .alert("새 버전이 있어요", isPresented: updateAlertBinding) {
             Button("나중에", role: .cancel) {
@@ -194,6 +205,47 @@ struct RootView: View {
         guard !hasCheckedAppVersion else { return }
         hasCheckedAppVersion = true
         pendingUpdate = await AppVersionUpdateChecker.checkForOptionalUpdate()
+    }
+
+    /// 앱 재진입 시 만료된 access token을 먼저 갱신한다.
+    /// 네트워크 장애는 세션을 지우지 않으며, 다음 보호 API 요청에서 다시 갱신을 시도한다.
+    @MainActor
+    private func restoreSessionIfNeeded() async {
+        guard !isRestoringSession else { return }
+        guard let refreshToken = tokenStore.refreshToken, !refreshToken.isEmpty else {
+            return
+        }
+
+        let needsRefresh: Bool
+        if let accessToken = tokenStore.accessToken, !accessToken.isEmpty {
+            needsRefresh = AccessTokenExpiry.needsRefresh(accessToken)
+        } else {
+            needsRefresh = true
+        }
+
+        guard needsRefresh else {
+            RodiLogger.debug("Auth session restore skipped: access token is still valid")
+            return
+        }
+
+        isRestoringSession = true
+        defer { isRestoringSession = false }
+
+        do {
+            _ = try await authRepository.refreshToken()
+            RodiLogger.info("Auth session restore succeeded")
+        } catch let error as NetworkError {
+            if error.invalidatesAuthSession {
+                authRepository.clearSession()
+                RodiLogger.info("Auth session restore cleared an invalid session")
+            } else {
+                RodiLogger.warning(
+                    "Auth session restore deferred: \(error.localizedDescription)"
+                )
+            }
+        } catch {
+            RodiLogger.warning("Auth session restore deferred: \(error.localizedDescription)")
+        }
     }
 }
 

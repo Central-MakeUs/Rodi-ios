@@ -52,7 +52,7 @@ final class AuthTokenRefreshCoordinator: AccessTokenRefreshing {
         do {
             return try await resolve(task)
         } catch let error {
-            if error.requiresSessionClear {
+            if error.invalidatesAuthSession {
                 tokenStore.clear()
             }
             throw error
@@ -66,19 +66,6 @@ final class AuthTokenRefreshCoordinator: AccessTokenRefreshing {
             throw error
         } catch {
             throw .unknown(errorCode: error.localizedDescription)
-        }
-    }
-}
-
-private extension NetworkError {
-    var requiresSessionClear: Bool {
-        switch self {
-        case .apiError(let code, _, _):
-            code == "AUTH_401_2" || code == "AUTH_401_3" || code == "AUTH_401_4"
-        case .refreshFailGoRoot:
-            true
-        default:
-            false
         }
     }
 }
