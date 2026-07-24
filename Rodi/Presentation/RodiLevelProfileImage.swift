@@ -9,6 +9,7 @@ import SwiftUI
 struct RodiLevelProfileImage: View {
     private let assetName: String
     private let size: CGFloat
+    private let containerHeight: CGFloat
     private let backgroundColor: Color?
     private let cornerRadius: CGFloat
     private let imageOffsetY: CGFloat
@@ -16,6 +17,7 @@ struct RodiLevelProfileImage: View {
     init(
         level: MemberProfile.Level,
         size: CGFloat,
+        containerHeight: CGFloat? = nil,
         backgroundColor: Color? = nil,
         cornerRadius: CGFloat = 0,
         imageOffsetY: CGFloat = 10
@@ -23,6 +25,7 @@ struct RodiLevelProfileImage: View {
         self.init(
             assetName: level.profileImageAssetName,
             size: size,
+            containerHeight: containerHeight ?? size,
             backgroundColor: backgroundColor,
             cornerRadius: cornerRadius,
             imageOffsetY: imageOffsetY
@@ -32,6 +35,7 @@ struct RodiLevelProfileImage: View {
     init(
         level: MemberOnboardingSubmission.DrivingLevel,
         size: CGFloat,
+        containerHeight: CGFloat? = nil,
         backgroundColor: Color? = nil,
         cornerRadius: CGFloat = 0,
         imageOffsetY: CGFloat = 10
@@ -39,6 +43,7 @@ struct RodiLevelProfileImage: View {
         self.init(
             assetName: level.profileImageAssetName,
             size: size,
+            containerHeight: containerHeight ?? size,
             backgroundColor: backgroundColor,
             cornerRadius: cornerRadius,
             imageOffsetY: imageOffsetY
@@ -57,7 +62,7 @@ struct RodiLevelProfileImage: View {
                 .frame(width: size, height: size)
                 .offset(y: imageOffsetY)
         }
-        .frame(width: size, height: size)
+        .frame(width: size, height: containerHeight)
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
         .accessibilityHidden(true)
     }
@@ -65,12 +70,14 @@ struct RodiLevelProfileImage: View {
     private init(
         assetName: String,
         size: CGFloat,
+        containerHeight: CGFloat,
         backgroundColor: Color?,
         cornerRadius: CGFloat,
         imageOffsetY: CGFloat
     ) {
         self.assetName = assetName
         self.size = size
+        self.containerHeight = containerHeight
         self.backgroundColor = backgroundColor
         self.cornerRadius = cornerRadius
         self.imageOffsetY = imageOffsetY

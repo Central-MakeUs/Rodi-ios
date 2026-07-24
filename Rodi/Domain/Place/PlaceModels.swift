@@ -12,7 +12,7 @@ enum PlaceType: String, Equatable {
 
 /// `/api/v1/places`가 전달하는 코스 연습 유형이다.
 /// 서버에 새 유형이 추가되어도 목록은 원문을 유지해 표시한다.
-enum PlacePracticeType: String, CaseIterable, Equatable {
+enum PlacePracticeType: String, CaseIterable, Equatable, Hashable {
     case uTurn = "U_TURN"
     case leftRightTurn = "LEFT_RIGHT_TURN"
     case parking = "PARKING"

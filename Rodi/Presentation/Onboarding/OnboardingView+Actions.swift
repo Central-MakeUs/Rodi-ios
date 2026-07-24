@@ -188,6 +188,18 @@ extension OnboardingView {
             return
         }
 
+#if DEBUG
+        if mode == .debugTesting {
+            RodiLogger.debug("Debug onboarding analysis started level=\(submission.level.rawValue)")
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(3))
+                guard onboardingStore.state.isOnboardingAnalysisPresented else { return }
+                onboardingStore.send(.optionalDrivingPreference(.analysisFinished))
+            }
+            return
+        }
+#endif
+
         Task {
             let startedAt = Date()
 

@@ -117,5 +117,20 @@ struct OnboardingState {
         selectedPracticeSituations = draft.practiceSituationRawValues.compactMap(PracticeSituation.init(rawValue:))
         vehicleType = draft.vehicleTypeRawValue.flatMap(VehicleType.init(rawValue:))
         drivingGoal = ""
+
+        // 이전 기간 구간은 새 서버 enum으로 안전하게 환산할 수 없으므로 다시 선택하게 한다.
+        if draft.licenseDrivingPeriodRawValue != nil, licenseDrivingPeriod == nil {
+            self.step = .drivingExperience
+        }
     }
+
+#if DEBUG
+    static var debugTesting: OnboardingState {
+        var state = OnboardingState()
+        state.step = .terms
+        state.loginProvider = .kakao
+        state.nickname = "테스트 사용자"
+        return state
+    }
+#endif
 }
