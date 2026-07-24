@@ -11,12 +11,49 @@ extension HomeView {
     func handleSheetDragEnded(translation: CGFloat) {
         guard bottomSheetState == .medium else { return }
 
+        if hasSelectedBottomSheet {
+            settleSelectedDetailAfterDrag(translation: translation)
+            return
+        }
+
         let destination = sheetLayout.sheetStateAfterDrag(translation: translation)
 
         settleBottomSheet(
             from: sheetLayout.height(forDragTranslation: translation),
             to: destination
         )
+    }
+
+    private func settleSelectedDetailAfterDrag(translation: CGFloat) {
+        let currentOffset = max(translation, 0)
+        let shouldDismiss = currentOffset >= Constants.selectedDetailDismissThreshold
+        let targetOffset = shouldDismiss ? sheetLayout.fixedSheetHeight + 24 : 0
+
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            selectedDetailSettlingOffset = currentOffset
+        }
+
+        DispatchQueue.main.async {
+            withAnimation(.easeOut(duration: Constants.selectedDetailDismissSnapDuration)) {
+                selectedDetailSettlingOffset = targetOffset
+            }
+        }
+
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(Int(Constants.selectedDetailDismissSnapDuration * 1_000)))
+
+            var completionTransaction = Transaction()
+            completionTransaction.disablesAnimations = true
+            withTransaction(completionTransaction) {
+                if shouldDismiss {
+                    homeStore.send(.routeAction(.clearSelection))
+                    homeStore.send(.viewAction(.dismissSheet))
+                }
+                selectedDetailSettlingOffset = nil
+            }
+        }
     }
 
     /// GestureState가 종료와 동시에 0으로 돌아가기 전에 현재 높이를 붙잡아,
