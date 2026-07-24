@@ -13,24 +13,21 @@ extension HomeReducer {
             return .cancel(id: HomeEffectID.routeLoading)
 
         case .selectItem(let item, let mediumHeight):
-            state.bottomSheet.bottomSheetState = .medium
-            state.bottomSheet.sheetHeight = mediumHeight
-            return select(item, state: &state)
+            return select(item, mediumHeight: mediumHeight, state: &state)
 
         case .selectMapMarker(let markerID, let mediumHeight):
             guard let item = state.visibleItems.first(where: {
                 $0.mapMarker?.id == markerID
             }) else { break }
 
-            // 클러스터는 별도 카메라 drill-down으로 처리되고, 단일 장소 상세는 로그인 후 제공한다.
+            // 상세 API는 인증이 필요하다. refresh token만 남은 경우도 요청을 시작해
+            // NetworkManager의 재발급-재시도 흐름으로 복구할 수 있게 둔다.
             guard hasActiveSession() else {
                 state.presentation.authenticationRequestID += 1
                 return .none
             }
 
-            state.bottomSheet.bottomSheetState = .medium
-            state.bottomSheet.sheetHeight = mediumHeight
-            return select(item, state: &state)
+            return select(item, mediumHeight: mediumHeight, state: &state)
 
         case .detailLoaded(let detail):
             guard state.placeDetail.selectedPlaceID == detail.id else { return .none }
@@ -117,7 +114,15 @@ extension HomeReducer {
         return .none
     }
 
-    func select(_ item: RodiCourseItem, state: inout HomeState) -> Effect<HomeAction> {
+    func select(
+        _ item: RodiCourseItem,
+        mediumHeight: CGFloat,
+        state: inout HomeState
+    ) -> Effect<HomeAction> {
+        // 선택 상태와 시트 표시 상태를 한 action에서 함께 확정한다.
+        // 활성 마커만 남고 시트가 닫힌 상태가 생기지 않도록 한다.
+        state.bottomSheet.bottomSheetState = .medium
+        state.bottomSheet.sheetHeight = mediumHeight
         state.selection.selectedItem = item
         state.route.routeStatusMessage = nil
         state.route.selectedRouteOverlay = nil

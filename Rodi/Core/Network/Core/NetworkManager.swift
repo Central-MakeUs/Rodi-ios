@@ -60,7 +60,9 @@ private extension NetworkManager {
         case .httpStatusCode(401):
             true
         case .apiError(let code, _, _):
-            code == "AUTH_401_1" || code == "AUTH_401_6"
+            // 인증이 필요한 endpoint의 AUTH_401 계열은 서버 구현별 세부 코드와
+            // 무관하게 refresh 후 한 번 재시도한다.
+            code.hasPrefix("AUTH_401")
         default:
             false
         }

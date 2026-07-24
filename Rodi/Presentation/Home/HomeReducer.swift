@@ -14,8 +14,9 @@ struct HomeReducer: Reducer {
     init(
         placeRepository: PlaceRepository,
         hasActiveSession: @escaping () -> Bool = {
-            guard let token = AuthDependencyContainer.shared.tokenStore.accessToken else { return false }
-            return !token.isEmpty
+            let tokenStore = AuthDependencyContainer.shared.tokenStore
+            return [tokenStore.accessToken, tokenStore.refreshToken]
+                .contains { $0?.isEmpty == false }
         }
     ) {
         self.placeRepository = placeRepository
