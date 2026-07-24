@@ -157,8 +157,8 @@ struct RootView: View {
     }
 
     private var hasActiveSession: Bool {
-        guard let accessToken = tokenStore.accessToken else { return false }
-        return !accessToken.isEmpty
+        [tokenStore.accessToken, tokenStore.refreshToken]
+            .contains { $0?.isEmpty == false }
     }
 
     private var bottomTabBar: RodiBottomTabBar {
