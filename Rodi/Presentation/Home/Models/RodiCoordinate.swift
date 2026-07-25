@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct RodiCoordinate: Equatable {
+struct RodiCoordinate: Codable, Equatable {
     let latitude: Double
     let longitude: Double
 

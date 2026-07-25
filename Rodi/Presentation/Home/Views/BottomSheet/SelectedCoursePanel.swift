@@ -79,11 +79,11 @@ struct SelectedCoursePanel: View {
         }
         .confirmationDialog("경로 안내 앱 선택", isPresented: $isGuidanceDialogPresented, titleVisibility: .visible) {
             Button("카카오맵으로 보기") {
-                openRouteGuidance(.kakaoMap)
+                startRouteGuidance(.kakaoMap)
             }
 
             Button("카카오내비로 안내") {
-                openRouteGuidance(.kakaoNavi)
+                startRouteGuidance(.kakaoNavi)
             }
 
             Button("취소", role: .cancel) {}
@@ -124,12 +124,54 @@ struct SelectedCoursePanel: View {
         }
     }
 
-    private func openRouteGuidance(_ app: RouteGuidanceApp) {
+    private func startRouteGuidance(_ app: RouteGuidanceApp) {
+        guard item.type == .course else {
+            Task { await openRouteGuidance(app) }
+            return
+        }
+
         Task {
-            let result = await RouteGuidanceService.shared.open(app, for: item, userLocation: userLocation)
-            if let message = result.userMessage {
-                routeGuidanceMessageAction(message)
+            await startPracticeTrackingAndOpenGuidance(app)
+        }
+    }
+
+    private func startPracticeTrackingAndOpenGuidance(_ app: RouteGuidanceApp) async {
+        let routePath = await practiceRoutePath()
+        let startResult = PracticeTrackingService.shared.start(course: item, routePath: routePath)
+
+        switch startResult {
+        case .started:
+            await openRouteGuidance(app, cancelTrackingOnFailure: true)
+        case .authorizationRequested:
+            routeGuidanceMessageAction("위치 권한을 허용한 뒤 다시 연습하러 가기를 눌러주세요.")
+        case .reducedAccuracyRequested:
+            await openRouteGuidance(app)
+            routeGuidanceMessageAction("정확한 위치를 허용하면 다음 길안내부터 연습 기록을 시작할 수 있어요.")
+        case .unavailable(let message):
+            await openRouteGuidance(app)
+            routeGuidanceMessageAction(message)
+        }
+    }
+
+    private func practiceRoutePath() async -> [RodiCoordinate] {
+        if let roadPath = try? await KakaoDirectionsService().fetchRoute(points: orderedPoints), roadPath.count >= 2 {
+            return roadPath
+        }
+        return orderedPoints.map(\.coordinate)
+    }
+
+    private func openRouteGuidance(_ app: RouteGuidanceApp, cancelTrackingOnFailure: Bool = false) async {
+        let result = await RouteGuidanceService.shared.open(app, for: item, userLocation: userLocation)
+        if cancelTrackingOnFailure {
+            switch result {
+            case .openedApp:
+                break
+            case .openedInstallPage, .failed:
+                PracticeTrackingService.shared.cancel()
             }
+        }
+        if let message = result.userMessage {
+            routeGuidanceMessageAction(message)
         }
     }
 

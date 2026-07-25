@@ -18,13 +18,44 @@
 		04CA50632FF8E665003FCF19 /* RxRelay in Frameworks */ = {isa = PBXBuildFile; productRef = 04CA50622FF8E665003FCF19 /* RxRelay */; };
 		04CA50652FF8E665003FCF19 /* RxSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 04CA50642FF8E665003FCF19 /* RxSwift */; };
 		04CA50682FF8E67A003FCF19 /* NSObject-Rx in Frameworks */ = {isa = PBXBuildFile; productRef = 04CA50672FF8E67A003FCF19 /* NSObject-Rx */; };
+		AAB100000000000000000001 /* RodiPracticeLiveActivity.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = AAB100000000000000000002 /* RodiPracticeLiveActivity.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		AAB100000000000000000003 /* PracticeLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAB100000000000000000004 /* PracticeLiveActivity.swift */; };
+		AAB100000000000000000005 /* PracticeLiveActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAB100000000000000000006 /* PracticeLiveActivityAttributes.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		AAB100000000000000000016 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 042A22BE2FEE58B100DB67F4 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AAB100000000000000000010;
+			remoteInfo = RodiPracticeLiveActivity;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		AAB100000000000000000014 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				AAB100000000000000000001 /* RodiPracticeLiveActivity.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		042A22C62FEE58B100DB67F4 /* Rodi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Rodi.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		045DE9772FEFA1000060C89A /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		045DE9782FEFA1000060C89A /* Secrets.example.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.example.xcconfig; sourceTree = "<group>"; };
 		045DE9792FEFA1000060C89A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		AAB100000000000000000002 /* RodiPracticeLiveActivity.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = RodiPracticeLiveActivity.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		AAB100000000000000000004 /* PracticeLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PracticeLiveActivity.swift; sourceTree = "<group>"; };
+		AAB100000000000000000006 /* PracticeLiveActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PracticeLiveActivityAttributes.swift; path = Rodi/Presentation/PracticeTracking/PracticeLiveActivityAttributes.swift; sourceTree = SOURCE_ROOT; };
+		AAB100000000000000000007 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -54,6 +85,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AAB100000000000000000008 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -62,6 +100,7 @@
 			children = (
 				045DE97A2FEFA1000060C89A /* Config */,
 				042A22C82FEE58B100DB67F4 /* Rodi */,
+				AAB100000000000000000009 /* RodiPracticeLiveActivity */,
 				042A22C72FEE58B100DB67F4 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -70,6 +109,7 @@
 			isa = PBXGroup;
 			children = (
 				042A22C62FEE58B100DB67F4 /* Rodi.app */,
+				AAB100000000000000000002 /* RodiPracticeLiveActivity.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -84,6 +124,16 @@
 			path = Config;
 			sourceTree = "<group>";
 		};
+		AAB100000000000000000009 /* RodiPracticeLiveActivity */ = {
+			isa = PBXGroup;
+			children = (
+				AAB100000000000000000004 /* PracticeLiveActivity.swift */,
+				AAB100000000000000000006 /* PracticeLiveActivityAttributes.swift */,
+				AAB100000000000000000007 /* Info.plist */,
+			);
+			path = RodiPracticeLiveActivity;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -94,10 +144,12 @@
 				042A22C22FEE58B100DB67F4 /* Sources */,
 				042A22C32FEE58B100DB67F4 /* Frameworks */,
 				042A22C42FEE58B100DB67F4 /* Resources */,
+				AAB100000000000000000014 /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				AAB100000000000000000015 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				042A22C82FEE58B100DB67F4 /* Rodi */,
@@ -121,6 +173,23 @@
 			productReference = 042A22C62FEE58B100DB67F4 /* Rodi.app */;
 			productType = "com.apple.product-type.application";
 		};
+		AAB100000000000000000010 /* RodiPracticeLiveActivity */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AAB100000000000000000011 /* Build configuration list for PBXNativeTarget "RodiPracticeLiveActivity" */;
+			buildPhases = (
+				AAB100000000000000000012 /* Sources */,
+				AAB100000000000000000008 /* Frameworks */,
+				AAB100000000000000000013 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = RodiPracticeLiveActivity;
+			productName = RodiPracticeLiveActivity;
+			productReference = AAB100000000000000000002 /* RodiPracticeLiveActivity.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -132,6 +201,9 @@
 				LastUpgradeCheck = 2620;
 				TargetAttributes = {
 					042A22C52FEE58B100DB67F4 = {
+						CreatedOnToolsVersion = 26.2;
+					};
+					AAB100000000000000000010 = {
 						CreatedOnToolsVersion = 26.2;
 					};
 				};
@@ -162,12 +234,20 @@
 			projectRoot = "";
 			targets = (
 				042A22C52FEE58B100DB67F4 /* Rodi */,
+				AAB100000000000000000010 /* RodiPracticeLiveActivity */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		042A22C42FEE58B100DB67F4 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AAB100000000000000000013 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -184,7 +264,24 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AAB100000000000000000012 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AAB100000000000000000003 /* PracticeLiveActivity.swift in Sources */,
+				AAB100000000000000000005 /* PracticeLiveActivityAttributes.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		AAB100000000000000000015 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AAB100000000000000000010 /* RodiPracticeLiveActivity */;
+			targetProxy = AAB100000000000000000016 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		042A22CF2FEE58B200DB67F4 /* Debug */ = {
@@ -383,6 +480,58 @@
 			};
 			name = Release;
 		};
+		AAB100000000000000000017 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = YRPYBFPPCT;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = RodiPracticeLiveActivity/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.dororong.rodi.PracticeLiveActivity;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		AAB100000000000000000018 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = YRPYBFPPCT;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = RodiPracticeLiveActivity/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.dororong.rodi.PracticeLiveActivity;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -400,6 +549,15 @@
 			buildConfigurations = (
 				042A22D22FEE58B200DB67F4 /* Debug */,
 				042A22D32FEE58B200DB67F4 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AAB100000000000000000011 /* Build configuration list for PBXNativeTarget "RodiPracticeLiveActivity" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AAB100000000000000000017 /* Debug */,
+				AAB100000000000000000018 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

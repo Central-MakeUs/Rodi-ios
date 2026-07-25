@@ -74,6 +74,7 @@ struct RootView: View {
 #endif
         .task {
             await restoreSessionIfNeeded()
+            PracticeTrackingService.shared.restoreIfNeeded()
             await checkAppVersionIfNeeded()
         }
         .onChange(of: scenePhase) { phase in
@@ -81,6 +82,7 @@ struct RootView: View {
 
             Task {
                 await restoreSessionIfNeeded()
+                PracticeTrackingService.shared.restoreIfNeeded()
             }
         }
         .alert("새 버전이 있어요", isPresented: updateAlertBinding) {
