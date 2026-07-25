@@ -114,6 +114,8 @@ final class RodiKakaoMapView: UIView {
     var didCreateController = false
     var didPauseEngine = false
     var didFinalizeMapView = false
+    var isApplicationActive = UIApplication.shared.applicationState == .active
+    var applicationLifecycleObservers: [NSObjectProtocol] = []
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -132,6 +134,7 @@ final class RodiKakaoMapView: UIView {
         mapContainer.snp.makeConstraints { make in
             make.edges.equalToSuperview()
         }
+        observeApplicationLifecycle()
     }
 
     override func layoutSubviews() {
@@ -146,6 +149,7 @@ final class RodiKakaoMapView: UIView {
     }
 
     deinit {
+        applicationLifecycleObservers.forEach(NotificationCenter.default.removeObserver)
         mapEventHandlers.removeAll()
         if didPrepareEngine {
             mapController?.pauseEngine()

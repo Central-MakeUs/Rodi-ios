@@ -114,7 +114,7 @@ extension RodiKakaoMapView {
         latestCameraBottomInset = cameraBottomInset
         latestVisibilityState = visibilityState
 
-        let isMapActive = visibilityState.isActive
+        let isMapActive = visibilityState.isActive && isApplicationActive
         let allowsMapInteraction = isMapActive && isInteractionEnabled
         isUserInteractionEnabled = allowsMapInteraction
         kakaoMap?.isEnabled = isMapActive

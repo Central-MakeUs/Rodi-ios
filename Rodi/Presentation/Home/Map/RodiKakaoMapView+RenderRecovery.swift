@@ -13,6 +13,40 @@ import RxSwift
 import KakaoMapsSDK
 
 extension RodiKakaoMapView {
+    /// 앱 복귀 직후 Metal surface가 비어 있는 경우를 대비해 현재 상태를 한 번만 다시 적용한다.
+    /// SwiftUI 입력값은 바뀌지 않으므로 updateUIView만으로는 이 복구가 실행되지 않는다.
+    func restoreRenderingAfterApplicationActivation() {
+        guard didFinalizeMapView,
+              isApplicationActive,
+              latestVisibilityState.isActive
+        else { return }
+
+        DispatchQueue.main.async { [weak self] in
+            guard let self,
+                  isApplicationActive,
+                  latestVisibilityState.isActive,
+                  let map = kakaoMap
+            else { return }
+
+            setNeedsLayout()
+            layoutIfNeeded()
+            mapContainer.setNeedsLayout()
+            mapContainer.layoutIfNeeded()
+            activateEngineIfNeeded()
+            updateLogoPosition()
+            updateHomeMarkers(with: latestMapMarkers)
+            updateRouteOverlay()
+            moveCamera(
+                to: latestCameraTarget,
+                requestID: latestCameraRequestID,
+                animated: false
+            )
+            RodiLogger.info(
+                "Kakao map rendering restored after application activation level=\(map.zoomLevel), markerCount=\(latestMapMarkers.count)"
+            )
+        }
+    }
+
     func completeInitialRenderAfterLayout() {
         setNeedsLayout()
         layoutIfNeeded()
@@ -47,14 +81,21 @@ extension RodiKakaoMapView {
     }
 
     func recoverFallbackTileRenderingIfNeeded() {
-        guard latestUserLocation == nil, latestVisibilityState.isActive else { return }
+        guard latestUserLocation == nil,
+              latestVisibilityState.isActive,
+              isApplicationActive
+        else { return }
 
         let scheduledViewportGeneration = viewportChangeGeneration
         Observable<Int>
             .timer(.milliseconds(450), scheduler: MainScheduler.instance)
             .take(1)
             .subscribe(onNext: { [weak self] _ in
-                guard let self, latestUserLocation == nil, latestVisibilityState.isActive else { return }
+                guard let self,
+                      latestUserLocation == nil,
+                      latestVisibilityState.isActive,
+                      isApplicationActive
+                else { return }
                 guard scheduledViewportGeneration == viewportChangeGeneration else {
                     RodiLogger.info(
                         "Kakao fallback tile render recovery skipped because viewport changed scheduledGeneration=\(scheduledViewportGeneration), currentGeneration=\(viewportChangeGeneration), requestID=\(latestCameraRequestID)"
