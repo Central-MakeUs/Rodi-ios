@@ -104,6 +104,7 @@
 			);
 			name = Rodi;
 			packageProductDependencies = (
+				041D585F300EFD09008ACB6B /* LicenseList */,
 				045DE9762FEFA1000060C89A /* KakaoMapsSDK-SPM */,
 				045DE9DE2FEFA5D50060C89A /* SwiftyBeaver */,
 				045DE9E42FEFAC9E0060C89A /* KakaoSDKNavi */,
@@ -145,6 +146,7 @@
 			mainGroup = 042A22BD2FEE58B100DB67F4;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				041D585E300EFD09008ACB6B /* XCRemoteSwiftPackageReference "LicenseList" */,
 				045DE9742FEFA1000060C89A /* XCRemoteSwiftPackageReference "KakaoMapsSDK-SPM" */,
 				045DE9DD2FEFA5D50060C89A /* XCRemoteSwiftPackageReference "SwiftyBeaver" */,
 				045DE9E32FEFAC9E0060C89A /* XCRemoteSwiftPackageReference "kakao-ios-sdk" */,
