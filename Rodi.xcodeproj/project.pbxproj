@@ -7,9 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		041D5860300EFD09008ACB6B /* LicenseList in Frameworks */ = {isa = PBXBuildFile; productRef = 041D585F300EFD09008ACB6B /* LicenseList */; };
+		045DE9702FEF9C130060C89A /* RealmSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 045DE96F2FEF9C130060C89A /* RealmSwift */; };
 		045DE9752FEFA1000060C89A /* KakaoMapsSDK-SPM in Frameworks */ = {isa = PBXBuildFile; productRef = 045DE9762FEFA1000060C89A /* KakaoMapsSDK-SPM */; };
 		045DE9DF2FEFA5D50060C89A /* SwiftyBeaver in Frameworks */ = {isa = PBXBuildFile; productRef = 045DE9DE2FEFA5D50060C89A /* SwiftyBeaver */; };
+		045DE9E02FEFAC9E0060C89A /* RealmSwift in Embed Frameworks */ = {isa = PBXBuildFile; productRef = 045DE96F2FEF9C130060C89A /* RealmSwift */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		045DE9E22FEFAC9E0060C89A /* KakaoSDKNavi in Frameworks */ = {isa = PBXBuildFile; productRef = 045DE9E42FEFAC9E0060C89A /* KakaoSDKNavi */; };
 		045DE9E52FEFAC9E0060C89A /* KakaoSDKUser in Frameworks */ = {isa = PBXBuildFile; productRef = 045DE9E62FEFAC9E0060C89A /* KakaoSDKUser */; };
 		04CA505B2FF8E61E003FCF19 /* Then in Frameworks */ = {isa = PBXBuildFile; productRef = 04CA505A2FF8E61E003FCF19 /* Then */; };
@@ -20,6 +21,19 @@
 		04CA50682FF8E67A003FCF19 /* NSObject-Rx in Frameworks */ = {isa = PBXBuildFile; productRef = 04CA50672FF8E67A003FCF19 /* NSObject-Rx */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		045DE9E12FEFAC9E0060C89A /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				045DE9E02FEFAC9E0060C89A /* RealmSwift in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		042A22C62FEE58B100DB67F4 /* Rodi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Rodi.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -43,13 +57,13 @@
 			files = (
 				04CA50652FF8E665003FCF19 /* RxSwift in Frameworks */,
 				04CA505B2FF8E61E003FCF19 /* Then in Frameworks */,
-				041D5860300EFD09008ACB6B /* LicenseList in Frameworks */,
 				045DE9752FEFA1000060C89A /* KakaoMapsSDK-SPM in Frameworks */,
 				045DE9E22FEFAC9E0060C89A /* KakaoSDKNavi in Frameworks */,
 				045DE9E52FEFAC9E0060C89A /* KakaoSDKUser in Frameworks */,
 				04CA50682FF8E67A003FCF19 /* NSObject-Rx in Frameworks */,
 				04CA50612FF8E665003FCF19 /* RxCocoa in Frameworks */,
 				04CA505E2FF8E63E003FCF19 /* SnapKit in Frameworks */,
+				045DE9702FEF9C130060C89A /* RealmSwift in Frameworks */,
 				04CA50632FF8E665003FCF19 /* RxRelay in Frameworks */,
 				045DE9DF2FEFA5D50060C89A /* SwiftyBeaver in Frameworks */,
 			);
@@ -95,6 +109,7 @@
 				042A22C22FEE58B100DB67F4 /* Sources */,
 				042A22C32FEE58B100DB67F4 /* Frameworks */,
 				042A22C42FEE58B100DB67F4 /* Resources */,
+				045DE9E12FEFAC9E0060C89A /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -105,7 +120,7 @@
 			);
 			name = Rodi;
 			packageProductDependencies = (
-				041D585F300EFD09008ACB6B /* LicenseList */,
+				045DE96F2FEF9C130060C89A /* RealmSwift */,
 				045DE9762FEFA1000060C89A /* KakaoMapsSDK-SPM */,
 				045DE9DE2FEFA5D50060C89A /* SwiftyBeaver */,
 				045DE9E42FEFAC9E0060C89A /* KakaoSDKNavi */,
@@ -146,7 +161,7 @@
 			mainGroup = 042A22BD2FEE58B100DB67F4;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				041D585E300EFD09008ACB6B /* XCRemoteSwiftPackageReference "LicenseList" */,
+				045DE96C2FEF9C130060C89A /* XCRemoteSwiftPackageReference "realm-swift" */,
 				045DE9742FEFA1000060C89A /* XCRemoteSwiftPackageReference "KakaoMapsSDK-SPM" */,
 				045DE9DD2FEFA5D50060C89A /* XCRemoteSwiftPackageReference "SwiftyBeaver" */,
 				045DE9E32FEFAC9E0060C89A /* XCRemoteSwiftPackageReference "kakao-ios-sdk" */,
@@ -315,7 +330,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Rodi/Rodi.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = YRPYBFPPCT;
 				ENABLE_PREVIEWS = YES;
@@ -327,7 +342,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.dororong.rodi;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -353,7 +368,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Rodi/Rodi.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = YRPYBFPPCT;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -364,7 +379,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.dororong.rodi;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -406,12 +421,12 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		041D585E300EFD09008ACB6B /* XCRemoteSwiftPackageReference "LicenseList" */ = {
+		045DE96C2FEF9C130060C89A /* XCRemoteSwiftPackageReference "realm-swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/cybozu/LicenseList.git";
+			repositoryURL = "https://github.com/realm/realm-swift.git";
 			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.5.0;
+				branch = community;
+				kind = branch;
 			};
 		};
 		045DE9742FEFA1000060C89A /* XCRemoteSwiftPackageReference "KakaoMapsSDK-SPM" */ = {
@@ -473,10 +488,10 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		041D585F300EFD09008ACB6B /* LicenseList */ = {
+		045DE96F2FEF9C130060C89A /* RealmSwift */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 041D585E300EFD09008ACB6B /* XCRemoteSwiftPackageReference "LicenseList" */;
-			productName = LicenseList;
+			package = 045DE96C2FEF9C130060C89A /* XCRemoteSwiftPackageReference "realm-swift" */;
+			productName = RealmSwift;
 		};
 		045DE9762FEFA1000060C89A /* KakaoMapsSDK-SPM */ = {
 			isa = XCSwiftPackageProductDependency;
