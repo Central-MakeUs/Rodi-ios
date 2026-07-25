@@ -35,12 +35,21 @@ extension HomeView {
         Task {
             do {
                 let coordinates = try await placeRepository.fetchCoordinates()
-                let items = coordinates.map(RodiCourseItem.init(placeCoordinate:))
+                var items = coordinates.map(RodiCourseItem.init(placeCoordinate:))
+                #if DEBUG
+                items.append(HomeDebugPlaceFixtures.gasanTestCourse)
+                #endif
                 homeStore.send(.runtimeAction(.setItems(items)))
                 runtimeService.renderInitialMapMarkers(for: homeStore.state.visibleItems)
                 RodiLogger.info("Home place coordinates loaded count=\(items.count)")
             } catch {
+                #if DEBUG
+                let items = [HomeDebugPlaceFixtures.gasanTestCourse]
+                homeStore.send(.runtimeAction(.setItems(items)))
+                runtimeService.renderInitialMapMarkers(for: items)
+                #else
                 homeStore.send(.runtimeAction(.setItems([])))
+                #endif
                 RodiLogger.error("Home place coordinates failed to load error=\(error)")
             }
         }

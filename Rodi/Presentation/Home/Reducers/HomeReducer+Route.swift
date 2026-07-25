@@ -177,6 +177,14 @@ extension HomeReducer {
     }
 
     func loadPlaceDetailEffect(placeID: Int) -> Effect<HomeAction> {
+        #if DEBUG
+        if let detail = HomeDebugPlaceFixtures.detail(for: placeID) {
+            return .run { send in
+                await send(.routeAction(.detailLoaded(detail)))
+            }
+        }
+        #endif
+
         let repository = placeRepository
         return .run { send in
             do {
