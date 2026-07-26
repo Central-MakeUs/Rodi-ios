@@ -29,10 +29,8 @@ struct RootView: View {
     private let authRepository = AuthDependencyContainer.shared.authRepository
     
     init() {
-        let store = AppPreferencesStore()
-        _root = State(initialValue:
-                        store.hasSeenOnboarding() ?
-                        .home : .onboarding)
+        // TODO: 임시 - 리팩토링 (윤수)
+        _root = State(initialValue: .home)
     }
     
     var body: some View {
@@ -51,7 +49,13 @@ struct RootView: View {
                         automaticLoginRequestConsumed: { pendingAutomaticLoginProvider = nil }
                     )
                 case .home:
-                    mainTabContent
+                    // TODO: 임시 - 리팩토링 (윤수)
+                    OnboardingView2(
+                        store: Store(
+                            state: OnboardingReducer2.State(),
+                            reducer: OnboardingReducer2()
+                        )
+                    )
                 }
             }
 
