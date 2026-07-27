@@ -52,4 +52,24 @@ struct Effect<Action>: @unchecked Sendable {
             .none
         }
     }
+
+    func map<MappedAction>(
+        _ transform: @escaping @Sendable (Action) -> MappedAction
+    ) -> Effect<MappedAction> {
+        switch caseOf {
+        case .none:
+            .none
+        case .cancel:
+            Effect<MappedAction>(caseOf: .cancel, taskID: taskID?.id)
+        case .run(let priority, let task):
+            Effect<MappedAction>(
+                caseOf: .run(priority) { send in
+                    await task { action in
+                        await send(transform(action))
+                    }
+                },
+                taskID: taskID?.id
+            )
+        }
+    }
 }

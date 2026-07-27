@@ -2,264 +2,175 @@
 //  OnboardingView.swift
 //  Rodi
 //
-//  Created by mac on 7/1/26.
-//
 
 import SwiftUI
 
 struct OnboardingView: View {
+    @StateObject private var store: StoreOf<OnboardingReducer>
+
     enum Mode: Equatable {
         case production
-#if DEBUG
+        #if DEBUG
         case debugTesting
-#endif
+        #endif
 
         var persistsDraft: Bool {
-#if DEBUG
+            #if DEBUG
             self != .debugTesting
-#else
+            #else
             true
-#endif
+            #endif
         }
     }
 
-    let onComplete: () -> Void
-    let mode: Mode
-    let onDebugOnboarding: () -> Void
-    let automaticLoginProvider: AuthProvider?
-    let automaticLoginRequestConsumed: () -> Void
-    let authRepository: AuthRepository
-    let memberRepository: MemberRepository
-    let onboardingDraftStore: OnboardingDraftStore
-    let recentLoginProviderStore: RecentLoginProviderStore
-
-    @StateObject var onboardingStore: StoreOf<OnboardingReducer>
-    @State var locationPermission: LocationPermissionRequester
-    @State var socialLoginService: SocialLoginService
+    private let onComplete: () -> Void
+    private let onDebugOnboarding: () -> Void
+    private let automaticLoginProvider: SocialLoginProvider?
+    private let automaticLoginRequestConsumed: () -> Void
 
     @MainActor
     init(
         onComplete: @escaping () -> Void,
         mode: Mode = .production,
         onDebugOnboarding: @escaping () -> Void = {},
-        automaticLoginProvider: AuthProvider? = nil,
+        automaticLoginProvider: SocialLoginProvider? = nil,
         automaticLoginRequestConsumed: @escaping () -> Void = {}
     ) {
-        self.onComplete = onComplete
-        self.mode = mode
-        self.onDebugOnboarding = onDebugOnboarding
-        self.automaticLoginProvider = automaticLoginProvider
-        self.automaticLoginRequestConsumed = automaticLoginRequestConsumed
-        self.authRepository = AuthDependencyContainer.shared.authRepository
-        self.memberRepository = AuthDependencyContainer.shared.memberRepository
         let draftStore = OnboardingDraftStore()
-        self.onboardingDraftStore = draftStore
         let recentLoginProviderStore = AuthDependencyContainer.shared.recentLoginProviderStore
-        self.recentLoginProviderStore = recentLoginProviderStore
-        let initialState: OnboardingState
-#if DEBUG
-        if mode == .debugTesting {
-            initialState = .debugTesting
-        } else {
-            let recentLoginProvider = recentLoginProviderStore.load()
-            if let draft = draftStore.load() {
-                initialState = OnboardingState(draft: draft, recentLoginProvider: recentLoginProvider)
-            } else {
-                initialState = OnboardingState(recentLoginProvider: recentLoginProvider)
-            }
-        }
-#else
-        let recentLoginProvider = recentLoginProviderStore.load()
-        if let draft = draftStore.load() {
-            initialState = OnboardingState(draft: draft, recentLoginProvider: recentLoginProvider)
-        } else {
-            initialState = OnboardingState(recentLoginProvider: recentLoginProvider)
-        }
-#endif
-        _onboardingStore = StateObject(wrappedValue: Store(state: initialState, reducer: OnboardingReducer()))
-        _locationPermission = State(initialValue: LocationPermissionRequester())
-        _socialLoginService = State(initialValue: SocialLoginService())
-    }
+        #if DEBUG
+        let isDebugTesting = mode == .debugTesting
+        #else
+        let isDebugTesting = false
+        #endif
 
-    @MainActor
-    init(
-        onComplete: @escaping () -> Void,
-        onboardingStore: StoreOf<OnboardingReducer>,
-        locationPermission: LocationPermissionRequester,
-        socialLoginService: SocialLoginService,
-        mode: Mode = .production,
-        onDebugOnboarding: @escaping () -> Void = {},
-        automaticLoginProvider: AuthProvider? = nil,
-        automaticLoginRequestConsumed: @escaping () -> Void = {},
-        authRepository: AuthRepository? = nil,
-        memberRepository: MemberRepository? = nil,
-        onboardingDraftStore: OnboardingDraftStore? = nil,
-        recentLoginProviderStore: RecentLoginProviderStore? = nil
-    ) {
+        _store = StateObject(
+            wrappedValue: Store(
+                state: OnboardingReducer.State(
+                    draft: isDebugTesting ? nil : draftStore.load(),
+                    recentLoginProvider: isDebugTesting ? nil : recentLoginProviderStore.load(),
+                    isDebugTesting: isDebugTesting
+                ),
+                reducer: OnboardingReducer(
+                    isDebugTesting: isDebugTesting,
+                    memberRepository: AuthDependencyContainer.shared.memberRepository,
+                    draftStore: draftStore,
+                    persistsDraft: mode.persistsDraft
+                )
+            )
+        )
         self.onComplete = onComplete
-        self.mode = mode
         self.onDebugOnboarding = onDebugOnboarding
         self.automaticLoginProvider = automaticLoginProvider
         self.automaticLoginRequestConsumed = automaticLoginRequestConsumed
-        self.authRepository = authRepository ?? AuthDependencyContainer.shared.authRepository
-        self.memberRepository = memberRepository ?? AuthDependencyContainer.shared.memberRepository
-        self.onboardingDraftStore = onboardingDraftStore ?? OnboardingDraftStore()
-        self.recentLoginProviderStore = recentLoginProviderStore ?? AuthDependencyContainer.shared.recentLoginProviderStore
-        _onboardingStore = StateObject(wrappedValue: onboardingStore)
-        _locationPermission = State(initialValue: locationPermission)
-        _socialLoginService = State(initialValue: socialLoginService)
     }
 
     var body: some View {
-        OnboardingContainer(step: onboardingStore.state.step) {
-            onboardingStepView
+        OnboardingContainer(step: store.state.route) {
+            screenView
         } onBack: {
-            onboardingStore.send(.navigation(.backTapped))
+            store.send(.navigation(.backTapped))
         }
-        .sheet(item: selectedTermsPageBinding) { terms in
-            LegalWebView(title: terms.title, url: terms.url)
-        }
-        .alert("로그인에 실패했어요", isPresented: loginAlertBinding) {
-            Button("확인") {
-                onboardingStore.send(.entry(.dismissLoginAlert))
-            }
+        .alert("로그인에 실패했어요", isPresented: loginFailureBinding) {
+            Button("확인") { store.send(.presentation(.dismissLoginFailure)) }
         } message: {
-            Text(onboardingStore.state.loginAlertMessage ?? "")
+            Text(loginFailureMessage)
         }
-        .rodiSnackbar(message: onboardingStore.state.snackbarMessage)
-        .onOpenURL { url in
-            _ = socialLoginService.handleOpenURL(url)
-        }
-        .onAppear {
-            guard let automaticLoginProvider else { return }
-            automaticLoginRequestConsumed()
-
-            switch automaticLoginProvider {
-            case .apple:
-                startAppleLogin()
-            case .kakao:
-                startKakaoLogin()
-            }
-        }
-        .onChange(of: onboardingStore.state.didComplete) { didComplete in
+        .rodiSnackbar(message: snackbarMessage)
+        .overlay { overlay }
+        .onOpenURL { store.send(.screen(.entry(.openedURL($0)))) }
+        .onAppear(perform: requestAutomaticLoginIfNeeded)
+        .onChange(of: store.state.didComplete) { didComplete in
             guard didComplete else { return }
-            if mode.persistsDraft {
-                onboardingDraftStore.clear()
-            }
             onComplete()
         }
-        .onChange(of: onboardingStore.state.snackbarMessage) { message in
-            guard let message else { return }
-
-            Task {
-                try? await Task.sleep(for: .seconds(3))
-                guard onboardingStore.state.snackbarMessage == message else { return }
-                onboardingStore.send(.presentation(.dismissSnackbar))
-            }
-        }
-        .onChange(of: onboardingStore.state.onboardingDraft) { draft in
-            guard mode.persistsDraft else { return }
-            guard let draft else { return }
-            onboardingDraftStore.save(draft)
-        }
-        .overlay {
-            if let withdrawalDialog = onboardingStore.state.withdrawalDialog {
-                WithdrawalAccountDialog(
-                    state: withdrawalDialog,
-                    restoreAction: {
-                        guard case .restore(let recovery) = withdrawalDialog else { return }
-                        startWithdrawalRestore(recovery)
-                    },
-                    dismissAction: {
-                        onboardingStore.send(.entry(.dismissWithdrawalDialog))
-                    }
-                )
-                .transition(.opacity)
-            } else if onboardingStore.state.isOnboardingAnalysisPresented {
-                OnboardingAnalysisDialog()
-                    .transition(.opacity)
-            } else if onboardingStore.state.isOnboardingAnalysisCompletionPresented,
-                      let analysis = onboardingStore.state.onboardingAnalysis {
-                OnboardingAnalysisCompletionDialog(
-                    analysis: analysis,
-                    recentFrequency: onboardingStore.state.recentDrivingFrequency,
-                    onConfirm: {
-                        onboardingStore.send(.optionalDrivingPreference(.analysisCompletionConfirmed))
-                    }
-                )
-                .transition(.opacity)
-            }
+        .onChange(of: store.state.debugOnboardingRequestID) { requestID in
+            guard requestID > 0 else { return }
+            onDebugOnboarding()
         }
     }
 
     @ViewBuilder
-    private var onboardingStepView: some View {
-        switch onboardingStore.state.step {
-            case .entry:
-                OnboardingEntryView(
-                    isAuthenticating: onboardingStore.state.isAuthenticating,
-                    recentLoginProvider: onboardingStore.state.recentLoginProvider,
-                    onBrowse: startBrowse,
-                    onAppleLogin: startAppleLogin,
-                    onKakaoLogin: startKakaoLogin,
-                    onDebugOnboarding: onDebugOnboarding
-                )
-            
-            case .terms:
-                TermsAgreementView(
-                    agreedTerms: onboardingStore.state.agreedTerms,
-                    isAllAgreed: onboardingStore.state.isAllTermsAgreed,
-                    onToggleAll: { onboardingStore.send(.terms(.toggleAll)) },
-                    onToggleTerms: { onboardingStore.send(.terms(.toggle($0))) },
-                    onOpenTerms: { onboardingStore.send(.terms(.open($0))) },
-                    onNext: { onboardingStore.send(.terms(.nextTapped)) }
-                )
-            
-            case .nickname:
-                NicknameSetupView(
-                    nickname: onboardingStore.state.nickname,
-                    isNextEnabled: onboardingStore.state.canProceedFromNickname,
-                    onNext: { onboardingStore.send(.nickname(.nextTapped)) }
-                )
-            
-            case .drivingExperience:
-                DrivingExperienceView(
-                    selectedPeriod: onboardingStore.state.licenseDrivingPeriod,
-                    selectedFrequency: onboardingStore.state.recentDrivingFrequency,
-                    selectedRoadExperiences: onboardingStore.state.selectedRoadDrivingExperiences,
-                    selectedSoloDrivingRange: onboardingStore.state.soloDrivingRange,
-                    selectedSoloParkingLevel: onboardingStore.state.soloParkingLevel,
-                    canProceed: onboardingStore.state.canProceedFromDrivingExperience,
-                    onSelectPeriod: { onboardingStore.send(.drivingExperience(.selectLicenseDrivingPeriod($0))) },
-                    onSelectFrequency: { onboardingStore.send(.drivingExperience(.selectRecentDrivingFrequency($0))) },
-                    onToggleRoadExperience: { onboardingStore.send(.drivingExperience(.toggleRoadDrivingExperience($0))) },
-                    onSelectSoloDrivingRange: { onboardingStore.send(.drivingExperience(.selectSoloDrivingRange($0))) },
-                    onSelectSoloParkingLevel: { onboardingStore.send(.drivingExperience(.selectSoloParkingLevel($0))) },
-                    onNext: { onboardingStore.send(.drivingExperience(.nextTapped)) }
-                )
-            
-            case .optionalDrivingPreference:
-                OptionalDrivingPreferenceView(
-                    selectedPracticeSituations: onboardingStore.state.selectedPracticeSituations,
-                    selectedVehicleType: onboardingStore.state.vehicleType,
-                    drivingGoal: onboardingStore.state.drivingGoal,
-                    canProceed: onboardingStore.state.canProceedFromOptionalDrivingPreference,
-                    onTogglePracticeSituation: { onboardingStore.send(.optionalDrivingPreference(.togglePracticeSituation($0))) },
-                    onSelectVehicleType: { onboardingStore.send(.optionalDrivingPreference(.selectVehicleType($0))) },
-                    onSkip: { submitOnboarding(drivingGoal: "", shouldSkip: true) },
-                    onNext: { submitOnboarding(drivingGoal: $0, shouldSkip: false) }
-                )
-            
-            case .safety:
-                SafetyAgreementView(
-                    agreedSafetyItems: onboardingStore.state.agreedSafetyItems,
-                    isAllAgreed: onboardingStore.state.isAllSafetyAgreed,
-                    onToggleSafety: { onboardingStore.send(.safety(.toggle($0))) },
-                    onNext: { onboardingStore.send(.safety(.finishTapped)) }
-                )
-            
-            case .locationPermission:
-                LocationPermissionView(onAllow: requestLocationPermission)
+    private var screenView: some View {
+        switch store.state.screen {
+        case .entry(let state):
+            OnboardingEntryView(state: state, send: { store.send(.screen(.entry($0))) })
+        case .terms(let state):
+            OnboardingTermsView(state: state, send: { store.send(.screen(.terms($0))) })
+        case .nickname(let state):
+            OnboardingNicknameView(state: state, send: { store.send(.screen(.nickname($0))) })
+        case .drivingExperience(let state):
+            OnboardingDrivingExperienceView(state: state, send: { store.send(.screen(.drivingExperience($0))) })
+        case .optionalDrivingPreference(let state):
+            OnboardingOptionalDrivingPreferenceView(
+                state: state,
+                send: { store.send(.screen(.optionalDrivingPreference($0))) }
+            )
+        case .safety(let state):
+            OnboardingSafetyView(state: state, send: { store.send(.screen(.safety($0))) })
+        case .locationPermission:
+            OnboardingLocationPermissionView(send: { store.send(.screen(.locationPermission($0))) })
         }
+    }
+
+    @ViewBuilder
+    private var overlay: some View {
+        switch store.state.presentation {
+        case .withdrawal(let state):
+            WithdrawalAccountDialog(
+                state: state,
+                restoreAction: {
+                    guard case .restore(let recovery) = state else { return }
+                    store.send(.presentation(.restoreWithdrawal(recovery)))
+                },
+                dismissAction: { store.send(.presentation(.dismissWithdrawal)) }
+            )
+            .transition(.opacity)
+        case .analyzing:
+            OnboardingAnalysisDialog().transition(.opacity)
+        case .analysisComplete(let presentation):
+            OnboardingAnalysisCompletionDialog(
+                analysis: presentation.result,
+                recentFrequency: presentation.recentFrequency,
+                onConfirm: { store.send(.presentation(.analysisCompletionConfirmed)) }
+            )
+            .transition(.opacity)
+        case .none, .loginFailure, .snackbar:
+            EmptyView()
+        }
+    }
+
+    private var loginFailureBinding: Binding<Bool> {
+        Binding(
+            get: {
+                if case .loginFailure = store.state.presentation { return true }
+                return false
+            },
+            set: { isPresented in
+                if !isPresented { store.send(.presentation(.dismissLoginFailure)) }
+            }
+        )
+    }
+
+    private var loginFailureMessage: String {
+        if case .loginFailure(let message) = store.state.presentation {
+            return message
+        }
+        return ""
+    }
+
+    private var snackbarMessage: String? {
+        if case .snackbar(let message) = store.state.presentation {
+            return message
+        }
+        return nil
+    }
+
+    private func requestAutomaticLoginIfNeeded() {
+        guard let automaticLoginProvider else { return }
+        automaticLoginRequestConsumed()
+        store.send(.screen(.entry(
+            automaticLoginProvider == .apple ? .onAppleLoginTapped : .onKakaoLoginTapped
+        )))
     }
 }
