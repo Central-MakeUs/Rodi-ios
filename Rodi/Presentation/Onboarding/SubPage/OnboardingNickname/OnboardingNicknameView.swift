@@ -1,14 +1,13 @@
 //
-//  NicknameSetupView.swift
+//  OnboardingNicknameView.swift
 //  Rodi
 //
 
 import SwiftUI
 
-struct NicknameSetupView: View {
-    let nickname: String
-    let isNextEnabled: Bool
-    let onNext: () -> Void
+struct OnboardingNicknameView: View {
+    let state: OnboardingNicknameReducer.State
+    let send: (OnboardingNicknameReducer.Action) -> Void
 
     var body: some View {
         VStack(spacing: 0) {
@@ -19,14 +18,14 @@ struct NicknameSetupView: View {
                     .rodiTypography(.headline1)
                     .foregroundStyle(RodiColor.black)
 
-                if nickname.isEmpty {
+                if state.nickname.isEmpty {
                     Text("닉네임 정보를 불러오지 못했어요.")
                         .rodiTypography(.body1Medium)
                         .foregroundStyle(RodiColor.gray700)
                 } else {
                     HStack(spacing: 4) {
                         Text("‘")
-                        Text(nickname)
+                        Text(state.nickname)
                         Text("’")
                     }
                     .font(.pretendard(size: 22, weight: .bold))
@@ -45,9 +44,9 @@ struct NicknameSetupView: View {
 
             PrimaryBottomButton(
                 title: "다음",
-                isEnabled: isNextEnabled,
+                isEnabled: state.canProceed,
                 showsDivider: true,
-                action: onNext
+                action: { send(.nextTapped) }
             )
         }
     }

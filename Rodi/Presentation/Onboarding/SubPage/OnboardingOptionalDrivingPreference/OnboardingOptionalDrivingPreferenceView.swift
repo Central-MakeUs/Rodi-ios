@@ -1,47 +1,24 @@
 //
-//  OptionalDrivingPreferenceView.swift
+//  OnboardingOptionalDrivingPreferenceView.swift
 //  Rodi
 //
 
 import SwiftUI
 
-struct OptionalDrivingPreferenceView: View {
+struct OnboardingOptionalDrivingPreferenceView: View {
+    let state: OnboardingOptionalDrivingPreferenceReducer.State
+    let send: (OnboardingOptionalDrivingPreferenceReducer.Action) -> Void
+
     private enum Metrics {
         static let horizontalPadding: CGFloat = 16
         static let goalLimit = 30
     }
 
-    let selectedPracticeSituations: [PracticeSituation]
-    let selectedVehicleType: VehicleType?
-    let drivingGoal: String
-    let canProceed: Bool
-    let onTogglePracticeSituation: (PracticeSituation) -> Void
-    let onSelectVehicleType: (VehicleType) -> Void
-    let onSkip: () -> Void
-    let onNext: (String) -> Void
-
-    @State private var goalText: String
+    @State private var goalText = ""
     @FocusState private var isGoalFieldFocused: Bool
 
-    init(
-        selectedPracticeSituations: [PracticeSituation],
-        selectedVehicleType: VehicleType?,
-        drivingGoal: String,
-        canProceed: Bool,
-        onTogglePracticeSituation: @escaping (PracticeSituation) -> Void,
-        onSelectVehicleType: @escaping (VehicleType) -> Void,
-        onSkip: @escaping () -> Void,
-        onNext: @escaping (String) -> Void
-    ) {
-        self.selectedPracticeSituations = selectedPracticeSituations
-        self.selectedVehicleType = selectedVehicleType
-        self.drivingGoal = drivingGoal
-        self.canProceed = canProceed
-        self.onTogglePracticeSituation = onTogglePracticeSituation
-        self.onSelectVehicleType = onSelectVehicleType
-        self.onSkip = onSkip
-        self.onNext = onNext
-        _goalText = State(initialValue: drivingGoal)
+    private var preferences: OnboardingOptionalDrivingPreferenceReducer.Preferences {
+        state.preferences
     }
 
     var body: some View {
@@ -70,9 +47,9 @@ struct OptionalDrivingPreferenceView: View {
             DualBottomButton(
                 secondaryTitle: "건너뛰기",
                 primaryTitle: "다음",
-                isPrimaryEnabled: canProceed,
-                secondaryAction: onSkip,
-                primaryAction: { onNext(goalText) }
+                isPrimaryEnabled: preferences.canProceed,
+                secondaryAction: { send(.skipTapped) },
+                primaryAction: { send(.nextTapped(drivingGoal: goalText)) }
             )
             .opacity(isGoalFieldFocused ? 0 : 1)
             .allowsHitTesting(!isGoalFieldFocused)
@@ -168,7 +145,7 @@ struct OptionalDrivingPreferenceView: View {
     private var practiceSituationChips: some View {
         OnboardingChipFlow {
             ForEach(PracticeSituation.allCases) { situation in
-                let selectionOrder = selectedPracticeSituations.firstIndex(of: situation).map { $0 + 1 }
+                let selectionOrder = preferences.selectedPracticeSituations.firstIndex(of: situation).map { $0 + 1 }
 
                 OnboardingChip(
                     title: situation.rawValue,
@@ -176,7 +153,7 @@ struct OptionalDrivingPreferenceView: View {
                     selectionOrder: selectionOrder,
                     action: {
                         dismissGoalKeyboard()
-                        onTogglePracticeSituation(situation)
+                        send(.togglePracticeSituation(situation))
                     }
                 )
             }
@@ -202,10 +179,10 @@ struct OptionalDrivingPreferenceView: View {
     private func vehicleChip(_ vehicleType: VehicleType) -> some View {
         OnboardingChip(
             title: vehicleType.rawValue,
-            isSelected: selectedVehicleType == vehicleType,
+            isSelected: preferences.vehicleType == vehicleType,
             action: {
                 dismissGoalKeyboard()
-                onSelectVehicleType(vehicleType)
+                send(.selectVehicleType(vehicleType))
             }
         )
     }
@@ -229,7 +206,7 @@ struct OptionalDrivingPreferenceView: View {
     }
 }
 
-private extension OptionalDrivingPreferenceView {
+private extension OnboardingOptionalDrivingPreferenceView {
     enum ScrollTarget {
         case drivingGoal
     }

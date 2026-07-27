@@ -6,6 +6,9 @@
 import SwiftUI
 
 struct OnboardingEntryView: View {
+    let state: OnboardingEntryReducer.State
+    let send: (OnboardingEntryReducer.Action) -> Void
+
     private enum Constants {
         static let horizontalInset: CGFloat = 16
         static let browseTopInset: CGFloat = 12
@@ -14,33 +17,23 @@ struct OnboardingEntryView: View {
         static let socialButtonCornerRadius: CGFloat = 8
         static let socialButtonSpacing: CGFloat = 12
         static let socialButtonBottomInset: CGFloat = 40
+        // TODO: UIScreen.main 이거 deprecated (윤수)
         static let recentLoginTooltipWidth = UIScreen.main.bounds.width * 0.35
     }
-
-    let isAuthenticating: Bool
-    let recentLoginProvider: AuthProvider?
-    let onBrowse: () -> Void
-    let onAppleLogin: () -> Void
-    let onKakaoLogin: () -> Void
-    let onDebugOnboarding: () -> Void
 
     var body: some View {
         ZStack {
             RodiColor.white.ignoresSafeArea()
 
-            VStack(spacing: 0) {
+            VStack() {
                 browseRow
-
-                Spacer(minLength: 0)
-
+                Spacer()
                 brandBlock
-
-                Spacer(minLength: 0)
-
+                Spacer()
                 socialLoginButtons
             }
 
-            if isAuthenticating {
+            if state.isAuthenticating {
                 ProgressView()
                     .tint(RodiColor.primary)
                     .padding(18)
@@ -53,8 +46,10 @@ struct OnboardingEntryView: View {
 
     private var browseRow: some View {
         HStack {
-            #if DEBUG
-            Button(action: onDebugOnboarding) {
+#if DEBUG
+            Button {
+                send(.debugOnboardingTapped)
+            } label: {
                 Text("테스트 온보딩")
                     .font(.pretendard(size: 12, weight: .semibold))
                     .tracking(-0.24)
@@ -63,12 +58,13 @@ struct OnboardingEntryView: View {
                     .padding(.vertical, 8)
             }
             .buttonStyle(.plain)
-            .disabled(isAuthenticating)
-            #endif
-
+            .disabled(state.isAuthenticating)
+#endif
             Spacer()
-
-            Button(action: onBrowse) {
+            
+            Button {
+                send(.browseTapped)
+            } label: {
                 Text("둘러보기")
                     .font(.pretendard(size: 12, weight: .semibold))
                     .tracking(-0.24)
@@ -77,7 +73,7 @@ struct OnboardingEntryView: View {
                     .padding(.vertical, 8)
             }
             .buttonStyle(.plain)
-            .disabled(isAuthenticating)
+            .disabled(state.isAuthenticating)
         }
         .padding(.top, Constants.browseTopInset)
         .padding(.trailing, 4)
@@ -101,7 +97,7 @@ struct OnboardingEntryView: View {
 
     private var socialLoginButtons: some View {
         VStack(spacing: 0) {
-            if recentLoginProvider != nil {
+            if state.recentLoginProvider != nil {
                 Image("img_resent_login_tooltip")
                     .resizable()
                     .scaledToFit()
@@ -110,73 +106,39 @@ struct OnboardingEntryView: View {
             }
 
             VStack(spacing: Constants.socialButtonSpacing) {
-                socialButton(for: firstSocialProvider)
-                socialButton(for: secondSocialProvider)
+                ForEach(state.socialProviders, id: \.rawValue) { provider in
+                    socialButton(provider)
+                }
             }
         }
         .padding(.horizontal, Constants.horizontalInset)
         .padding(.bottom, Constants.socialButtonBottomInset)
     }
 
-    private var firstSocialProvider: AuthProvider {
-        recentLoginProvider ?? .kakao
-    }
-
-    private var secondSocialProvider: AuthProvider {
-        firstSocialProvider == .kakao ? .apple : .kakao
-    }
-
     @ViewBuilder
-    private func socialButton(for provider: AuthProvider) -> some View {
+    private func socialButton(_ provider: SocialLoginProvider) -> some View {
         switch provider {
-        case .kakao:
-            socialButton(
-                title: "카카오로 시작하기",
-                assetName: "ic_login_kakao",
-                background: Color(hex: 0xFDE500),
-                foreground: RodiColor.black,
-                action: onKakaoLogin
-            )
+            case .kakao:
+                SocialLoginButton(
+                    title: "카카오로 시작하기",
+                    assetName: "ic_login_kakao",
+                    backgroundColor: Color(hex: 0xFDE500),
+                    foregroundColor: RodiColor.black,
+                    action: {
+                        send(.onKakaoLoginTapped)
+                    }
+                )
 
-        case .apple:
-            socialButton(
-                title: "Apple ID로 시작하기",
-                assetName: "ic_login_apple",
-                background: RodiColor.black,
-                foreground: RodiColor.white,
-                action: onAppleLogin
-            )
+            case .apple:
+                SocialLoginButton(
+                    title: "Apple ID로 시작하기",
+                    assetName: "ic_login_apple",
+                    backgroundColor: RodiColor.black,
+                    foregroundColor: RodiColor.white,
+                    action: {
+                        send(.onAppleLoginTapped)
+                    }
+                )
         }
-    }
-
-    private func socialButton(
-        title: String,
-        assetName: String,
-        background: Color,
-        foreground: Color,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            ZStack {
-                Image(assetName)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 22, height: 22)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.leading, 16)
-
-                Text(title)
-                    .font(.pretendard(size: 15, weight: .semibold))
-                    .tracking(-0.3)
-            }
-            .foregroundStyle(foreground)
-            .frame(maxWidth: .infinity)
-            .frame(height: Constants.socialButtonHeight)
-            .background(background)
-            .clipShape(RoundedRectangle(cornerRadius: Constants.socialButtonCornerRadius))
-        }
-        .buttonStyle(.plain)
-        .disabled(isAuthenticating)
-        .accessibilityLabel(title)
     }
 }

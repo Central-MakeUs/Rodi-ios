@@ -44,3 +44,7 @@ enum OnboardingStep: Int, CaseIterable {
         OnboardingStep(rawValue: rawValue - 1)
     }
 }
+
+/// 화면 전환의 의미를 분명히 하기 위한 별칭입니다.
+/// 기존 UI 컴포넌트의 `OnboardingStep` API는 그대로 유지합니다.
+typealias OnboardingRoute = OnboardingStep
