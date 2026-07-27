@@ -1,11 +1,11 @@
 //
-//  AuthProvider.swift
+//  SocialLoginProvider.swift
 //  Rodi
 //
 
 import Foundation
 
-enum AuthProvider: String {
+enum SocialLoginProvider: String {
     case apple
     case kakao
 }

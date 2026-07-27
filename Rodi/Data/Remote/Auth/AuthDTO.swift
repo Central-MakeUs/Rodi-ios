@@ -41,7 +41,7 @@ struct SocialLoginResponseDTO: Decodable {
 }
 
 extension SocialLoginResponseDTO {
-    func loginResult(provider: AuthProvider) throws(NetworkError) -> AuthLoginResult {
+    func loginResult(provider: SocialLoginProvider) throws(NetworkError) -> AuthLoginResult {
         switch status {
         case .success:
             guard let accessToken, !accessToken.isEmpty,

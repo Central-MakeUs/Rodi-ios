@@ -18,14 +18,14 @@ struct RecentLoginProviderStore {
         self.userDefaults = userDefaults
     }
 
-    func load() -> AuthProvider? {
+    func load() -> SocialLoginProvider? {
         guard let rawValue = userDefaults.string(forKey: Key.providerRawValue) else {
             return nil
         }
-        return AuthProvider(rawValue: rawValue)
+        return SocialLoginProvider(rawValue: rawValue)
     }
 
-    func save(_ provider: AuthProvider) {
+    func save(_ provider: SocialLoginProvider) {
         userDefaults.set(provider.rawValue, forKey: Key.providerRawValue)
     }
 

@@ -7,8 +7,8 @@ import Alamofire
 import Foundation
 
 enum AuthTarget: TargetType {
-    case login(provider: AuthProvider, request: SocialLoginRequestDTO)
-    case restore(provider: AuthProvider, request: SocialLoginRequestDTO)
+    case login(provider: SocialLoginProvider, request: SocialLoginRequestDTO)
+    case restore(provider: SocialLoginProvider, request: SocialLoginRequestDTO)
     case refresh(request: TokenRefreshRequestDTO)
     case logout(request: LogoutRequestDTO)
 

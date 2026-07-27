@@ -23,7 +23,7 @@ final class AuthRepositoryImpl: AuthRepository {
         self.recentLoginProviderStore = recentLoginProviderStore
     }
 
-    func login(provider: AuthProvider, credential: String) async throws(NetworkError) -> AuthLoginResult {
+    func login(provider: SocialLoginProvider, credential: String) async throws(NetworkError) -> AuthLoginResult {
         let trimmedCredential = credential.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedCredential.isEmpty else {
             throw .apiError(code: "COMMON_400", message: "로그인 정보를 확인하지 못했어요.")
@@ -46,7 +46,7 @@ final class AuthRepositoryImpl: AuthRepository {
         return result
     }
 
-    func restore(provider: AuthProvider, credential: String) async throws(NetworkError) -> AuthToken {
+    func restore(provider: SocialLoginProvider, credential: String) async throws(NetworkError) -> AuthToken {
         let trimmedCredential = credential.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedCredential.isEmpty else {
             throw .apiError(code: "COMMON_400", message: "로그인 정보를 확인하지 못했어요.")
@@ -70,7 +70,7 @@ final class AuthRepositoryImpl: AuthRepository {
         }
     }
 
-    private func saveAuthenticatedSession(_ token: AuthToken, provider: AuthProvider) {
+    private func saveAuthenticatedSession(_ token: AuthToken, provider: SocialLoginProvider) {
         tokenStore.update(
             accessToken: token.accessToken,
             refreshToken: token.refreshToken
