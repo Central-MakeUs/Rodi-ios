@@ -1,12 +1,12 @@
 //
-//  HomeRuntimeService+LocationRequest.swift
+//  HomeLocationRequestService.swift
 //  Rodi
 //
 
 import CoreLocation
 import Foundation
 
-extension HomeRuntimeService {
+extension HomeMapRuntimeService {
     func requestCurrentLocation() {
         let authorizationStatus = locationManager.authorizationStatus
         guard authorizationStatus == .authorizedAlways || authorizationStatus == .authorizedWhenInUse else {

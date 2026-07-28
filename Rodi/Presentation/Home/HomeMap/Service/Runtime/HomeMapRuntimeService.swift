@@ -1,5 +1,5 @@
 //
-//  HomeRuntimeService.swift
+//  HomeMapRuntimeService.swift
 //  Rodi
 //
 //  Created by Codex on 6/27/26.
@@ -10,12 +10,12 @@ import Combine
 import Foundation
 
 @MainActor
-final class HomeRuntimeService: NSObject, ObservableObject {
+final class HomeMapRuntimeService: NSObject, ObservableObject {
     var onEvent: ((HomeRuntimeEvent) -> Void)?
 
     private var nextCameraRequestID = 0
 
-    // Runtime-only caches used for location decisions. UI state lives in HomeState.
+    // Runtime-only caches used for location decisions. UI state lives in HomeReducer.State.
     private(set) var latestUserLocationCoordinate: RodiCoordinate?
 
     var hasLocationPermission: Bool {
@@ -25,7 +25,7 @@ final class HomeRuntimeService: NSObject, ObservableObject {
 
     var isResolvingCurrentLocation = false
 
-    // Runtime lifecycle flags. HomeState remains the rendering source of truth.
+    // Runtime lifecycle flags. HomeReducer.State remains the rendering source of truth.
     private(set) var hasRequestedMapRendering = false
     private(set) var renderedMarkerCount = 0
     var lastAppliedMarkerTier: RodiHomeMarkerClusterIndex.Tier?
@@ -34,7 +34,8 @@ final class HomeRuntimeService: NSObject, ObservableObject {
     var forcedMarkerZoomLevel: Int?
 
     let markerRenderingService = HomeMarkerRenderingService()
-    let locationManager = CLLocationManager()
+    let locationService = HomeLocationService()
+    var locationManager: CLLocationManager { locationService.manager }
     let startupTraceStartDate = Date()
     var pendingLocationRequest: LocationRequestKind = .initial
     var isMapViewReady = false
@@ -54,15 +55,26 @@ final class HomeRuntimeService: NSObject, ObservableObject {
     override init() {
         super.init()
         logStartupTrace("runtime_service_init")
-        locationManager.delegate = self
-        locationManager.desiredAccuracy = HomeLocationPolicy.accuracy(for: .initial)
-        locationManager.headingFilter = 5
+        locationService.onAuthorizationChanged = { [weak self] status in
+            guard let self else { return }
+            RodiLogger.info("Location authorization changed status=\(status.rawValue)")
+            self.applyAuthorizationStatus(status, reason: "delegate_changed")
+        }
+        locationService.onLocationsUpdated = { [weak self] locations in
+            self?.handleLocationUpdate(locations)
+        }
+        locationService.onFailure = { [weak self] error in
+            self?.handleLocationFailure(error)
+        }
+        locationService.onHeadingUpdated = { [weak self] heading in
+            self?.handleHeadingUpdate(heading)
+        }
     }
 
     func start(onEvent: @escaping (HomeRuntimeEvent) -> Void) {
         guard self.onEvent == nil else { return }
         self.onEvent = onEvent
-        locationManager.delegate = self
+        locationService.activate()
         bootstrapLocation()
     }
 
@@ -74,9 +86,7 @@ final class HomeRuntimeService: NSObject, ObservableObject {
         fallbackRecenterTask?.cancel()
         fallbackRecenterTask = nil
         markerRenderingService.cancel()
-        locationManager.stopUpdatingLocation()
-        locationManager.stopUpdatingHeading()
-        locationManager.delegate = nil
+        locationService.stop()
         onEvent = nil
         RodiLogger.info("Home runtime service stopped")
     }
@@ -89,7 +99,7 @@ final class HomeRuntimeService: NSObject, ObservableObject {
 
 }
 
-extension HomeRuntimeService {
+extension HomeMapRuntimeService {
     func emit(_ event: HomeRuntimeEvent) {
         onEvent?(event)
     }

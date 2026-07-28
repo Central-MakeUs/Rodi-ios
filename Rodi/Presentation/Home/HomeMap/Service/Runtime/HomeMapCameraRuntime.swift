@@ -1,5 +1,5 @@
 //
-//  HomeRuntimeService+MapState.swift
+//  HomeMapCameraRuntime.swift
 //  Rodi
 //
 //  Created by Codex on 7/1/26.
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-extension HomeRuntimeService {
+extension HomeMapRuntimeService {
     /// 위치 권한 결과를 기다리지 않고 전국 지도와 공개 장소 좌표를 먼저 표시한다.
     func showInitialPlaceMapIfNeeded() {
         guard !hasRequestedMapRendering else { return }

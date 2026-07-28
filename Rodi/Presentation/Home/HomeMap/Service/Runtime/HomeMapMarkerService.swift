@@ -1,11 +1,11 @@
 //
-//  HomeRuntimeService+Markers.swift
+//  HomeMapMarkerService.swift
 //  Rodi
 //
 
 import SwiftUI
 
-extension HomeRuntimeService {
+extension HomeMapRuntimeService {
     /// 최초 데이터 로드에서만 배치 단위로 추가한다. 기존 마커를 비우지 않아 깜빡임을 만들지 않는다.
     func renderInitialMapMarkers(for visibleItems: [RodiCourseItem]) {
         guard isMapViewReady else { return }

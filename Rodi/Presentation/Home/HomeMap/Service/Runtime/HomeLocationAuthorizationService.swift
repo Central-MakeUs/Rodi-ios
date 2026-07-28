@@ -1,11 +1,11 @@
 //
-//  HomeRuntimeService+LocationAuthorization.swift
+//  HomeLocationAuthorizationService.swift
 //  Rodi
 //
 
 import CoreLocation
 
-extension HomeRuntimeService {
+extension HomeMapRuntimeService {
     func bootstrapLocation() {
         RodiLogger.info("Bootstrap location authorization=\(locationManager.authorizationStatus.rawValue)")
         applyAuthorizationStatus(locationManager.authorizationStatus, reason: "bootstrap")

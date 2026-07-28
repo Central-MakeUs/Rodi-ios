@@ -1,12 +1,12 @@
 //
-//  HomeRuntimeService+Location.swift
+//  HomeLocationResolutionService.swift
 //  Rodi
 //
 
 import CoreLocation
 import SwiftUI
 
-extension HomeRuntimeService {
+extension HomeMapRuntimeService {
     func applyLocationCoordinate(
         latitude: Double,
         longitude: Double,

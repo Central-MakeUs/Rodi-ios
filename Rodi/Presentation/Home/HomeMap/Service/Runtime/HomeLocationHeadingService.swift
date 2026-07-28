@@ -1,11 +1,11 @@
 //
-//  HomeRuntimeService+Heading.swift
+//  HomeLocationHeadingService.swift
 //  Rodi
 //
 
 import CoreLocation
 
-extension HomeRuntimeService {
+extension HomeMapRuntimeService {
     func startHeadingUpdatesIfAvailable() {
         guard CLLocationManager.headingAvailable() else {
             RodiLogger.info("Heading updates unavailable on this device.")

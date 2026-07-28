@@ -1,12 +1,12 @@
 //
-//  HomeRuntimeService+LocationFallback.swift
+//  HomeLocationFallbackService.swift
 //  Rodi
 //
 
 import CoreLocation
 import Foundation
 
-extension HomeRuntimeService {
+extension HomeMapRuntimeService {
     func useFallbackLocation(
         reason: String,
         shouldMoveCamera: Bool,
