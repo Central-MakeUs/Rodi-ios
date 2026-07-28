@@ -10,8 +10,34 @@ import Foundation
 @MainActor
 struct OnboardingReducer: Reducer {
     struct State {
+        enum Screen {
+            case entry(OnboardingEntryReducer.State)
+            case terms(OnboardingTermsReducer.State)
+            case nickname(OnboardingNicknameReducer.State)
+            case drivingExperience(OnboardingDrivingExperienceReducer.State)
+            case optionalDrivingPreference(OnboardingOptionalDrivingPreferenceReducer.State)
+            case safety(OnboardingSafetyReducer.State)
+            case locationPermission(OnboardingLocationPermissionReducer.State)
+
+            static func make(
+                for route: OnboardingRoute,
+                draft: OnboardingFlowDraft,
+                recentLoginProvider: SocialLoginProvider? = nil
+            ) -> Self {
+                switch route {
+                case .entry: .entry(.init(recentLoginProvider: recentLoginProvider))
+                case .terms: .terms(.init(agreedTerms: draft.agreedTerms))
+                case .nickname: .nickname(.init(nickname: draft.nickname))
+                case .drivingExperience: .drivingExperience(.init(answers: draft.drivingExperience))
+                case .optionalDrivingPreference: .optionalDrivingPreference(.init(preferences: draft.preferences))
+                case .safety: .safety(.init(agreedSafetyItems: draft.agreedSafetyItems))
+                case .locationPermission: .locationPermission(.init())
+                }
+            }
+        }
+
         var draft: OnboardingFlowDraft
-        var screen: OnboardingScreenState
+        var screen: Screen
         var presentation: OnboardingPresentation?
         var requestedRoute: OnboardingRoute?
         var didComplete = false
@@ -24,7 +50,7 @@ struct OnboardingReducer: Reducer {
             let draft = OnboardingFlowDraft(payload: payload)
 
             self.draft = draft
-            screen = OnboardingScreenState.make(
+            screen = Screen.make(
                 for: initialRoute,
                 draft: draft,
                 recentLoginProvider: recentLoginProvider
@@ -33,7 +59,17 @@ struct OnboardingReducer: Reducer {
     }
 
     enum Action {
-        case screen(route: OnboardingRoute, action: OnboardingScreenAction)
+        enum Screen {
+            case entry(OnboardingEntryReducer.Action)
+            case terms(OnboardingTermsReducer.Action)
+            case nickname(OnboardingNicknameReducer.Action)
+            case drivingExperience(OnboardingDrivingExperienceReducer.Action)
+            case optionalDrivingPreference(OnboardingOptionalDrivingPreferenceReducer.Action)
+            case safety(OnboardingSafetyReducer.Action)
+            case locationPermission(OnboardingLocationPermissionReducer.Action)
+        }
+
+        case screen(route: OnboardingRoute, action: Screen)
         case routeChanged(OnboardingRoute)
         case analysisCompletionConfirmed
         case dismissLoginFailure
@@ -49,14 +85,6 @@ struct OnboardingReducer: Reducer {
         case snackbar
     }
 
-    private let entryReducer: OnboardingEntryReducer
-    private let termsReducer = OnboardingTermsReducer()
-    private let nicknameReducer = OnboardingNicknameReducer()
-    private let drivingExperienceReducer = OnboardingDrivingExperienceReducer()
-    private let optionalPreferenceReducer = OnboardingOptionalDrivingPreferenceReducer()
-    private let safetyReducer = OnboardingSafetyReducer()
-    private let locationPermissionReducer = OnboardingLocationPermissionReducer()
-
     private let memberRepository: MemberRepository
     private let draftStore: OnboardingDraftStore
     private let progressStore: OnboardingProgressStore
@@ -64,7 +92,6 @@ struct OnboardingReducer: Reducer {
 
     init(
         memberRepository: MemberRepository? = nil,
-        entryReducer: OnboardingEntryReducer? = nil,
         draftStore: OnboardingDraftStore? = nil,
         progressStore: OnboardingProgressStore? = nil,
         persistsDraft: Bool
@@ -72,7 +99,6 @@ struct OnboardingReducer: Reducer {
         let resolvedDraftStore = draftStore ?? OnboardingDraftStore()
 
         self.memberRepository = memberRepository ?? AuthDependencyContainer.shared.memberRepository
-        self.entryReducer = entryReducer ?? OnboardingEntryReducer()
         self.draftStore = resolvedDraftStore
         self.progressStore = progressStore ?? OnboardingProgressStore(draftStore: resolvedDraftStore)
         self.persistsDraft = persistsDraft
@@ -97,7 +123,7 @@ struct OnboardingReducer: Reducer {
             return reduceScreenAction(route: route, action: screenAction, state: &state)
 
         case .routeChanged(let route):
-            state.screen = OnboardingScreenState.make(
+            state.screen = State.Screen.make(
                 for: route,
                 draft: state.draft
             )
@@ -142,19 +168,23 @@ struct OnboardingReducer: Reducer {
 
     private func reduceScreenAction(
         route: OnboardingRoute,
-        action: OnboardingScreenAction,
+        action: Action.Screen,
         state: inout State
     ) -> Effect<Action> {
-        let effect: Effect<OnboardingScreenAction>
+        let effect: Effect<Action.Screen>
 
         switch (state.screen, action) {
         case (.entry(var childState), .entry(let childAction)):
-            effect = entryReducer.reduce(&childState, with: childAction).map(OnboardingScreenAction.entry)
+            effect = OnboardingEntryReducer()
+                .reduce(&childState, with: childAction)
+                .map(Action.Screen.entry)
             state.screen = .entry(childState)
             handleEntryAction(childAction, state: &state)
 
         case (.terms(var childState), .terms(let childAction)):
-            effect = termsReducer.reduce(&childState, with: childAction).map(OnboardingScreenAction.terms)
+            effect = OnboardingTermsReducer()
+                .reduce(&childState, with: childAction)
+                .map(Action.Screen.terms)
             state.screen = .terms(childState)
             state.draft.agreedTerms = childState.agreedTerms
 
@@ -163,7 +193,9 @@ struct OnboardingReducer: Reducer {
             }
 
         case (.nickname(var childState), .nickname(let childAction)):
-            effect = nicknameReducer.reduce(&childState, with: childAction).map(OnboardingScreenAction.nickname)
+            effect = OnboardingNicknameReducer()
+                .reduce(&childState, with: childAction)
+                .map(Action.Screen.nickname)
             state.screen = .nickname(childState)
             state.draft.nickname = childState.nickname
 
@@ -172,7 +204,9 @@ struct OnboardingReducer: Reducer {
             }
 
         case (.drivingExperience(var childState), .drivingExperience(let childAction)):
-            effect = drivingExperienceReducer.reduce(&childState, with: childAction).map(OnboardingScreenAction.drivingExperience)
+            effect = OnboardingDrivingExperienceReducer()
+                .reduce(&childState, with: childAction)
+                .map(Action.Screen.drivingExperience)
             state.screen = .drivingExperience(childState)
             state.draft.drivingExperience = childState.answers
 
@@ -181,7 +215,9 @@ struct OnboardingReducer: Reducer {
             }
 
         case (.optionalDrivingPreference(var childState), .optionalDrivingPreference(let childAction)):
-            effect = optionalPreferenceReducer.reduce(&childState, with: childAction).map(OnboardingScreenAction.optionalDrivingPreference)
+            effect = OnboardingOptionalDrivingPreferenceReducer()
+                .reduce(&childState, with: childAction)
+                .map(Action.Screen.optionalDrivingPreference)
             state.screen = .optionalDrivingPreference(childState)
             state.draft.preferences = childState.preferences
 
@@ -195,7 +231,9 @@ struct OnboardingReducer: Reducer {
             }
 
         case (.safety(var childState), .safety(let childAction)):
-            effect = safetyReducer.reduce(&childState, with: childAction).map(OnboardingScreenAction.safety)
+            effect = OnboardingSafetyReducer()
+                .reduce(&childState, with: childAction)
+                .map(Action.Screen.safety)
             state.screen = .safety(childState)
             state.draft.agreedSafetyItems = childState.agreedSafetyItems
 
@@ -204,7 +242,9 @@ struct OnboardingReducer: Reducer {
             }
 
         case (.locationPermission(var childState), .locationPermission(let childAction)):
-            effect = locationPermissionReducer.reduce(&childState, with: childAction).map(OnboardingScreenAction.locationPermission)
+            effect = OnboardingLocationPermissionReducer()
+                .reduce(&childState, with: childAction)
+                .map(Action.Screen.locationPermission)
             state.screen = .locationPermission(childState)
 
             if case .continueTapped = childAction {
@@ -373,42 +413,6 @@ struct OnboardingReducer: Reducer {
         guard persistsDraft else { return }
         progressStore.markCompleted()
     }
-}
-
-enum OnboardingScreenState {
-    case entry(OnboardingEntryReducer.State)
-    case terms(OnboardingTermsReducer.State)
-    case nickname(OnboardingNicknameReducer.State)
-    case drivingExperience(OnboardingDrivingExperienceReducer.State)
-    case optionalDrivingPreference(OnboardingOptionalDrivingPreferenceReducer.State)
-    case safety(OnboardingSafetyReducer.State)
-    case locationPermission(OnboardingLocationPermissionReducer.State)
-
-    static func make(
-        for route: OnboardingRoute,
-        draft: OnboardingFlowDraft,
-        recentLoginProvider: SocialLoginProvider? = nil
-    ) -> Self {
-        switch route {
-        case .entry: .entry(.init(recentLoginProvider: recentLoginProvider))
-        case .terms: .terms(.init(agreedTerms: draft.agreedTerms))
-        case .nickname: .nickname(.init(nickname: draft.nickname))
-        case .drivingExperience: .drivingExperience(.init(answers: draft.drivingExperience))
-        case .optionalDrivingPreference: .optionalDrivingPreference(.init(preferences: draft.preferences))
-        case .safety: .safety(.init(agreedSafetyItems: draft.agreedSafetyItems))
-        case .locationPermission: .locationPermission(.init())
-        }
-    }
-}
-
-enum OnboardingScreenAction {
-    case entry(OnboardingEntryReducer.Action)
-    case terms(OnboardingTermsReducer.Action)
-    case nickname(OnboardingNicknameReducer.Action)
-    case drivingExperience(OnboardingDrivingExperienceReducer.Action)
-    case optionalDrivingPreference(OnboardingOptionalDrivingPreferenceReducer.Action)
-    case safety(OnboardingSafetyReducer.Action)
-    case locationPermission(OnboardingLocationPermissionReducer.Action)
 }
 
 enum OnboardingPresentation {

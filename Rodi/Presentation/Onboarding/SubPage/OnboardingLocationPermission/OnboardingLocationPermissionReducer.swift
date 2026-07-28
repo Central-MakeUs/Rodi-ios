@@ -16,7 +16,7 @@ struct OnboardingLocationPermissionReducer: Reducer {
 
     private let requester: LocationPermissionRequester
 
-    init(requester: LocationPermissionRequester = LocationPermissionRequester()) {
+    init(requester: LocationPermissionRequester = .shared) {
         self.requester = requester
     }
 

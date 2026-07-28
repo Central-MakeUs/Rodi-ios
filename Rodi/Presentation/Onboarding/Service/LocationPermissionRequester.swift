@@ -6,6 +6,8 @@
 import CoreLocation
 
 final class LocationPermissionRequester: NSObject, CLLocationManagerDelegate {
+    static let shared = LocationPermissionRequester()
+
     private let manager = CLLocationManager()
 
     override init() {
