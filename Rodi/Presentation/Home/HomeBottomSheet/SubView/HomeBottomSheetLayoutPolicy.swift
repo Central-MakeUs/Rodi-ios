@@ -10,7 +10,6 @@ import SwiftUI
 /// 홈 바텀싯 높이와 지도 위 플로팅 컨트롤 위치를 한 곳에서 계산하는 정책 객체.
 /// 화면마다 동일한 높이 기준을 쓰게 해서 지도 카메라 보정, 버튼 위치, 페이지 전환 진행도가 서로 어긋나지 않도록 한다.
 struct HomeBottomSheetLayoutPolicy {
-    let containerHeight: CGFloat
     let sheetHeight: CGFloat
     let dragTranslation: CGFloat
     let settlingSheetHeight: CGFloat?
@@ -213,10 +212,6 @@ struct HomeBottomSheetLayoutPolicy {
     }
 
     private var baseHeight: CGFloat {
-        if containerHeight > 0 {
-            return containerHeight
-        }
-
         // HomeView의 ZStack은 상단/하단 Safe Area 안에서 레이아웃된다.
         // 전체 화면 높이를 그대로 쓰면 확장 시트가 Safe Area보다 위로 밀리므로,
         // 시트와 헤더는 같은 콘텐츠 높이를 기준으로 계산한다.
