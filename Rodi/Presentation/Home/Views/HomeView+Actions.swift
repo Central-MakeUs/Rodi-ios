@@ -181,18 +181,17 @@ extension HomeView {
 
     /// 마이의 저장 목록에서 선택한 장소를 홈의 기존 상세 선택 흐름으로 연결한다.
     func consumePendingPlaceSelectionIfNeeded() {
-        guard selectedTab == .home,
+        guard isHomeTabSelected(),
               homeStore.state.map.isReady,
-              let item = pendingPlaceSelection
+              let placeID = router.consumePendingPlaceID()
         else {
             return
         }
 
-        pendingPlaceSelection = nil
         RodiLogger.info(
-            "Saved place selection handed off to ready home map placeID=\(item.id)"
+            "Saved place selection handed off to ready home map placeID=\(placeID)"
         )
-        handlePlaceListSelection(item)
+        homeStore.send(.routeAction(.selectPlaceID(placeID, mediumHeight: mediumSheetHeight)))
     }
 
     func reloadPlaceList() {

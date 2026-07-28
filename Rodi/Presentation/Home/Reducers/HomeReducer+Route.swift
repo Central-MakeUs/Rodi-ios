@@ -15,6 +15,12 @@ extension HomeReducer {
         case .selectItem(let item, let mediumHeight):
             return select(item, mediumHeight: mediumHeight, state: &state)
 
+        case .selectPlaceID(let placeID, let mediumHeight):
+            if let item = state.visibleItems.first(where: { $0.id == placeID }) {
+                return select(item, mediumHeight: mediumHeight, state: &state)
+            }
+            return selectPlaceDetail(placeID: placeID, mediumHeight: mediumHeight, state: &state)
+
         case .selectMapMarker(let markerID, let mediumHeight):
             guard let item = state.visibleItems.first(where: {
                 $0.mapMarker?.id == markerID
@@ -133,6 +139,24 @@ extension HomeReducer {
         state.placeDetail.isBookmarkUpdating = false
 
         return loadPlaceDetailEffect(placeID: item.id)
+    }
+
+    func selectPlaceDetail(
+        placeID: Int,
+        mediumHeight: CGFloat,
+        state: inout HomeState
+    ) -> Effect<HomeAction> {
+        state.bottomSheet.bottomSheetState = .medium
+        state.bottomSheet.sheetHeight = mediumHeight
+        state.selection.selectedItem = nil
+        state.route.routeStatusMessage = nil
+        state.route.selectedRouteOverlay = nil
+        state.route.isRouteLoading = false
+        state.placeDetail.selectedPlaceID = placeID
+        state.placeDetail.detail = nil
+        state.placeDetail.isLoading = true
+        state.placeDetail.isBookmarkUpdating = false
+        return loadPlaceDetailEffect(placeID: placeID)
     }
 
     func configureRoute(for item: RodiCourseItem, state: inout HomeState) -> Effect<HomeAction> {

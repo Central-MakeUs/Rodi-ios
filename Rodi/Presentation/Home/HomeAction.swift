@@ -68,6 +68,7 @@ enum HomeAction {
     enum RouteAction {
         case clearSelection
         case selectItem(RodiCourseItem, mediumHeight: CGFloat)
+        case selectPlaceID(Int, mediumHeight: CGFloat)
         case selectMapMarker(markerID: String, mediumHeight: CGFloat)
         case detailLoaded(PlaceDetail)
         case detailAuthenticationRequired(placeID: Int)

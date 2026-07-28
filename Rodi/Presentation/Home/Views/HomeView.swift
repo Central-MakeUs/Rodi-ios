@@ -18,27 +18,21 @@ struct HomeView: View {
     @State var selectedDetailSettlingOffset: CGFloat?
     @State var sheetSettlingID = UUID()
     @GestureState var sheetDragTranslation: CGFloat = 0
-    @Binding var selectedTab: RodiTab
-    @Binding var pendingPlaceSelection: PlaceListItem?
-    @Binding var rootBottomSheetState: HomeBottomSheetState
-    @Binding var tabTapRequestID: Int
-    let placeRepository: PlaceRepository
+    @ObservedObject var router: HomeRouter
+    let isHomeTabSelected: () -> Bool
     let onAuthenticationRequired: () -> Void
+    let placeRepository: PlaceRepository
 
     init(
-        selectedTab: Binding<RodiTab> = .constant(.home),
-        pendingPlaceSelection: Binding<PlaceListItem?> = .constant(nil),
-        bottomSheetState: Binding<HomeBottomSheetState> = .constant(.collapsed),
-        tabTapRequestID: Binding<Int> = .constant(0),
-        placeRepository: PlaceRepository = AuthDependencyContainer.shared.placeRepository,
-        onAuthenticationRequired: @escaping () -> Void = {}
+        router: HomeRouter,
+        isHomeTabSelected: @escaping () -> Bool,
+        onAuthenticationRequired: @escaping () -> Void,
+        placeRepository: PlaceRepository = AuthDependencyContainer.shared.placeRepository
     ) {
-        _selectedTab = selectedTab
-        _pendingPlaceSelection = pendingPlaceSelection
-        _rootBottomSheetState = bottomSheetState
-        _tabTapRequestID = tabTapRequestID
-        self.placeRepository = placeRepository
+        self.router = router
+        self.isHomeTabSelected = isHomeTabSelected
         self.onAuthenticationRequired = onAuthenticationRequired
+        self.placeRepository = placeRepository
         _homeStore = StateObject(
             wrappedValue: Store(
                 state: HomeState(),
@@ -78,7 +72,7 @@ struct HomeView: View {
                 .onAppear {
                     startHomeServices()
                     consumePendingPlaceSelectionIfNeeded()
-                    rootBottomSheetState = bottomSheetState
+                    router.updateBottomSheetState(bottomSheetState)
                 }
                 .onDisappear(perform: stopHomeServices)
                 .animation(.easeOut(duration: 0.25), value: bottomSheetState)
@@ -97,13 +91,13 @@ struct HomeView: View {
         .onChange(of: selectedItem?.id) { _ in
             selectedSheetContentHeight = 0
         }
-        .onChange(of: pendingPlaceSelection) { _ in
+        .onChange(of: router.pendingPlaceID) { _ in
             consumePendingPlaceSelectionIfNeeded()
         }
         .onChange(of: bottomSheetState) { state in
-            rootBottomSheetState = state
+            router.updateBottomSheetState(state)
         }
-        .onChange(of: tabTapRequestID) { _ in
+        .onChange(of: router.listPresentationRequestID) { _ in
             presentBottomSheet()
         }
         .onChange(of: homeStore.state.placeList.shouldAutoExpandAfterResearch) { shouldExpand in
