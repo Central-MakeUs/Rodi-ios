@@ -1,5 +1,5 @@
 //
-//  RodiKakaoMapView+Lifecycle.swift
+//  RodiKakaoMapLifecycle.swift
 //  Rodi
 //
 //  Created by Codex on 7/1/26.

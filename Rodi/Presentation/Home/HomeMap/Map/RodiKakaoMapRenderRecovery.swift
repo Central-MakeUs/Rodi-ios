@@ -1,5 +1,5 @@
 //
-//  RodiKakaoMapView+RenderRecovery.swift
+//  RodiKakaoMapRenderRecovery.swift
 //  Rodi
 //
 //  Created by Codex on 7/1/26.
