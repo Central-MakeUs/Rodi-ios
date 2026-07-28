@@ -2,14 +2,60 @@
 //  HomeReducer.swift
 //  Rodi
 //
-//  Created by mac on 7/1/26.
-//
 
 import Foundation
 
+/// Home feature 간의 명시적인 신호만 연결하는 조정자다.
+/// 지도와 바텀싯의 도메인 로직은 각각의 child reducer가 소유한다.
 struct HomeReducer: Reducer {
-    let placeRepository: PlaceRepository
-    let hasActiveSession: () -> Bool
+    struct State {
+        var map = HomeMapReducer.State()
+        var bottomSheet = HomeBottomSheetReducer.State()
+        var presentation = HomePresentationState()
+
+        var visibleItems: [RodiCourseItem] {
+            map.items
+        }
+
+        var overlayState: HomeOverlayState? {
+            if map.isRetryingAfterNetworkFailure { return .loading(.map) }
+            if map.isNetworkUnavailable { return .networkUnavailable }
+            if let mapErrorMessage = map.errorMessage { return .mapUnavailable(message: mapErrorMessage) }
+            if map.isLoading { return .loading(.map) }
+            return nil
+        }
+
+        var displayedMapMarkers: [RodiMapMarker] {
+            if bottomSheet.selectedItem?.type == .course,
+               bottomSheet.selectedRouteOverlay != nil {
+                return []
+            }
+
+            if let selectedItem = bottomSheet.selectedItem {
+                return selectedItem.mapMarker.map {
+                    [RodiMapMarker(
+                        id: $0.id,
+                        kind: $0.kind,
+                        title: $0.title,
+                        coordinate: $0.coordinate,
+                        isSelected: true
+                    )]
+                } ?? []
+            }
+
+            return map.visibleMapMarkers
+        }
+    }
+
+    enum Action {
+        case map(HomeMapReducer.Action)
+        case bottomSheet(HomeBottomSheetReducer.Action)
+        case presentation(HomePresentationReducer.Action)
+    }
+
+    private let mapReducer = HomeMapReducer()
+    private let bottomSheetReducer: HomeBottomSheetReducer
+    private let presentationReducer = HomePresentationReducer()
 
     init(
         placeRepository: PlaceRepository,
@@ -19,32 +65,66 @@ struct HomeReducer: Reducer {
                 .contains { $0?.isEmpty == false }
         }
     ) {
-        self.placeRepository = placeRepository
-        self.hasActiveSession = hasActiveSession
+        bottomSheetReducer = HomeBottomSheetReducer(
+            placeRepository: placeRepository,
+            hasActiveSession: hasActiveSession
+        )
     }
 
-    func reduce(_ state: inout HomeState, with action: HomeAction) -> Effect<HomeAction> {
+    func reduce(_ state: inout State, with action: Action) -> Effect<Action> {
         switch action {
-        case .viewAction(let action):
-            return reduceViewAction(action, state: &state)
+        case .map(.delegate(let delegate)):
+            return handleMapDelegate(delegate)
 
-        case .runtimeAction(let action):
-            return reduceRuntimeAction(action, state: &state)
+        case .map(let action):
+            return mapReducer
+                .reduce(&state.map, with: action)
+                .map(Action.map)
 
-        case .mapAction(let action):
-            return reduceMapAction(action, state: &state)
+        case .bottomSheet(.delegate(let delegate)):
+            return handleBottomSheetDelegate(delegate, state: &state)
 
-        case .routeAction(let action):
-            return reduceRouteAction(action, state: &state)
+        case .bottomSheet(let action):
+            return bottomSheetReducer
+                .reduce(&state.bottomSheet, with: action)
+                .map(Action.bottomSheet)
 
-        case .placeListAction(let action):
-            return reducePlaceListAction(action, state: &state)
-
-        case .presentationAction(let action):
-            return reducePresentationAction(action, state: &state)
-
-        case .delegate(let action):
-            return reduceDelegateAction(action, state: &state)
+        case .presentation(let action):
+            return presentationReducer
+                .reduce(&state.presentation, with: action)
+                .map(Action.presentation)
         }
+    }
+
+    private func handleMapDelegate(_ delegate: HomeMapReducer.Delegate) -> Effect<Action> {
+        switch delegate {
+        case .prepareInitialPlaceListSearch(let origin):
+            return .run { send in
+                await send(.bottomSheet(.placeList(.prepareInitialSearch(origin: origin))))
+            }
+        }
+    }
+
+    private func handleBottomSheetDelegate(
+        _ delegate: HomeBottomSheetReducer.Delegate,
+        state: inout State
+    ) -> Effect<Action> {
+        switch delegate {
+        case .focusMapOnParking(let coordinate):
+            return .run { send in
+                await send(.map(.focusParking(coordinate)))
+            }
+
+        case .showSnackbar(let message):
+            return .run { send in
+                await send(.presentation(.showSnackbar(message)))
+            }
+
+        case .requestAuthentication:
+            return .run { send in
+                await send(.presentation(.requestAuthentication))
+            }
+        }
+
     }
 }
