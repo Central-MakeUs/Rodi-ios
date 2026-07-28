@@ -10,23 +10,26 @@ struct MyDrivingGoalView: View {
         static let characterLimit = 30
     }
 
-    let memberRepository: MemberRepository
     let onUpdated: (MemberProfile) -> Void
+    let backAction: () -> Void
 
-    @Environment(\.dismiss) private var dismiss
-    @State private var drivingGoal: String
+    @StateObject private var store: StoreOf<MyDrivingGoalReducer>
     @FocusState private var isFieldFocused: Bool
-    @State private var isSaving = false
-    @State private var snackbarMessage: String?
 
     init(
         initialDrivingGoal: String,
         memberRepository: MemberRepository,
-        onUpdated: @escaping (MemberProfile) -> Void
+        onUpdated: @escaping (MemberProfile) -> Void,
+        backAction: @escaping () -> Void
     ) {
-        self.memberRepository = memberRepository
         self.onUpdated = onUpdated
-        _drivingGoal = State(initialValue: initialDrivingGoal)
+        self.backAction = backAction
+        _store = StateObject(
+            wrappedValue: Store(
+                state: MyDrivingGoalReducer.State(drivingGoal: initialDrivingGoal),
+                reducer: MyDrivingGoalReducer(memberRepository: memberRepository)
+            )
+        )
     }
 
     var body: some View {
@@ -40,7 +43,10 @@ struct MyDrivingGoalView: View {
                     .padding(.bottom, 12)
 
                 RodiTextField(
-                    text: $drivingGoal,
+                    text: Binding(
+                        get: { store.state.drivingGoal },
+                        set: { store.send(.drivingGoalChanged($0)) }
+                    ),
                     placeholder: "ex)강남 운전 자신있게 하기!",
                     characterLimit: Metrics.characterLimit,
                     isFocused: $isFieldFocused
@@ -54,7 +60,7 @@ struct MyDrivingGoalView: View {
                         .stroke(isFieldFocused ? RodiColor.gray850 : RodiColor.gray300, lineWidth: 1)
                 }
 
-                Text("\(drivingGoal.count) / \(Metrics.characterLimit)")
+                Text("\(store.state.drivingGoal.count) / \(Metrics.characterLimit)")
                     .rodiTypography(.body3Medium)
                     .foregroundStyle(RodiColor.gray600)
                     .frame(maxWidth: .infinity, alignment: .trailing)
@@ -72,7 +78,12 @@ struct MyDrivingGoalView: View {
         }
         .background(RodiColor.white)
         .toolbar(.hidden, for: .navigationBar)
-        .rodiSnackbar(message: snackbarMessage)
+        .rodiSnackbar(message: store.state.errorMessage)
+        .onChange(of: store.state.updatedProfile) { profile in
+            guard let profile else { return }
+            onUpdated(profile)
+            backAction()
+        }
     }
 
     private var header: some View {
@@ -82,7 +93,7 @@ struct MyDrivingGoalView: View {
                 .foregroundStyle(RodiColor.black)
 
             HStack {
-                Button(action: dismiss.callAsFunction) {
+                Button(action: backAction) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 18, weight: .medium))
                         .foregroundStyle(RodiColor.black)
@@ -95,15 +106,15 @@ struct MyDrivingGoalView: View {
 
                 Button(action: saveDrivingGoal) {
                     Circle()
-                        .fill(canSave ? RodiColor.primary : RodiColor.primary100)
+                        .fill(store.state.canSave ? RodiColor.primary : RodiColor.primary100)
                         .frame(width: 24, height: 24)
                         .overlay {
-                            if isSaving {
+                            if store.state.isSaving {
                                 ProgressView()
                                     .tint(RodiColor.white)
                                     .scaleEffect(0.65)
                             } else {
-                                Image(canSave ? "ic_driving_goal_check_active" : "ic_driving_goal_check_inactive")
+                                Image(store.state.canSave ? "ic_driving_goal_check_active" : "ic_driving_goal_check_inactive")
                                     .resizable()
                                     .scaledToFit()
                                     .frame(width: 16, height: 16)
@@ -111,7 +122,7 @@ struct MyDrivingGoalView: View {
                         }
                 }
                 .buttonStyle(.plain)
-                .disabled(!canSave || isSaving)
+                .disabled(!store.state.canSave || store.state.isSaving)
                 .accessibilityLabel("운전 목표 저장")
             }
         }
@@ -119,38 +130,8 @@ struct MyDrivingGoalView: View {
         .padding(.horizontal, 16)
     }
 
-    private var canSave: Bool {
-        drivingGoal.trimmingCharacters(in: .whitespacesAndNewlines).count >= 2
-    }
-
     private func saveDrivingGoal() {
-        guard canSave, !isSaving else { return }
-
-        isSaving = true
         isFieldFocused = false
-
-        Task {
-            do {
-                let normalizedGoal = drivingGoal.trimmingCharacters(in: .whitespacesAndNewlines)
-                try await memberRepository.updateDrivingGoal(normalizedGoal)
-                let updatedProfile = try await memberRepository.fetchMyProfile()
-                onUpdated(updatedProfile)
-                dismiss()
-            } catch {
-                showSnackbar()
-            }
-            isSaving = false
-        }
-    }
-
-    private func showSnackbar() {
-        let message = "작성해주신 목표가 정상적으로 처리되지 못했어요.\n다시 한번 시도해주세요."
-        snackbarMessage = message
-
-        Task {
-            try? await Task.sleep(for: .seconds(3))
-            guard snackbarMessage == message else { return }
-            snackbarMessage = nil
-        }
+        store.send(.saveTapped)
     }
 }

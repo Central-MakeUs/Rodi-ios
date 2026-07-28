@@ -6,40 +6,48 @@
 import SwiftUI
 
 struct SavedPlacesView: View {
-    @StateObject private var viewModel: SavedPlacesViewModel
+    @StateObject private var store: StoreOf<MySavedPlacesReducer>
     let selectPlaceAction: (PlaceListItem) -> Void
+    let backAction: () -> Void
 
     init(
         placeRepository: PlaceRepository,
+        backAction: @escaping () -> Void,
         selectPlaceAction: @escaping (PlaceListItem) -> Void = { _ in }
     ) {
-        _viewModel = StateObject(wrappedValue: SavedPlacesViewModel(placeRepository: placeRepository))
+        _store = StateObject(
+            wrappedValue: Store(
+                state: MySavedPlacesReducer.State(),
+                reducer: MySavedPlacesReducer(placeRepository: placeRepository)
+            )
+        )
+        self.backAction = backAction
         self.selectPlaceAction = selectPlaceAction
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            MySubpageHeader(title: "저장 목록")
+            MySubpageHeader(title: "저장 목록", backAction: backAction)
 
             content
         }
         .background(RodiColor.white)
         .toolbar(.hidden, for: .navigationBar)
         .task {
-            await viewModel.loadIfNeeded()
+            store.send(.appeared)
         }
     }
 
     @ViewBuilder
     private var content: some View {
-        if viewModel.isInitialLoading, viewModel.items.isEmpty {
+        if store.state.isInitialLoading, store.state.items.isEmpty {
             ProgressView()
                 .tint(RodiColor.primary)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else if viewModel.items.isEmpty {
-            if let errorMessage = viewModel.errorMessage {
+        } else if store.state.items.isEmpty {
+            if let errorMessage = store.state.errorMessage {
                 SavedPlacesErrorView(message: errorMessage) {
-                    Task { await viewModel.reload() }
+                    store.send(.retryTapped)
                 }
             } else {
                 SavedPlacesEmptyView()
@@ -47,7 +55,7 @@ struct SavedPlacesView: View {
         } else {
             ScrollView {
                 LazyVStack(spacing: 0) {
-                    Text("\(viewModel.totalCount ?? viewModel.items.count)개")
+                    Text("\(store.state.totalCount ?? store.state.items.count)개")
                         .rodiTypography(.caption2Medium)
                         .foregroundStyle(RodiColor.gray700)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -55,10 +63,10 @@ struct SavedPlacesView: View {
                         .padding(.top, 8)
                         .padding(.bottom, 8)
 
-                    ForEach(viewModel.items) { item in
+                    ForEach(store.state.items) { item in
                         PlaceListItemCard(item: item, selectAction: selectPlaceAction)
 
-                        if item.id != viewModel.items.last?.id {
+                        if item.id != store.state.items.last?.id {
                             Rectangle()
                                 .fill(RodiColor.primaryMinus100)
                                 .frame(height: 1)
@@ -66,22 +74,22 @@ struct SavedPlacesView: View {
                         }
                     }
 
-                    if viewModel.isNextPageLoading {
+                    if store.state.isNextPageLoading {
                         ProgressView()
                             .tint(RodiColor.primary)
                             .padding(.vertical, 20)
-                    } else if let lastItem = viewModel.items.last {
+                    } else if let lastItem = store.state.items.last {
                         Color.clear
                             .frame(height: 1)
                             .onAppear {
-                                Task { await viewModel.loadNextPageIfNeeded(after: lastItem) }
+                                store.send(.lastItemAppeared(lastItem))
                             }
                     }
 
-                    if let errorMessage = viewModel.errorMessage {
+                    if let errorMessage = store.state.errorMessage {
                         SavedPlacesErrorView(message: errorMessage) {
-                            if let lastItem = viewModel.items.last {
-                                Task { await viewModel.loadNextPageIfNeeded(after: lastItem) }
+                            if store.state.items.last != nil {
+                                store.send(.retryTapped)
                             }
                         }
                         .padding(.vertical, 16)
