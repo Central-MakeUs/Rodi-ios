@@ -29,7 +29,6 @@ struct OnboardingEntryReducer: Reducer {
     }
 
     enum Action {
-        case debugOnboardingTapped
         case browseTapped
         case onKakaoLoginTapped
         case onAppleLoginTapped
@@ -55,9 +54,6 @@ struct OnboardingEntryReducer: Reducer {
 
     func reduce(_ state: inout State, with action: Action) -> Effect<Action> {
         switch action {
-        case .debugOnboardingTapped:
-            break
-
         case .browseTapped:
             authRepository.clearSession()
             RodiLogger.info("Browse mode started; local auth session cleared")

@@ -6,87 +6,73 @@
 import SwiftUI
 
 struct OnboardingView: View {
+    @StateObject private var router: OnboardingRouter
     @StateObject private var store: StoreOf<OnboardingReducer>
 
-    enum Mode: Equatable {
-        case production
-        #if DEBUG
-        case debugTesting
-        #endif
-
-        var persistsDraft: Bool {
-            #if DEBUG
-            self != .debugTesting
-            #else
-            true
-            #endif
-        }
-    }
-
     private let onComplete: () -> Void
-    private let onDebugOnboarding: () -> Void
     private let automaticLoginProvider: SocialLoginProvider?
     private let automaticLoginRequestConsumed: () -> Void
 
     @MainActor
     init(
         onComplete: @escaping () -> Void,
-        mode: Mode = .production,
-        onDebugOnboarding: @escaping () -> Void = {},
         automaticLoginProvider: SocialLoginProvider? = nil,
         automaticLoginRequestConsumed: @escaping () -> Void = {}
     ) {
         let draftStore = OnboardingDraftStore()
         let recentLoginProviderStore = AuthDependencyContainer.shared.recentLoginProviderStore
-        #if DEBUG
-        let isDebugTesting = mode == .debugTesting
-        #else
-        let isDebugTesting = false
-        #endif
+        let payload = draftStore.load()
+        let recentLoginProvider = recentLoginProviderStore.load()
+        let initialRoute = OnboardingReducer.initialRoute(payload: payload)
 
+        _router = StateObject(wrappedValue: OnboardingRouter(initialRoute: initialRoute))
         _store = StateObject(
             wrappedValue: Store(
                 state: OnboardingReducer.State(
-                    draft: isDebugTesting ? nil : draftStore.load(),
-                    recentLoginProvider: isDebugTesting ? nil : recentLoginProviderStore.load(),
-                    isDebugTesting: isDebugTesting
+                    payload: payload,
+                    initialRoute: initialRoute,
+                    recentLoginProvider: recentLoginProvider
                 ),
                 reducer: OnboardingReducer(
-                    isDebugTesting: isDebugTesting,
-                    memberRepository: AuthDependencyContainer.shared.memberRepository,
                     draftStore: draftStore,
-                    persistsDraft: mode.persistsDraft
+                    progressStore: OnboardingProgressStore(draftStore: draftStore),
+                    persistsDraft: true
                 )
             )
         )
         self.onComplete = onComplete
-        self.onDebugOnboarding = onDebugOnboarding
         self.automaticLoginProvider = automaticLoginProvider
         self.automaticLoginRequestConsumed = automaticLoginRequestConsumed
     }
 
     var body: some View {
-        OnboardingContainer(step: store.state.route) {
+        OnboardingContainer(step: router.route) {
             screenView
         } onBack: {
-            store.send(.navigation(.backTapped))
+            guard let route = router.goBack() else { return }
+            store.send(.routeChanged(route))
         }
         .alert("로그인에 실패했어요", isPresented: loginFailureBinding) {
-            Button("확인") { store.send(.presentation(.dismissLoginFailure)) }
+            Button("확인") {
+                store.send(.dismissLoginFailure)
+            }
         } message: {
             Text(loginFailureMessage)
         }
         .rodiSnackbar(message: snackbarMessage)
-        .overlay { overlay }
-        .onOpenURL { store.send(.screen(.entry(.openedURL($0)))) }
+        .overlay { presentationOverlay }
+        .onOpenURL { url in
+            store.send(.screen(route: router.route, action: .entry(.openedURL(url))))
+        }
         .onAppear(perform: requestAutomaticLoginIfNeeded)
+        .onChange(of: store.state.requestedRoute) { route in
+            guard let route else { return }
+            router.navigate(to: route)
+            store.send(.routeChanged(route))
+        }
         .onChange(of: store.state.didComplete) { didComplete in
             guard didComplete else { return }
             onComplete()
-        }
-        .onChange(of: store.state.debugOnboardingRequestID) { requestID in
-            guard requestID > 0 else { return }
-            onDebugOnboarding()
         }
     }
 
@@ -94,36 +80,47 @@ struct OnboardingView: View {
     private var screenView: some View {
         switch store.state.screen {
         case .entry(let state):
-            OnboardingEntryView(state: state, send: { store.send(.screen(.entry($0))) })
+            OnboardingEntryView(state: state) {
+                store.send(.screen(route: router.route, action: .entry($0)))
+            }
         case .terms(let state):
-            OnboardingTermsView(state: state, send: { store.send(.screen(.terms($0))) })
+            OnboardingTermsView(state: state) {
+                store.send(.screen(route: router.route, action: .terms($0)))
+            }
         case .nickname(let state):
-            OnboardingNicknameView(state: state, send: { store.send(.screen(.nickname($0))) })
+            OnboardingNicknameView(state: state) {
+                store.send(.screen(route: router.route, action: .nickname($0)))
+            }
         case .drivingExperience(let state):
-            OnboardingDrivingExperienceView(state: state, send: { store.send(.screen(.drivingExperience($0))) })
+            OnboardingDrivingExperienceView(state: state) {
+                store.send(.screen(route: router.route, action: .drivingExperience($0)))
+            }
         case .optionalDrivingPreference(let state):
-            OnboardingOptionalDrivingPreferenceView(
-                state: state,
-                send: { store.send(.screen(.optionalDrivingPreference($0))) }
-            )
+            OnboardingOptionalDrivingPreferenceView(state: state) {
+                store.send(.screen(route: router.route, action: .optionalDrivingPreference($0)))
+            }
         case .safety(let state):
-            OnboardingSafetyView(state: state, send: { store.send(.screen(.safety($0))) })
+            OnboardingSafetyView(state: state) {
+                store.send(.screen(route: router.route, action: .safety($0)))
+            }
         case .locationPermission:
-            OnboardingLocationPermissionView(send: { store.send(.screen(.locationPermission($0))) })
+            OnboardingLocationPermissionView {
+                store.send(.screen(route: router.route, action: .locationPermission($0)))
+            }
         }
     }
 
     @ViewBuilder
-    private var overlay: some View {
+    private var presentationOverlay: some View {
         switch store.state.presentation {
         case .withdrawal(let state):
             WithdrawalAccountDialog(
                 state: state,
                 restoreAction: {
                     guard case .restore(let recovery) = state else { return }
-                    store.send(.presentation(.restoreWithdrawal(recovery)))
+                    store.send(.restoreWithdrawal(recovery))
                 },
-                dismissAction: { store.send(.presentation(.dismissWithdrawal)) }
+                dismissAction: { store.send(.dismissWithdrawal) }
             )
             .transition(.opacity)
         case .analyzing:
@@ -132,7 +129,7 @@ struct OnboardingView: View {
             OnboardingAnalysisCompletionDialog(
                 analysis: presentation.result,
                 recentFrequency: presentation.recentFrequency,
-                onConfirm: { store.send(.presentation(.analysisCompletionConfirmed)) }
+                onConfirm: { store.send(.analysisCompletionConfirmed) }
             )
             .transition(.opacity)
         case .none, .loginFailure, .snackbar:
@@ -147,30 +144,24 @@ struct OnboardingView: View {
                 return false
             },
             set: { isPresented in
-                if !isPresented { store.send(.presentation(.dismissLoginFailure)) }
+                if !isPresented { store.send(.dismissLoginFailure) }
             }
         )
     }
 
     private var loginFailureMessage: String {
-        if case .loginFailure(let message) = store.state.presentation {
-            return message
-        }
-        return ""
+        guard case .loginFailure(let message) = store.state.presentation else { return "" }
+        return message
     }
 
     private var snackbarMessage: String? {
-        if case .snackbar(let message) = store.state.presentation {
-            return message
-        }
-        return nil
+        guard case .snackbar(let message) = store.state.presentation else { return nil }
+        return message
     }
 
     private func requestAutomaticLoginIfNeeded() {
         guard let automaticLoginProvider else { return }
         automaticLoginRequestConsumed()
-        store.send(.screen(.entry(
-            automaticLoginProvider == .apple ? .onAppleLoginTapped : .onKakaoLoginTapped
-        )))
+        store.send(.automaticLoginRequested(automaticLoginProvider))
     }
 }

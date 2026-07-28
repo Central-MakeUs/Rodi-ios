@@ -5,68 +5,48 @@
 
 import Foundation
 
-/// 온보딩 화면 전환과 제출처럼 여러 화면의 값을 함께 알아야 하는 일만 맡는다.
+/// 온보딩 입력, 인증, 제출, 초안 보존과 presentation을 관리한다.
+/// 실제 화면 전환은 OnboardingRouter가 수행하며, Reducer는 이동 요청만 발행한다.
 @MainActor
 struct OnboardingReducer: Reducer {
     struct State {
-        var route: OnboardingRoute
         var draft: OnboardingFlowDraft
         var screen: OnboardingScreenState
         var presentation: OnboardingPresentation?
+        var requestedRoute: OnboardingRoute?
         var didComplete = false
-        var debugOnboardingRequestID = 0
 
         init(
-            draft payload: OnboardingDraftPayload? = nil,
-            recentLoginProvider: SocialLoginProvider? = nil,
-            isDebugTesting: Bool = false
+            payload: OnboardingDraftPayload?,
+            initialRoute: OnboardingRoute,
+            recentLoginProvider: SocialLoginProvider?
         ) {
-            let flowDraft = OnboardingFlowDraft(payload: payload)
-            draft = flowDraft
-            presentation = nil
+            let draft = OnboardingFlowDraft(payload: payload)
 
-            if isDebugTesting {
-                draft.loginProvider = .kakao
-                route = .terms
-            } else if let payload,
-                      payload.providerRawValue.isEmpty == false,
-                      let savedRoute = OnboardingRoute(rawValue: payload.stepRawValue),
-                      savedRoute != .entry {
-                route = flowDraft.requiresDrivingExperienceReselection ? .drivingExperience : savedRoute
-            } else {
-                route = .entry
-            }
-
+            self.draft = draft
             screen = OnboardingScreenState.make(
-                for: route,
+                for: initialRoute,
                 draft: draft,
                 recentLoginProvider: recentLoginProvider
             )
         }
-
-        mutating func move(to route: OnboardingRoute) {
-            self.route = route
-            screen = OnboardingScreenState.make(for: route, draft: draft)
-        }
     }
 
     enum Action {
-        case navigation(NavigationAction)
-        case screen(OnboardingScreenAction)
-        case presentation(PresentationAction)
-        case submissionFinished(SubmissionOutcome)
+        case screen(route: OnboardingRoute, action: OnboardingScreenAction)
+        case routeChanged(OnboardingRoute)
+        case analysisCompletionConfirmed
+        case dismissLoginFailure
+        case dismissWithdrawal
+        case dismissSnackbar
+        case restoreWithdrawal(AuthWithdrawalRecovery)
+        case automaticLoginRequested(SocialLoginProvider)
+        case submissionCompleted(SubmissionOutcome)
+    }
 
-        enum NavigationAction {
-            case backTapped
-        }
-
-        enum PresentationAction {
-            case dismissLoginFailure
-            case dismissWithdrawal
-            case restoreWithdrawal(AuthWithdrawalRecovery)
-            case analysisCompletionConfirmed
-            case dismissSnackbar
-        }
+    private enum EffectID {
+        case submission
+        case snackbar
     }
 
     private let entryReducer: OnboardingEntryReducer
@@ -76,191 +56,222 @@ struct OnboardingReducer: Reducer {
     private let optionalPreferenceReducer = OnboardingOptionalDrivingPreferenceReducer()
     private let safetyReducer = OnboardingSafetyReducer()
     private let locationPermissionReducer = OnboardingLocationPermissionReducer()
+
     private let memberRepository: MemberRepository
     private let draftStore: OnboardingDraftStore
+    private let progressStore: OnboardingProgressStore
     private let persistsDraft: Bool
-    private let isDebugTesting: Bool
 
     init(
-        isDebugTesting: Bool,
-        memberRepository: MemberRepository,
-        draftStore: OnboardingDraftStore,
+        memberRepository: MemberRepository? = nil,
+        entryReducer: OnboardingEntryReducer? = nil,
+        draftStore: OnboardingDraftStore? = nil,
+        progressStore: OnboardingProgressStore? = nil,
         persistsDraft: Bool
     ) {
-        entryReducer = OnboardingEntryReducer()
-        self.memberRepository = memberRepository
-        self.draftStore = draftStore
+        let resolvedDraftStore = draftStore ?? OnboardingDraftStore()
+
+        self.memberRepository = memberRepository ?? AuthDependencyContainer.shared.memberRepository
+        self.entryReducer = entryReducer ?? OnboardingEntryReducer()
+        self.draftStore = resolvedDraftStore
+        self.progressStore = progressStore ?? OnboardingProgressStore(draftStore: resolvedDraftStore)
         self.persistsDraft = persistsDraft
-        self.isDebugTesting = isDebugTesting
+    }
+
+    static func initialRoute(payload: OnboardingDraftPayload?) -> OnboardingRoute {
+        let draft = OnboardingFlowDraft(payload: payload)
+
+        if let payload,
+           payload.providerRawValue.isEmpty == false,
+           let savedRoute = OnboardingRoute(rawValue: payload.stepRawValue),
+           savedRoute != .entry {
+            return draft.requiresDrivingExperienceReselection ? .drivingExperience : savedRoute
+        }
+
+        return .entry
     }
 
     func reduce(_ state: inout State, with action: Action) -> Effect<Action> {
-        let effect: Effect<Action>
-
         switch action {
-        case .navigation(.backTapped):
-            if let previous = state.route.previous {
-                state.move(to: previous)
+        case .screen(let route, let screenAction):
+            return reduceScreenAction(route: route, action: screenAction, state: &state)
+
+        case .routeChanged(let route):
+            state.screen = OnboardingScreenState.make(
+                for: route,
+                draft: state.draft
+            )
+            state.requestedRoute = nil
+            persistDraftIfNeeded(state: state, route: route)
+
+        case .analysisCompletionConfirmed:
+            state.presentation = nil
+            requestRoute(.safety, state: &state)
+            persistDraftIfNeeded(state: state, route: .safety)
+
+        case .dismissLoginFailure, .dismissWithdrawal:
+            state.presentation = nil
+
+        case .dismissSnackbar:
+            if case .snackbar = state.presentation {
+                state.presentation = nil
             }
-            effect = .none
 
-        case .screen(let action):
-            effect = reduceScreen(action, state: &state)
+        case .restoreWithdrawal(let recovery):
+            state.presentation = nil
+            return reduceScreenAction(
+                route: .entry,
+                action: .entry(.restoreTapped(recovery)),
+                state: &state
+            )
 
-        case .presentation(let action):
-            effect = reducePresentation(action, state: &state)
+        case .automaticLoginRequested(let provider):
+            guard case .entry = state.screen else { return .none }
+            return reduceScreenAction(
+                route: .entry,
+                action: provider == .kakao ? .entry(.onKakaoLoginTapped) : .entry(.onAppleLoginTapped),
+                state: &state
+            )
 
-        case .submissionFinished(let outcome):
-            effect = reduceSubmission(outcome, state: &state)
+        case .submissionCompleted(let outcome):
+            return finishSubmission(outcome, state: &state)
         }
 
-        persistDraftIfNeeded(for: state)
-        if state.didComplete, persistsDraft {
-            draftStore.clear()
-        }
-        return effect
+        return .none
     }
-}
 
-private extension OnboardingReducer {
-    func reduceScreen(
-        _ action: OnboardingScreenAction,
+    private func reduceScreenAction(
+        route: OnboardingRoute,
+        action: OnboardingScreenAction,
         state: inout State
     ) -> Effect<Action> {
+        let effect: Effect<OnboardingScreenAction>
+
         switch (state.screen, action) {
         case (.entry(var childState), .entry(let childAction)):
-            let effect = entryReducer.reduce(&childState, with: childAction)
-                .map { Action.screen(OnboardingScreenAction.entry($0)) }
+            effect = entryReducer.reduce(&childState, with: childAction).map(OnboardingScreenAction.entry)
             state.screen = .entry(childState)
-            reduceEntry(childAction, state: &state)
-            return effect
+            handleEntryAction(childAction, state: &state)
 
         case (.terms(var childState), .terms(let childAction)):
-            let effect = termsReducer.reduce(&childState, with: childAction)
-                .map { Action.screen(OnboardingScreenAction.terms($0)) }
+            effect = termsReducer.reduce(&childState, with: childAction).map(OnboardingScreenAction.terms)
             state.screen = .terms(childState)
             state.draft.agreedTerms = childState.agreedTerms
+
             if case .nextTapped = childAction, childState.isAllTermsAgreed {
-                state.move(to: state.draft.isBrowseUser ? .safety : .nickname)
+                requestRoute(state.draft.isBrowseUser ? .safety : .nickname, state: &state)
             }
-            return effect
 
         case (.nickname(var childState), .nickname(let childAction)):
-            let effect = nicknameReducer.reduce(&childState, with: childAction)
-                .map { Action.screen(OnboardingScreenAction.nickname($0)) }
+            effect = nicknameReducer.reduce(&childState, with: childAction).map(OnboardingScreenAction.nickname)
             state.screen = .nickname(childState)
             state.draft.nickname = childState.nickname
+
             if case .nextTapped = childAction, childState.canProceed {
-                state.move(to: .drivingExperience)
+                requestRoute(.drivingExperience, state: &state)
             }
-            return effect
 
         case (.drivingExperience(var childState), .drivingExperience(let childAction)):
-            let effect = drivingExperienceReducer.reduce(&childState, with: childAction)
-                .map { Action.screen(OnboardingScreenAction.drivingExperience($0)) }
+            effect = drivingExperienceReducer.reduce(&childState, with: childAction).map(OnboardingScreenAction.drivingExperience)
             state.screen = .drivingExperience(childState)
             state.draft.drivingExperience = childState.answers
+
             if case .nextTapped = childAction, childState.answers.canProceed {
-                state.move(to: .optionalDrivingPreference)
+                requestRoute(.optionalDrivingPreference, state: &state)
             }
-            return effect
 
         case (.optionalDrivingPreference(var childState), .optionalDrivingPreference(let childAction)):
-            let effect = optionalPreferenceReducer.reduce(&childState, with: childAction)
-                .map { Action.screen(OnboardingScreenAction.optionalDrivingPreference($0)) }
+            effect = optionalPreferenceReducer.reduce(&childState, with: childAction).map(OnboardingScreenAction.optionalDrivingPreference)
             state.screen = .optionalDrivingPreference(childState)
             state.draft.preferences = childState.preferences
 
             switch childAction {
             case .skipTapped:
-                return startSubmission(drivingGoal: "", state: &state)
+                return startSubmission(drivingGoal: "", route: route, state: &state)
             case .nextTapped(let goal) where childState.preferences.canProceed:
-                return startSubmission(drivingGoal: goal, state: &state)
+                return startSubmission(drivingGoal: goal, route: route, state: &state)
             default:
-                return effect
+                break
             }
 
         case (.safety(var childState), .safety(let childAction)):
-            let effect = safetyReducer.reduce(&childState, with: childAction)
-                .map { Action.screen(OnboardingScreenAction.safety($0)) }
+            effect = safetyReducer.reduce(&childState, with: childAction).map(OnboardingScreenAction.safety)
             state.screen = .safety(childState)
             state.draft.agreedSafetyItems = childState.agreedSafetyItems
+
             if case .nextTapped = childAction, childState.isAllSafetyAgreed {
-                state.move(to: .locationPermission)
+                requestRoute(.locationPermission, state: &state)
             }
-            return effect
 
         case (.locationPermission(var childState), .locationPermission(let childAction)):
-            let effect = locationPermissionReducer.reduce(&childState, with: childAction)
-                .map { Action.screen(OnboardingScreenAction.locationPermission($0)) }
+            effect = locationPermissionReducer.reduce(&childState, with: childAction).map(OnboardingScreenAction.locationPermission)
             state.screen = .locationPermission(childState)
+
             if case .continueTapped = childAction {
-                state.didComplete = true
+                finishOnboarding(state: &state)
             }
-            return effect
 
         default:
             assertionFailure("Onboarding route and screen action do not match")
             return .none
         }
+
+        let routeForPersistence = state.requestedRoute ?? route
+        persistDraftIfNeeded(state: state, route: routeForPersistence)
+
+        return effect.map { .screen(route: route, action: $0) }
     }
 
-    func reduceEntry(_ action: OnboardingEntryReducer.Action, state: inout State) {
+    private func handleEntryAction(
+        _ action: OnboardingEntryReducer.Action,
+        state: inout State
+    ) {
         switch action {
-        case .debugOnboardingTapped:
-            state.debugOnboardingRequestID += 1
         case .browseTapped:
             state.draft.isBrowseUser = true
             state.draft.loginProvider = nil
             state.presentation = nil
-            state.move(to: .terms)
+            requestRoute(.terms, state: &state)
+            RodiLogger.info("Browse mode started; local auth session cleared")
+
         case .authenticationSucceeded(let provider, let isNewMember, let nickname):
             state.presentation = nil
             state.draft.isBrowseUser = false
             state.draft.loginProvider = provider
             state.draft.nickname = nickname?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
             if isNewMember {
-                state.move(to: .terms)
+                requestRoute(.terms, state: &state)
             } else {
-                state.didComplete = true
+                finishOnboarding(state: &state)
             }
+
+        case .authenticationCancelled:
+            break
+
         case .authenticationFailed(let message):
             state.presentation = .loginFailure(message)
+
         case .withdrawalRecoveryRequired(let recovery):
             state.presentation = .withdrawal(.restore(recovery))
+
         case .withdrawalRestoreLocked(let date):
             state.presentation = .withdrawal(.rejoinLocked(rejoinAvailableAt: date))
-        case .authenticationCancelled:
-            state.presentation = nil
+
         case .onKakaoLoginTapped, .onAppleLoginTapped, .restoreTapped, .openedURL:
-            state.presentation = nil
+            break
         }
     }
 
-    func reducePresentation(
-        _ action: Action.PresentationAction,
+    private func requestRoute(_ route: OnboardingRoute, state: inout State) {
+        state.requestedRoute = route
+    }
+
+    private func startSubmission(
+        drivingGoal: String,
+        route: OnboardingRoute,
         state: inout State
     ) -> Effect<Action> {
-        switch action {
-        case .dismissLoginFailure, .dismissWithdrawal:
-            state.presentation = nil
-            return .none
-        case .restoreWithdrawal(let recovery):
-            state.presentation = nil
-            return reduceScreen(.entry(.restoreTapped(recovery)), state: &state)
-        case .analysisCompletionConfirmed:
-            state.presentation = nil
-            state.move(to: .safety)
-            return .none
-        case .dismissSnackbar:
-            if case .snackbar = state.presentation {
-                state.presentation = nil
-            }
-            return .none
-        }
-    }
-
-    func startSubmission(drivingGoal: String, state: inout State) -> Effect<Action> {
         guard state.presentation == nil,
               let submission = OnboardingSubmissionMapper.make(
                 drivingExperience: state.draft.drivingExperience,
@@ -273,50 +284,62 @@ private extension OnboardingReducer {
 
         let analysis = MemberOnboardingLevelPolicy.analyze(submission)
         state.presentation = .analyzing(
-            .init(result: analysis, recentFrequency: state.draft.drivingExperience.recentDrivingFrequency)
+            .init(
+                result: analysis,
+                recentFrequency: state.draft.drivingExperience.recentDrivingFrequency
+            )
         )
+        persistDraftIfNeeded(state: state, route: route)
+
+        let memberRepository = memberRepository
 
         return .run { send in
             let startedAt = Date()
             let outcome: SubmissionOutcome
 
-            if isDebugTesting {
+            do {
+                try await memberRepository.submitOnboarding(submission)
                 outcome = .completed
-            } else {
-                do {
-                    try await memberRepository.submitOnboarding(submission)
-                    outcome = .completed
-                } catch let error as NetworkError {
-                    outcome = Self.submissionOutcome(for: error)
-                } catch {
-                    outcome = .failed("온보딩 정보를 저장하지 못했어요. 다시 시도해 주세요.")
-                }
+            } catch let error as NetworkError {
+                outcome = Self.submissionOutcome(for: error)
+            } catch {
+                outcome = .failed("온보딩 정보를 저장하지 못했어요. 다시 시도해 주세요.")
             }
 
             let remaining = max(0, 3 - Date().timeIntervalSince(startedAt))
             if remaining > 0 {
                 try? await Task.sleep(nanoseconds: UInt64(remaining * 1_000_000_000))
             }
-            await send(.submissionFinished(outcome))
+
+            guard !Task.isCancelled else { return }
+            await send(.submissionCompleted(outcome))
         }
+        .cancelTask(id: EffectID.submission)
     }
 
-    func reduceSubmission(_ outcome: SubmissionOutcome, state: inout State) -> Effect<Action> {
+    private func finishSubmission(
+        _ outcome: SubmissionOutcome,
+        state: inout State
+    ) -> Effect<Action> {
         switch outcome {
         case .completed:
             guard case .analyzing(let analysis) = state.presentation else { return .none }
             state.presentation = .analysisComplete(analysis)
             return .none
+
         case .failed(let message):
             state.presentation = .snackbar(message)
+
             return .run { send in
                 try? await Task.sleep(for: .seconds(3))
-                await send(.presentation(.dismissSnackbar))
+                guard !Task.isCancelled else { return }
+                await send(.dismissSnackbar)
             }
+            .cancelTask(id: EffectID.snackbar)
         }
     }
 
-    static func submissionOutcome(for error: NetworkError) -> SubmissionOutcome {
+    private static func submissionOutcome(for error: NetworkError) -> SubmissionOutcome {
         switch error {
         case .networkUnavailable, .timeOut:
             .failed("네트워크 연결을 확인한 뒤 다시 시도해 주세요.")
@@ -332,13 +355,23 @@ private extension OnboardingReducer {
         }
     }
 
-    func persistDraftIfNeeded(for state: State) {
+    private func persistDraftIfNeeded(state: State, route: OnboardingRoute) {
         guard persistsDraft,
               let provider = state.draft.loginProvider,
               !state.draft.isBrowseUser,
               !state.didComplete
-        else { return }
-        draftStore.save(state.draft.payload(route: state.route, provider: provider))
+        else {
+            return
+        }
+
+        draftStore.save(state.draft.payload(route: route, provider: provider))
+    }
+
+    private func finishOnboarding(state: inout State) {
+        state.didComplete = true
+
+        guard persistsDraft else { return }
+        progressStore.markCompleted()
     }
 }
 
@@ -357,20 +390,13 @@ enum OnboardingScreenState {
         recentLoginProvider: SocialLoginProvider? = nil
     ) -> Self {
         switch route {
-        case .entry:
-            .entry(.init(recentLoginProvider: recentLoginProvider))
-        case .terms:
-            .terms(.init(agreedTerms: draft.agreedTerms))
-        case .nickname:
-            .nickname(.init(nickname: draft.nickname))
-        case .drivingExperience:
-            .drivingExperience(.init(answers: draft.drivingExperience))
-        case .optionalDrivingPreference:
-            .optionalDrivingPreference(.init(preferences: draft.preferences))
-        case .safety:
-            .safety(.init(agreedSafetyItems: draft.agreedSafetyItems))
-        case .locationPermission:
-            .locationPermission(.init())
+        case .entry: .entry(.init(recentLoginProvider: recentLoginProvider))
+        case .terms: .terms(.init(agreedTerms: draft.agreedTerms))
+        case .nickname: .nickname(.init(nickname: draft.nickname))
+        case .drivingExperience: .drivingExperience(.init(answers: draft.drivingExperience))
+        case .optionalDrivingPreference: .optionalDrivingPreference(.init(preferences: draft.preferences))
+        case .safety: .safety(.init(agreedSafetyItems: draft.agreedSafetyItems))
+        case .locationPermission: .locationPermission(.init())
         }
     }
 }

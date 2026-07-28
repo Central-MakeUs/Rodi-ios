@@ -46,20 +46,6 @@ struct OnboardingEntryView: View {
 
     private var browseRow: some View {
         HStack {
-#if DEBUG
-            Button {
-                send(.debugOnboardingTapped)
-            } label: {
-                Text("테스트 온보딩")
-                    .font(.pretendard(size: 12, weight: .semibold))
-                    .tracking(-0.24)
-                    .foregroundStyle(RodiColor.primary)
-                    .padding(.horizontal, Constants.browseHorizontalInset)
-                    .padding(.vertical, 8)
-            }
-            .buttonStyle(.plain)
-            .disabled(state.isAuthenticating)
-#endif
             Spacer()
             
             Button {
