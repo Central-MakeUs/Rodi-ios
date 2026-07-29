@@ -77,8 +77,7 @@ final class AuthRepositoryImpl: AuthRepository {
         )
         recentLoginProviderStore.save(provider)
         #if DEBUG
-        RodiLogger.debug("AccessToken: \(RodiLogger.masked(token.accessToken))")
-        RodiLogger.debug("RefreshToken: \(RodiLogger.masked(token.refreshToken))")
+        RodiLogger.debug("Swagger Access Token: \(token.accessToken)")
         #endif
     }
 
