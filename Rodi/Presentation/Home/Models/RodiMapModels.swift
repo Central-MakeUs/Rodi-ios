@@ -5,6 +5,13 @@
 
 import Foundation
 
+struct RodiMapBounds: Equatable {
+    let southWestLatitude: Double
+    let southWestLongitude: Double
+    let northEastLatitude: Double
+    let northEastLongitude: Double
+}
+
 struct RodiRouteOverlay: Equatable {
     let courseID: Int
     let points: [RodiRouteOverlayPoint]
@@ -53,5 +60,6 @@ enum RodiMapCameraFocus: Equatable {
     case currentLocation
     case koreaOverview
     case closeSingleLocation
+    case administrativeArea(RodiMapBounds)
     case cluster([RodiCoordinate])
 }

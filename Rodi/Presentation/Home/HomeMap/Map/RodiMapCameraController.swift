@@ -19,6 +19,11 @@ extension RodiKakaoMapView {
             return
         }
 
+        if case let .administrativeArea(areaBounds) = latestCameraFocus {
+            focusAdministrativeArea(areaBounds, requestID: requestID, animated: animated)
+            return
+        }
+
         let level = cameraLevel(for: map, animated: animated, focus: latestCameraFocus)
         let cameraTarget = adjustedCameraTarget(for: coordinate, level: level)
         RodiLogger.debug("Kakao map moveCamera requestID=\(requestID), center=\(RodiLogger.coordinate(cameraTarget)), original=\(RodiLogger.coordinate(coordinate)), level=\(level), currentLevel=\(map.zoomLevel), animated=\(animated), focus=\(latestCameraFocus), bottomInset=\(latestCameraBottomInset)")
@@ -84,6 +89,35 @@ extension RodiKakaoMapView {
             MapPoint(
                 longitude: maxLongitude + longitudeSpan * horizontalPadding,
                 latitude: maxLatitude + latitudeSpan * topPadding
+            )
+        ])
+        applyClusterCamera(
+            CameraUpdate.make(area: area, levelLimit: -1),
+            requestID: requestID,
+            animated: animated
+        )
+    }
+
+    func focusAdministrativeArea(
+        _ areaBounds: RodiMapBounds,
+        requestID: Int,
+        animated: Bool
+    ) {
+        guard kakaoMap != nil else { return }
+
+        let latitudeSpan = max(areaBounds.northEastLatitude - areaBounds.southWestLatitude, 0.008)
+        let longitudeSpan = max(areaBounds.northEastLongitude - areaBounds.southWestLongitude, 0.008)
+        let bottomCoverageRatio = bounds.height > 0
+            ? min(max(latestCameraBottomInset / bounds.height, 0), 0.7)
+            : 0
+        let area = AreaRect(points: [
+            MapPoint(
+                longitude: areaBounds.southWestLongitude - longitudeSpan * 0.2,
+                latitude: areaBounds.southWestLatitude - latitudeSpan * (0.25 + bottomCoverageRatio * 1.2)
+            ),
+            MapPoint(
+                longitude: areaBounds.northEastLongitude + longitudeSpan * 0.2,
+                latitude: areaBounds.northEastLatitude + latitudeSpan * 0.18
             )
         ])
         applyClusterCamera(

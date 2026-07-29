@@ -38,6 +38,7 @@ struct HomeView: View {
                 homeStore: homeStore,
                 router: router,
                 isHomeTabSelected: isHomeTabSelected,
+                onSearchRequested: presentSearch,
                 placeRepository: placeRepository
             )
         }
@@ -49,6 +50,17 @@ struct HomeView: View {
             guard requestID > 0 else { return }
             onAuthenticationRequired()
         }
+        .fullScreenCover(item: searchRouteBinding) { route in
+            switch route {
+            case .search(let origin):
+                HomeSearchView(
+                    origin: origin,
+                    onPlaceSelected: { router.completeSearch(place: $0) },
+                    onAdministrativeAreaSelected: { router.completeSearch(administrativeArea: $0) },
+                    onDismiss: router.dismissPresentedRoute
+                )
+            }
+        }
     }
 
     private func openAppSettings() {
@@ -56,6 +68,27 @@ struct HomeView: View {
         UIApplication.shared.open(url, options: [:]) { didOpen in
             RodiLogger.info("Open system app settings requested url=\(url.absoluteString), didOpen=\(didOpen)")
         }
+    }
+
+    private func presentSearch() {
+        let tokenStore = AuthDependencyContainer.shared.tokenStore
+        guard [tokenStore.accessToken, tokenStore.refreshToken].contains(where: { $0?.isEmpty == false }) else {
+            onAuthenticationRequired()
+            return
+        }
+
+        router.presentSearch(origin: homeStore.state.map.userLocationCoordinate ?? .southKoreaCenter)
+    }
+
+    private var searchRouteBinding: Binding<HomeRoute?> {
+        Binding(
+            get: { router.presentedRoute },
+            set: { route in
+                if route == nil {
+                    router.dismissPresentedRoute()
+                }
+            }
+        )
     }
 
 }

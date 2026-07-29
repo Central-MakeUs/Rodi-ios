@@ -15,6 +15,8 @@ struct HomeMapView: View {
         case locationNotice(String)
         case locationSettingsRequested
         case researchRequested
+        case searchRequested
+        case administrativeAreaSelectionCleared
     }
 
     struct Configuration {
@@ -28,6 +30,7 @@ struct HomeMapView: View {
         let allowsFloatingControlHitTesting: Bool
         let showsResearchButton: Bool
         let isResearchLoading: Bool
+        let selectedSearchResultName: String?
     }
 
     @Environment(\.scenePhase) private var scenePhase
@@ -67,15 +70,26 @@ struct HomeMapView: View {
                 retryAction: { homeStore.send(.map(.retryLoading)) }
             )
 
-            if configuration.showsResearchButton {
-                VStack {
+            if !configuration.isAccessibilityHidden {
+                VStack(spacing: 8) {
+                    HomeSearchEntryButton(
+                        selectedSearchResultName: configuration.selectedSearchResultName,
+                        action: { onOutput(.searchRequested) },
+                        clearSelectedSearchResultAction: { onOutput(.administrativeAreaSelectionCleared) }
+                    )
+
+                    if configuration.showsResearchButton {
                     HomeResearchButton(
                         isLoading: configuration.isResearchLoading,
                         action: { onOutput(.researchRequested) }
                     )
-                    .padding(.top, 64)
+
+                    }
+
                     Spacer()
                 }
+                .padding(.top, 5)
+                .padding(.horizontal, 16)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .transition(.opacity.combined(with: .scale(scale: 0.96)))
                 .zIndex(0.7)
