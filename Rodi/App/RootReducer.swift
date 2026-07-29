@@ -99,7 +99,6 @@ extension RootReducer {
         state.isRestoringSession = true
         return .run { send in
 
-
             do {
                 _ = try await authRepository.refreshToken()
                 await send(.sessionRestoreCompleted(.refreshed))

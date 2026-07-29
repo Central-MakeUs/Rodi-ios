@@ -38,7 +38,14 @@ final class Store<State, Action>: ObservableObject {
 
 private extension Store {
     func handleEffect(_ effect: Effect<Action>) {
-        if case let .run(priority, task) = effect.caseOf {
+        switch effect.caseOf {
+        case .none:
+            break
+
+        case .send(let action):
+            send(action)
+
+        case let .run(priority, task):
             let taskToStore = Task(priority: priority) { [weak self] in
                 await task { newAction in
                     if Task.isCancelled { return }
@@ -53,9 +60,8 @@ private extension Store {
                 taskMap[taskID]?.cancel()
                 taskMap[taskID] = taskToStore
             }
-        }
 
-        if case .cancel = effect.caseOf {
+        case .cancel:
             guard let taskID = effect.taskID else { return }
 
             let matchingKeys = taskMap.keys.filter { $0.id == taskID.id }

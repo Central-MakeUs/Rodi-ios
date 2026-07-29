@@ -145,18 +145,22 @@ struct OnboardingReducer: Reducer {
 
         case .restoreWithdrawal(let recovery):
             state.presentation = nil
-            return reduceScreenAction(
-                route: .entry,
-                action: .entry(.restoreTapped(recovery)),
-                state: &state
+            return .send(
+                .screen(
+                    route: .entry,
+                    action: .entry(.restoreTapped(recovery))
+                )
             )
 
         case .automaticLoginRequested(let provider):
             guard case .entry = state.screen else { return .none }
-            return reduceScreenAction(
-                route: .entry,
-                action: provider == .kakao ? .entry(.onKakaoLoginTapped) : .entry(.onAppleLoginTapped),
-                state: &state
+            return .send(
+                .screen(
+                    route: .entry,
+                    action: provider == .kakao
+                        ? .entry(.onKakaoLoginTapped)
+                        : .entry(.onAppleLoginTapped)
+                )
             )
 
         case .submissionCompleted(let outcome):

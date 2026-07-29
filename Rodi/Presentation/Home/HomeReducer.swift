@@ -74,34 +74,33 @@ struct HomeReducer: Reducer {
     func reduce(_ state: inout State, with action: Action) -> Effect<Action> {
         switch action {
         case .map(.delegate(let delegate)):
-            return handleMapDelegate(delegate)
-
+            switch delegate {
+            case .prepareInitialPlaceListSearch(origin: let origin):
+                
+                // TODO: return .send() need plz Fix
+                return .run { send in
+                    await send(.bottomSheet(.placeList(.prepareInitialSearch(origin: origin))))
+                }
+            }
+            
+        case .bottomSheet(.delegate(let delegate)):
+            return handleBottomSheetDelegate(delegate, state: &state)
+            
+            // MARK: Scope
         case .map(let action):
             return mapReducer
                 .reduce(&state.map, with: action)
                 .map(Action.map)
-
-        case .bottomSheet(.delegate(let delegate)):
-            return handleBottomSheetDelegate(delegate, state: &state)
-
+            
         case .bottomSheet(let action):
             return bottomSheetReducer
                 .reduce(&state.bottomSheet, with: action)
                 .map(Action.bottomSheet)
-
+            
         case .presentation(let action):
             return presentationReducer
                 .reduce(&state.presentation, with: action)
                 .map(Action.presentation)
-        }
-    }
-
-    private func handleMapDelegate(_ delegate: HomeMapReducer.Delegate) -> Effect<Action> {
-        switch delegate {
-        case .prepareInitialPlaceListSearch(let origin):
-            return .run { send in
-                await send(.bottomSheet(.placeList(.prepareInitialSearch(origin: origin))))
-            }
         }
     }
 

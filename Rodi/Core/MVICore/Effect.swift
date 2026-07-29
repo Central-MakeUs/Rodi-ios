@@ -23,12 +23,17 @@ struct Effect<Action>: @unchecked Sendable {
 
     enum EffectCase {
         case none
+        case send(Action)
         case run(TaskPriority? = nil, (_ send: @escaping (Action) async -> Void) async -> Void)
         case cancel
     }
 
     static var none: Self {
         Self(caseOf: .none)
+    }
+
+    static func send(_ action: Action) -> Self {
+        Self(caseOf: .send(action))
     }
 
     static func run(
@@ -46,6 +51,8 @@ struct Effect<Action>: @unchecked Sendable {
         switch caseOf {
         case .none:
             .none
+        case .send:
+            self
         case .run(let taskPriority, let action):
             Self(caseOf: .run(taskPriority, action), taskID: id)
         case .cancel:
@@ -59,6 +66,11 @@ struct Effect<Action>: @unchecked Sendable {
         switch caseOf {
         case .none:
             .none
+        case .send(let action):
+            Effect<MappedAction>(
+                caseOf: .send(transform(action)),
+                taskID: taskID?.id
+            )
         case .cancel:
             Effect<MappedAction>(caseOf: .cancel, taskID: taskID?.id)
         case .run(let priority, let task):
