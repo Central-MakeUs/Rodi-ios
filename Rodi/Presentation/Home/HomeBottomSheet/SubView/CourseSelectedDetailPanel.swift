@@ -114,7 +114,7 @@ struct CourseSelectedDetailPanel: View {
 
             if let cautionText {
                 HStack(spacing: 4) {
-                    Image("ic_alert_triangle_primary")
+                    Image("ic_alert_triangle")
                         .resizable()
                         .scaledToFit()
                         .frame(width: 14, height: 14)
@@ -123,7 +123,7 @@ struct CourseSelectedDetailPanel: View {
                         .rodiTypography(.caption1Medium)
                         .lineLimit(1)
                 }
-                .foregroundStyle(RodiColor.primary)
+                .foregroundStyle(RodiColor.secondary400)
                 .padding(.top, 8)
                 .padding(.bottom, 12)
             }
