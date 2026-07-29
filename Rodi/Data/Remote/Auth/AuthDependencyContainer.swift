@@ -14,6 +14,7 @@ final class AuthDependencyContainer {
     let authRepository: AuthRepository
     let memberRepository: MemberRepository
     let placeRepository: PlaceRepository
+    let recentSearchRepository: RecentSearchRepository
     let recentLoginProviderStore: RecentLoginProviderStore
 
     private init() {
@@ -45,6 +46,9 @@ final class AuthDependencyContainer {
         self.placeRepository = PlaceRepositoryImpl(
             publicNetworkManager: unauthenticatedNetworkManager,
             authenticatedNetworkManager: authenticatedNetworkManager
+        )
+        self.recentSearchRepository = RecentSearchRepositoryImpl(
+            networkManager: authenticatedNetworkManager
         )
     }
 }
