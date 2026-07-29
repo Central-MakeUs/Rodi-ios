@@ -9,6 +9,7 @@ import Foundation
 enum PlaceTarget: TargetType {
     case coordinates
     case list(PlaceListQuery)
+    case search(PlaceSearchQuery)
     case bookmarks(PlaceBookmarkListQuery)
     case detail(id: Int)
     case bookmark(id: Int)
@@ -16,7 +17,7 @@ enum PlaceTarget: TargetType {
 
     var method: HTTPMethod {
         switch self {
-        case .coordinates, .list, .bookmarks, .detail:
+        case .coordinates, .list, .search, .bookmarks, .detail:
             .get
         case .bookmark:
             .post
@@ -31,6 +32,8 @@ enum PlaceTarget: TargetType {
             "/api/v1/places/coordinates"
         case .list:
             "/api/v1/places"
+        case .search:
+            "/api/v1/places/search"
         case .bookmarks:
             "/api/v1/places/bookmarks"
         case .detail(let id):
@@ -58,6 +61,17 @@ enum PlaceTarget: TargetType {
                 parameters["cursor"] = cursor
             }
             return parameters
+        case .search(let query):
+            var parameters: Parameters = [
+                "keyword": query.keyword,
+                "lat": query.currentLatitude,
+                "lng": query.currentLongitude,
+                "size": query.size
+            ]
+            if let cursor = query.cursor, !cursor.isEmpty {
+                parameters["cursor"] = cursor
+            }
+            return parameters
         case .bookmarks(let query):
             var parameters: Parameters = ["size": query.size]
             if let cursor = query.cursor, !cursor.isEmpty {
@@ -73,7 +87,7 @@ enum PlaceTarget: TargetType {
 
     var encodingType: EncodingType {
         switch self {
-        case .list, .bookmarks:
+        case .list, .search, .bookmarks:
             .url
         default:
             .json
@@ -82,7 +96,7 @@ enum PlaceTarget: TargetType {
 
     var requiresAuthentication: Bool {
         switch self {
-        case .bookmarks, .detail, .bookmark, .unbookmark:
+        case .search, .bookmarks, .detail, .bookmark, .unbookmark:
             true
         case .coordinates, .list:
             false

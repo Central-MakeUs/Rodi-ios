@@ -94,6 +94,29 @@ struct PlaceListQuery: Equatable {
     }
 }
 
+/// `/api/v1/places/search`의 전국 키워드 검색 요청입니다.
+struct PlaceSearchQuery: Equatable {
+    let keyword: String
+    let currentLatitude: Double
+    let currentLongitude: Double
+    let size: Int
+    let cursor: String?
+
+    init(
+        keyword: String,
+        currentLatitude: Double,
+        currentLongitude: Double,
+        size: Int = 20,
+        cursor: String? = nil
+    ) {
+        self.keyword = keyword
+        self.currentLatitude = currentLatitude
+        self.currentLongitude = currentLongitude
+        self.size = size
+        self.cursor = cursor
+    }
+}
+
 /// `/api/v1/places/bookmarks`의 커서 페이지 요청입니다.
 struct PlaceBookmarkListQuery: Equatable {
     let size: Int

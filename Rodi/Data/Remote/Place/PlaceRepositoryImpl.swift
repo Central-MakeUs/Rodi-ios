@@ -43,6 +43,17 @@ final class PlaceRepositoryImpl: PlaceRepository {
         return try mapCursorPage(data)
     }
 
+    func searchPlaces(query: PlaceSearchQuery) async throws(NetworkError) -> PlaceCursorPage {
+        let response = try await authenticatedNetworkManager.request(
+            PlaceTarget.search(query),
+            as: ServerResponse<PlaceCursorPageDTO>.self
+        )
+        guard response.isSuccess, let data = response.data else {
+            throw .apiError(code: response.code, message: response.message)
+        }
+        return try mapCursorPage(data)
+    }
+
     func fetchBookmarkedPlaces(query: PlaceBookmarkListQuery) async throws(NetworkError) -> PlaceCursorPage {
         let response = try await authenticatedNetworkManager.request(
             PlaceTarget.bookmarks(query),
