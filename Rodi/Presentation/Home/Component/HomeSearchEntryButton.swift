@@ -33,10 +33,14 @@ struct HomeSearchEntryButton: View {
 
                             Spacer(minLength: 0)
                         }
+                        .padding(.trailing, 16)
+                        .frame(maxWidth: .infinity, minHeight: 46, alignment: .leading)
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("\(selectedSearchResultName) 다시 검색")
                 }
+                .padding(.leading, 12)
             } else {
                 Button(action: action) {
                     HStack(spacing: 8) {
@@ -53,13 +57,14 @@ struct HomeSearchEntryButton: View {
 
                         Spacer(minLength: 0)
                     }
+                    .padding(.horizontal, 12)
+                    .frame(maxWidth: .infinity, minHeight: 46, alignment: .leading)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("장소 검색")
             }
         }
-        .padding(.leading, 12)
-        .padding(.trailing, 16)
         .frame(maxWidth: .infinity, minHeight: 46)
         .background(RodiColor.white)
         .clipShape(RoundedRectangle(cornerRadius: 8))

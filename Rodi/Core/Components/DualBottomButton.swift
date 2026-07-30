@@ -64,26 +64,15 @@ private struct ProportionalButtonRowLayout: Layout {
     private let spacing: CGFloat = 6
     private let secondaryRatio: CGFloat = 0.4
 
-    func sizeThatFits(
-        proposal: ProposedViewSize,
-        subviews: Subviews,
-        cache: inout ()
-    ) -> CGSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         let height = subviews.map { $0.sizeThatFits(.unspecified).height }.max() ?? 0
         return CGSize(width: proposal.width ?? 0, height: height)
     }
 
-    func placeSubviews(
-        in bounds: CGRect,
-        proposal: ProposedViewSize,
-        subviews: Subviews,
-        cache: inout ()
-    ) {
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         guard subviews.count == 2 else { return }
-
         let availableWidth = max(bounds.width - spacing, 0)
         let secondaryWidth = availableWidth * secondaryRatio
-        let primaryWidth = availableWidth - secondaryWidth
 
         subviews[0].place(
             at: CGPoint(x: bounds.minX, y: bounds.minY),
@@ -93,7 +82,7 @@ private struct ProportionalButtonRowLayout: Layout {
         subviews[1].place(
             at: CGPoint(x: bounds.minX + secondaryWidth + spacing, y: bounds.minY),
             anchor: .topLeading,
-            proposal: ProposedViewSize(width: primaryWidth, height: bounds.height)
+            proposal: ProposedViewSize(width: availableWidth - secondaryWidth, height: bounds.height)
         )
     }
 }

@@ -65,7 +65,8 @@ struct HomeRecentSearchList: View {
 
                                     Spacer(minLength: 0)
                                 }
-                                .frame(height: 61)
+                                .frame(maxWidth: .infinity, minHeight: 61, alignment: .leading)
+                                .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
 

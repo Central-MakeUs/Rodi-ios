@@ -40,6 +40,20 @@ struct CourseBottomSheet<Drag: Gesture>: View {
                     routeGuidancePermissionAction: actions.requestLocationPermission,
                     bookmarkAction: actions.toggleBookmark
                 )
+            } else if content.isFilterPresented {
+                HomePracticeFilterView(
+                    selection: content.filterSelection,
+                    isApplying: content.isFilterApplying,
+                    canApply: content.canApplyFilter,
+                    resetAction: actions.resetFilter,
+                    selectCategoryAction: actions.selectFilterCategory,
+                    toggleTypeAction: actions.toggleFilterType,
+                    selectAllAction: actions.selectAllFilterTypes,
+                    applyAction: actions.applyFilter
+                )
+                .frame(maxWidth: .infinity)
+                .frame(height: listViewportHeight, alignment: .top)
+                .clipped()
             } else {
                 PlaceListView(
                     items: content.placeItems,
@@ -95,7 +109,7 @@ struct CourseBottomSheet<Drag: Gesture>: View {
         return max(0, visibleHeight - dragHandleHeight - listHeaderHeight)
     }
 
-    private var headerTitle: String { "추천 목록" }
+    private var headerTitle: String { content.isFilterPresented ? "필터" : "추천 목록" }
 
     private let courseLocationButtonSize: CGFloat = 40
     private let courseLocationButtonSpacing: CGFloat = 12
@@ -123,7 +137,8 @@ struct CourseBottomSheet<Drag: Gesture>: View {
                 CourseBottomSheetHeaderView(
                     title: headerTitle,
                     pageProgress: content.pageProgress,
-                    collapseAction: actions.collapse
+                    collapseAction: actions.collapse,
+                    filterAction: content.isFilterPresented ? nil : actions.presentFilter
                 )
             }
         }

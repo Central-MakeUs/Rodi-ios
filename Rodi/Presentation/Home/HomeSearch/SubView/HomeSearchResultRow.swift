@@ -24,8 +24,8 @@ struct HomeSearchResultRow: View {
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, 16)
-            .frame(height: 61)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, minHeight: 61, alignment: .leading)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(item.name) 상세 보기")

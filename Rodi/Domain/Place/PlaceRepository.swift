@@ -9,8 +9,9 @@ protocol PlaceRepository {
     /// 지도 마커와 클라이언트 클러스터링용 전체 경량 좌표 목록입니다. 공개 API입니다.
     func fetchCoordinates() async throws(NetworkError) -> [PlaceCoordinate]
 
-    /// viewport 안 장소를 현위치 거리순 cursor pagination으로 조회합니다. 공개 API입니다.
-    func fetchPlaces(query: PlaceListQuery) async throws(NetworkError) -> PlaceCursorPage
+    /// viewport 안 장소를 현위치 거리순 cursor pagination으로 조회합니다.
+    /// 회원 조회는 서버에 저장된 연습유형 정렬 필터를 반영합니다.
+    func fetchPlaces(query: PlaceListQuery, access: PlaceListAccess) async throws(NetworkError) -> PlaceCursorPage
 
     /// 키워드로 코스와 주차장을 검색합니다. JWT가 필요합니다.
     func searchPlaces(query: PlaceSearchQuery) async throws(NetworkError) -> PlaceCursorPage

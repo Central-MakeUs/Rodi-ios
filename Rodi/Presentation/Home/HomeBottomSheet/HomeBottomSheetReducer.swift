@@ -7,6 +7,23 @@ import Foundation
 
 struct HomeBottomSheetReducer: Reducer {
     struct State {
+        struct FilterState {
+            var isPresented = false
+            var appliedSelection: HomePracticeFilterSelection
+            var draftSelection: HomePracticeFilterSelection
+            var isApplying = false
+
+            init(filterStore: HomePracticeFilterStore = HomePracticeFilterStore()) {
+                let selection = filterStore.load()
+                appliedSelection = selection
+                draftSelection = selection
+            }
+
+            var canApply: Bool {
+                !isApplying && draftSelection.filterTags != appliedSelection.filterTags
+            }
+        }
+
         struct PlaceListState {
             var items: [PlaceListItem] = []
             var activeViewport: PlaceViewport?
@@ -24,6 +41,7 @@ struct HomeBottomSheetReducer: Reducer {
             var errorMessage: String?
             var needsResearch = false
             var requestRevision = 0
+            var isAdministrativeAreaSearchResults = false
         }
 
         var bottomSheetState: HomeBottomSheetState = .collapsed
@@ -37,12 +55,14 @@ struct HomeBottomSheetReducer: Reducer {
         var isPlaceDetailLoading = false
         var isBookmarkUpdating = false
         var placeList = PlaceListState()
+        var filter = FilterState()
     }
 
     enum Action {
         case sheet(SheetAction)
         case selection(SelectionAction)
         case placeList(PlaceListAction)
+        case filter(FilterAction)
         case delegate(Delegate)
     }
 
@@ -73,10 +93,26 @@ struct HomeBottomSheetReducer: Reducer {
         case viewportChanged(viewport: PlaceViewport, center: RodiCoordinate, isUserInitiated: Bool)
         case prepareInitialSearch(origin: RodiCoordinate)
         case reloadCurrentViewport(origin: RodiCoordinate?)
+        case reloadAfterFilter
+        case showAdministrativeAreaSearchResults([PlaceListItem])
+        case clearAdministrativeAreaSearchResults
         case loadNextPage
         case pageLoaded(page: PlaceCursorPage, viewport: PlaceViewport, revision: Int, isAppending: Bool, isManualResearch: Bool)
         case pageFailed(message: String, revision: Int, isAppending: Bool, isManualResearch: Bool)
         case consumeAutoExpandAfterResearch
+    }
+
+    enum FilterAction {
+        case present(mediumHeight: CGFloat)
+        case dismiss
+        case selectCategory(HomePracticeCategory)
+        case toggleType(PlacePracticeType)
+        case selectAll
+        case reset
+        case apply
+        case applied(HomePracticeFilterSelection)
+        case authenticationRequired
+        case failed(String)
     }
 
     enum Delegate {
@@ -86,7 +122,21 @@ struct HomeBottomSheetReducer: Reducer {
     }
 
     let placeRepository: PlaceRepository
+    let memberRepository: MemberRepository
+    let filterStore: HomePracticeFilterStore
     let hasActiveSession: () -> Bool
+
+    init(
+        placeRepository: PlaceRepository,
+        memberRepository: MemberRepository = AuthDependencyContainer.shared.memberRepository,
+        filterStore: HomePracticeFilterStore = HomePracticeFilterStore(),
+        hasActiveSession: @escaping () -> Bool
+    ) {
+        self.placeRepository = placeRepository
+        self.memberRepository = memberRepository
+        self.filterStore = filterStore
+        self.hasActiveSession = hasActiveSession
+    }
 
     func reduce(
         _ state: inout State,
@@ -102,9 +152,72 @@ struct HomeBottomSheetReducer: Reducer {
         case .placeList(let action):
             return reducePlaceList(action, state: &state)
 
+        case .filter(let action):
+            return reduceFilter(action, state: &state)
+
         case .delegate:
             return .none
         }
+    }
+
+    private func reduceFilter(
+        _ action: FilterAction,
+        state: inout State
+    ) -> Effect<Action> {
+        switch action {
+        case .present(let mediumHeight):
+            guard hasActiveSession() else {
+                return delegateEffect(.requestAuthentication)
+            }
+            state.bottomSheetState = .medium
+            state.sheetHeight = mediumHeight
+            state.filter.draftSelection = state.filter.appliedSelection
+            state.filter.isPresented = true
+
+        case .dismiss:
+            state.filter.isPresented = false
+            state.filter.isApplying = false
+            state.filter.draftSelection = state.filter.appliedSelection
+
+        case .selectCategory(let category):
+            guard !state.filter.isApplying else { return .none }
+            state.filter.draftSelection.selectCategory(category)
+
+        case .toggleType(let type):
+            guard !state.filter.isApplying else { return .none }
+            state.filter.draftSelection.toggleType(type)
+
+        case .selectAll:
+            guard !state.filter.isApplying else { return .none }
+            state.filter.draftSelection.selectAll()
+
+        case .reset:
+            guard !state.filter.isApplying else { return .none }
+            state.filter.draftSelection = .default
+
+        case .apply:
+            guard state.filter.canApply else { return .none }
+            state.filter.isApplying = true
+            return updateFilterEffect(selection: state.filter.draftSelection)
+
+        case .applied(let selection):
+            state.filter.appliedSelection = selection
+            state.filter.draftSelection = selection
+            state.filter.isApplying = false
+            state.filter.isPresented = false
+            filterStore.save(selection)
+            return .send(.placeList(.reloadAfterFilter))
+
+        case .authenticationRequired:
+            state.filter.isApplying = false
+            return delegateEffect(.requestAuthentication)
+
+        case .failed(let message):
+            state.filter.isApplying = false
+            return delegateEffect(.showSnackbar(message))
+        }
+
+        return .none
     }
 
     private func reduceSheet(
@@ -315,8 +428,55 @@ struct HomeBottomSheetReducer: Reducer {
                 isManualResearch: true
             )
 
+        case .reloadAfterFilter:
+            guard let viewport = state.placeList.latestViewport,
+                  let origin = state.placeList.requestOrigin ?? state.placeList.latestViewportCenter,
+                  !state.placeList.isInitialLoading,
+                  !state.placeList.isNextPageLoading
+            else {
+                return .none
+            }
+
+            return loadFirstPage(
+                viewport: viewport,
+                origin: origin,
+                state: &state,
+                isManualResearch: false
+            )
+
+        case .showAdministrativeAreaSearchResults(let items):
+            state.placeList.requestRevision += 1
+            state.placeList.items = uniqueItems(items)
+            state.placeList.nextCursor = nil
+            state.placeList.hasNext = false
+            state.placeList.totalCount = state.placeList.items.count
+            state.placeList.isInitialLoading = false
+            state.placeList.isNextPageLoading = false
+            state.placeList.isManualResearchLoading = false
+            state.placeList.shouldAutoExpandAfterResearch = false
+            state.placeList.errorMessage = nil
+            state.placeList.needsResearch = false
+            state.placeList.isAdministrativeAreaSearchResults = true
+            return .cancel(id: HomeEffectID.placeListLoading)
+
+        case .clearAdministrativeAreaSearchResults:
+            guard state.placeList.isAdministrativeAreaSearchResults else { return .none }
+            state.placeList.requestRevision += 1
+            state.placeList.items = []
+            state.placeList.nextCursor = nil
+            state.placeList.hasNext = false
+            state.placeList.totalCount = nil
+            state.placeList.isInitialLoading = false
+            state.placeList.isNextPageLoading = false
+            state.placeList.isManualResearchLoading = false
+            state.placeList.errorMessage = nil
+            state.placeList.needsResearch = state.placeList.latestViewport != nil
+            state.placeList.isAdministrativeAreaSearchResults = false
+            return .cancel(id: HomeEffectID.placeListLoading)
+
         case .loadNextPage:
             guard !state.placeList.needsResearch,
+                  !state.placeList.isAdministrativeAreaSearchResults,
                   !state.placeList.isInitialLoading,
                   !state.placeList.isNextPageLoading,
                   state.placeList.hasNext,
@@ -359,6 +519,7 @@ struct HomeBottomSheetReducer: Reducer {
             state.placeList.isNextPageLoading = false
             state.placeList.isManualResearchLoading = false
             state.placeList.errorMessage = nil
+            state.placeList.isAdministrativeAreaSearchResults = false
             state.placeList.shouldAutoExpandAfterResearch = isManualResearch && !isAppending
 
         case let .pageFailed(message, revision, isAppending, isManualResearch):
@@ -475,6 +636,7 @@ struct HomeBottomSheetReducer: Reducer {
         state.placeList.requestOrigin = origin
         state.placeList.nextCursor = nil
         state.placeList.hasNext = false
+        state.placeList.isAdministrativeAreaSearchResults = false
 
         return loadPageEffect(
             viewport: viewport,
@@ -486,6 +648,11 @@ struct HomeBottomSheetReducer: Reducer {
         )
     }
 
+    private func uniqueItems(_ items: [PlaceListItem]) -> [PlaceListItem] {
+        var seen = Set<Int>()
+        return items.filter { seen.insert($0.id).inserted }
+    }
+
     private func loadPageEffect(
         viewport: PlaceViewport,
         origin: RodiCoordinate,
@@ -495,6 +662,7 @@ struct HomeBottomSheetReducer: Reducer {
         isManualResearch: Bool
     ) -> Effect<Action> {
         let repository = placeRepository
+        let access: PlaceListAccess = hasActiveSession() ? .member : .public
         let query = PlaceListQuery(
             viewport: viewport,
             currentLatitude: origin.latitude,
@@ -508,7 +676,7 @@ struct HomeBottomSheetReducer: Reducer {
                 if isManualResearch {
                     try await Task.sleep(for: .milliseconds(350))
                 }
-                let page = try await repository.fetchPlaces(query: query)
+                let page = try await repository.fetchPlaces(query: query, access: access)
                 await send(.placeList(.pageLoaded(
                     page: page,
                     viewport: viewport,
@@ -534,6 +702,28 @@ struct HomeBottomSheetReducer: Reducer {
             }
         }
         .cancelTask(id: HomeEffectID.placeListLoading)
+    }
+
+    private func updateFilterEffect(
+        selection: HomePracticeFilterSelection
+    ) -> Effect<Action> {
+        let repository = memberRepository
+        return .run { send in
+            do {
+                try await repository.updatePlaceFilterTags(selection.filterTags)
+                await send(.filter(.applied(selection)))
+            } catch is CancellationError {
+                return
+            } catch {
+                RodiLogger.warning("Home practice filter update failed. error=\(error.localizedDescription)")
+                if requiresAuthentication(error) {
+                    await send(.filter(.authenticationRequired))
+                    return
+                }
+                await send(.filter(.failed("필터를 적용하지 못했어요. 다시 시도해 주세요.")))
+            }
+        }
+        .cancelTask(id: HomeEffectID.practiceFilterUpdating)
     }
 
     private func loadPlaceDetailEffect(placeID: Int) -> Effect<Action> {

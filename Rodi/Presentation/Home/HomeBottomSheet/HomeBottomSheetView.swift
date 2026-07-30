@@ -32,7 +32,6 @@ struct HomeBottomSheetView: View {
     @State private var selectedDetailSettlingOffset: CGFloat?
     @State private var sheetSettlingID = UUID()
     @GestureState private var sheetDragTranslation: CGFloat = 0
-    @State private var pendingAdministrativeAreaResearchOrigin: RodiCoordinate?
 
     init(
         homeStore: StoreOf<HomeReducer>,
@@ -56,7 +55,7 @@ struct HomeBottomSheetView: View {
                 configuration: .init(
                     logoBottomInset: floatingControlBottomInset,
                     cameraBottomInset: cameraObscuredBottomInset,
-                    isInteractionEnabled: bottomSheetState != .expanded,
+                    isInteractionEnabled: bottomSheetState != .expanded && !filterState.isPresented,
                     visibilityState: mapVisibilityState,
                     isAccessibilityHidden: bottomSheetState == .expanded,
                     showsFloatingControl: !usesContentSizedSelectedDetail &&
@@ -77,7 +76,7 @@ struct HomeBottomSheetView: View {
         .coordinateSpace(name: Constants.dragCoordinateSpace)
         .onAppear {
             consumePendingPlaceSelectionIfNeeded()
-            consumePendingAdministrativeAreaIfNeeded()
+            consumePendingAdministrativeAreaSearchIfNeeded()
             router.updateBottomSheetState(bottomSheetState)
         }
         .animation(.easeOut(duration: 0.25), value: bottomSheetState)
@@ -87,8 +86,17 @@ struct HomeBottomSheetView: View {
         .onChange(of: router.pendingPlaceID) { _ in
             consumePendingPlaceSelectionIfNeeded()
         }
-        .onChange(of: router.pendingAdministrativeArea) { _ in
-            consumePendingAdministrativeAreaIfNeeded()
+        .onChange(of: router.pendingAdministrativeAreaSearch) { _ in
+            consumePendingAdministrativeAreaSearchIfNeeded()
+        }
+        .onChange(of: router.activeAdministrativeAreaSearch) { search in
+            guard search == nil,
+                  homeStore.state.map.administrativeAreaSearchItems != nil
+            else {
+                return
+            }
+            homeStore.send(.map(.clearAdministrativeAreaSearchItems))
+            homeStore.send(.bottomSheet(.placeList(.clearAdministrativeAreaSearchResults)))
         }
         .onChange(of: bottomSheetState) { state in
             router.updateBottomSheetState(state)
@@ -112,6 +120,7 @@ struct HomeBottomSheetView: View {
     private var isRouteLoading: Bool { homeStore.state.bottomSheet.isRouteLoading }
     private var routeStatusMessage: String? { homeStore.state.bottomSheet.routeStatusMessage }
     private var placeList: HomeBottomSheetReducer.State.PlaceListState { homeStore.state.bottomSheet.placeList }
+    private var filterState: HomeBottomSheetReducer.State.FilterState { homeStore.state.bottomSheet.filter }
     private var userLocationCoordinate: RodiCoordinate? { homeStore.state.map.userLocationCoordinate }
     private var hasLocationPermission: Bool { homeStore.state.map.hasLocationPermission }
     private var isCurrentLocationButtonActive: Bool { homeStore.state.map.isCurrentLocationButtonActive }
@@ -133,6 +142,10 @@ struct HomeBottomSheetView: View {
             isNextPageLoading: placeList.isNextPageLoading,
             listErrorMessage: placeList.errorMessage,
             hasNextPage: placeList.hasNext,
+            isFilterPresented: filterState.isPresented,
+            filterSelection: filterState.draftSelection,
+            isFilterApplying: filterState.isApplying,
+            canApplyFilter: filterState.canApply,
             pageProgress: hasFixedBottomSheet ? 0 : pageProgress,
             isExpanded: bottomSheetState == .expanded
         )
@@ -148,7 +161,21 @@ struct HomeBottomSheetView: View {
             reloadPlaceList: reloadPlaceList,
             loadNextPage: loadNextPlaceListPage,
             expand: expandBottomSheet,
-            collapse: collapseBottomSheet
+            collapse: collapseBottomSheet,
+            presentFilter: presentFilter,
+            resetFilter: { homeStore.send(.bottomSheet(.filter(.reset))) },
+            selectFilterCategory: { category in
+                homeStore.send(.bottomSheet(.filter(.selectCategory(category))))
+            },
+            toggleFilterType: { type in
+                homeStore.send(.bottomSheet(.filter(.toggleType(type))))
+            },
+            selectAllFilterTypes: {
+                homeStore.send(.bottomSheet(.filter(.selectAll)))
+            },
+            applyFilter: {
+                homeStore.send(.bottomSheet(.filter(.apply)))
+            }
         )
     }
 
@@ -247,7 +274,7 @@ struct HomeBottomSheetView: View {
         return selectedDetailSettlingOffset ?? max(sheetDragTranslation, 0)
     }
     private var shouldAllowSheetDrag: Bool {
-        settlingSheetHeight == nil && selectedDetailSettlingOffset == nil && (sheetLayout.shouldAllowSheetDrag || hasSelectedBottomSheet)
+        !filterState.isPresented && settlingSheetHeight == nil && selectedDetailSettlingOffset == nil && (sheetLayout.shouldAllowSheetDrag || hasSelectedBottomSheet)
     }
     private var selectedDetailDismissOpacity: CGFloat {
         guard hasFixedBottomSheet else { return 1 }
@@ -273,14 +300,13 @@ struct HomeBottomSheetView: View {
         switch output {
         case .mapReady:
             consumePendingPlaceSelectionIfNeeded()
-            consumePendingAdministrativeAreaIfNeeded()
+            consumePendingAdministrativeAreaSearchIfNeeded()
         case .markerSelected(let item):
             withAnimation(.easeOut(duration: 0.22)) {
                 homeStore.send(.bottomSheet(.selection(.selectMapItem(item, mediumHeight: mediumSheetHeight))))
             }
         case .viewportChanged(let viewport, let center, let isUserInitiated):
             homeStore.send(.bottomSheet(.placeList(.viewportChanged(viewport: viewport, center: center, isUserInitiated: isUserInitiated))))
-            reloadAdministrativeAreaResultsIfNeeded(isUserInitiated: isUserInitiated)
         case .selectionInvalidated:
             homeStore.send(.bottomSheet(.selection(.clear)))
         case .initialPlaceListSearchPrepared(let origin):
@@ -294,7 +320,7 @@ struct HomeBottomSheetView: View {
         case .searchRequested:
             onSearchRequested()
         case .administrativeAreaSelectionCleared:
-            router.clearSelectedSearchResult()
+            clearAdministrativeAreaSearchIfNeeded()
         }
     }
 
@@ -328,6 +354,7 @@ struct HomeBottomSheetView: View {
                 if shouldDismiss {
                     homeStore.send(.bottomSheet(.selection(.clear)))
                     homeStore.send(.bottomSheet(.sheet(.dismiss)))
+                    router.clearSelectedPlaceSearchResult()
                 }
                 selectedDetailSettlingOffset = nil
             }
@@ -384,6 +411,10 @@ struct HomeBottomSheetView: View {
         }
     }
 
+    private func presentFilter() {
+        homeStore.send(.bottomSheet(.filter(.present(mediumHeight: mediumSheetHeight))))
+    }
+
     private func collapseBottomSheet() {
         guard bottomSheetState != .collapsed else { return }
         withAnimation(.spring(response: 0.36, dampingFraction: 0.9)) {
@@ -395,6 +426,7 @@ struct HomeBottomSheetView: View {
         withAnimation(.easeOut(duration: 0.2)) {
             homeStore.send(.bottomSheet(.selection(.clear)))
             homeStore.send(.bottomSheet(.sheet(.dismiss)))
+            router.clearSelectedPlaceSearchResult()
         }
     }
 
@@ -410,35 +442,37 @@ struct HomeBottomSheetView: View {
         homeStore.send(.bottomSheet(.selection(.selectPlaceID(placeID, mediumHeight: mediumSheetHeight))))
     }
 
-    private func consumePendingAdministrativeAreaIfNeeded() {
+    @MainActor
+    private func consumePendingAdministrativeAreaSearchIfNeeded() {
         guard isHomeTabSelected(),
               homeStore.state.map.isReady,
-              let destination = router.consumePendingAdministrativeArea()
+              let destination = router.consumePendingAdministrativeAreaSearch()
         else {
             return
         }
 
         homeStore.send(.bottomSheet(.selection(.clear)))
-        homeStore.send(.bottomSheet(.sheet(.dismiss)))
-        pendingAdministrativeAreaResearchOrigin = destination.coordinate
+        homeStore.send(.bottomSheet(.placeList(.showAdministrativeAreaSearchResults(destination.items))))
+        homeStore.send(.bottomSheet(.sheet(.present(mediumHeight: mediumSheetHeight))))
+        homeStore.send(.map(.showAdministrativeAreaSearchItems(destination.items.map(RodiCourseItem.init(placeListItem:)))))
         homeStore.send(.map(.focusAdministrativeArea(
             destination.coordinate,
             bounds: destination.bounds
         )))
     }
 
-    private func reloadAdministrativeAreaResultsIfNeeded(isUserInitiated: Bool) {
-        guard !isUserInitiated,
-              let origin = pendingAdministrativeAreaResearchOrigin
-        else {
+    private func clearAdministrativeAreaSearchIfNeeded() {
+        guard router.activeAdministrativeAreaSearch != nil else {
+            router.clearSelectedSearchResult()
             return
         }
-
-        pendingAdministrativeAreaResearchOrigin = nil
-        homeStore.send(.bottomSheet(.placeList(.reloadCurrentViewport(origin: origin))))
+        router.clearAdministrativeAreaSearch()
+        homeStore.send(.map(.clearAdministrativeAreaSearchItems))
+        homeStore.send(.bottomSheet(.placeList(.clearAdministrativeAreaSearchResults)))
     }
 
     private func reloadPlaceList() {
+        clearAdministrativeAreaSearchIfNeeded()
         homeStore.send(.bottomSheet(.placeList(.reloadCurrentViewport(origin: userLocationCoordinate))))
     }
 
@@ -453,6 +487,7 @@ struct HomeBottomSheetView: View {
     private func requestCurrentLocationFromCourseDetail() {
         homeStore.send(.bottomSheet(.selection(.clear)))
         homeStore.send(.bottomSheet(.sheet(.resetToMedium(mediumHeight: mediumSheetHeight))))
+        router.clearSelectedPlaceSearchResult()
         homeStore.send(.map(.requestCurrentLocation))
     }
 

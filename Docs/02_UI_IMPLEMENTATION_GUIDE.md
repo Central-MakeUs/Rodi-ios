@@ -139,6 +139,8 @@ Common assets:
 - Keep non-trivial actions out of `body`; call named methods or send MVI actions.
 - Pass explicit values, bindings, and callbacks into subviews.
 - Use `Button` for tappable UI instead of gesture-only text or containers.
+- For a row or container wrapped by `Button`, apply `.contentShape(Rectangle())` to the full label layout so visual empty space is tappable as part of the same action.
+- For a screen with an active `TextField`, tap on non-interactive empty content should clear `@FocusState` and dismiss the keyboard. Do not interfere with controls nested inside that content.
 - Check iOS 16 compatibility before using newer SwiftUI APIs.
 - Keep `@State` private.
 - Use `@Binding` only when the child modifies parent-owned state.

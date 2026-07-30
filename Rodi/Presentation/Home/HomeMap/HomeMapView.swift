@@ -119,6 +119,9 @@ struct HomeMapView: View {
                 minimumCameraRequestID: homeStore.state.map.cameraRequestID
             )
         }
+        .onChange(of: homeStore.state.map.administrativeAreaSearchItems?.map(\.id)) { _ in
+            runtimeService.refreshMapMarkers(for: homeStore.state.visibleItems)
+        }
     }
 
     private func startServices() {

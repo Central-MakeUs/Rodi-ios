@@ -14,7 +14,7 @@ struct HomeReducer: Reducer {
         var presentation = HomePresentationState()
 
         var visibleItems: [RodiCourseItem] {
-            map.items
+            map.markerItems
         }
 
         var overlayState: HomeOverlayState? {

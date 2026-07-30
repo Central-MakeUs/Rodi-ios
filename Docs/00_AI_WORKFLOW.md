@@ -99,6 +99,8 @@ Do not create abstractions just to reduce line count. Do not move feature-only U
 ## Transient Feedback Rule
 
 - Use `RodiSnackbar` via `.rodiSnackbar(message:)` for every transient snackbar or toast.
+- Expand tappable row and container labels with `.contentShape(Rectangle())`; text, icons, and visual whitespace must behave as one button, except for explicitly separate controls such as a delete button.
+- Text input screens must dismiss the keyboard by clearing `@FocusState` when a user taps non-interactive empty content.
 - The standard presentation is 3 seconds, horizontal inset `16pt`, black background, bottom entry transition, and a bottom position equal to `14%` of the current screen height.
 - Do not create feature-local toast or snackbar views, feature-local placement rules, or a second top-down snackbar.
 - Keep persistent errors with an explicit recovery action, such as `다시 시도`, as an inline error state, banner, or dialog rather than a transient snackbar.

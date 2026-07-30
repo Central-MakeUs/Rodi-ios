@@ -9,6 +9,7 @@ import Foundation
 enum PlaceTarget: TargetType {
     case coordinates
     case list(PlaceListQuery)
+    case authenticatedList(PlaceListQuery)
     case search(PlaceSearchQuery)
     case bookmarks(PlaceBookmarkListQuery)
     case detail(id: Int)
@@ -17,7 +18,7 @@ enum PlaceTarget: TargetType {
 
     var method: HTTPMethod {
         switch self {
-        case .coordinates, .list, .search, .bookmarks, .detail:
+        case .coordinates, .list, .authenticatedList, .search, .bookmarks, .detail:
             .get
         case .bookmark:
             .post
@@ -30,7 +31,7 @@ enum PlaceTarget: TargetType {
         switch self {
         case .coordinates:
             "/api/v1/places/coordinates"
-        case .list:
+        case .list, .authenticatedList:
             "/api/v1/places"
         case .search:
             "/api/v1/places/search"
@@ -47,7 +48,7 @@ enum PlaceTarget: TargetType {
 
     var parameters: Parameters? {
         switch self {
-        case .list(let query):
+        case .list(let query), .authenticatedList(let query):
             var parameters: Parameters = [
                 "swLat": query.viewport.southWestLatitude,
                 "swLng": query.viewport.southWestLongitude,
@@ -87,7 +88,7 @@ enum PlaceTarget: TargetType {
 
     var encodingType: EncodingType {
         switch self {
-        case .list, .search, .bookmarks:
+        case .list, .authenticatedList, .search, .bookmarks:
             .url
         default:
             .json
@@ -96,7 +97,7 @@ enum PlaceTarget: TargetType {
 
     var requiresAuthentication: Bool {
         switch self {
-        case .search, .bookmarks, .detail, .bookmark, .unbookmark:
+        case .authenticatedList, .search, .bookmarks, .detail, .bookmark, .unbookmark:
             true
         case .coordinates, .list:
             false

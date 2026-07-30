@@ -56,7 +56,7 @@ struct HomeView: View {
                 HomeSearchView(
                     origin: origin,
                     onPlaceSelected: { router.completeSearch(place: $0) },
-                    onAdministrativeAreaSelected: { router.completeSearch(administrativeArea: $0) },
+                    onAdministrativeAreaSelected: { router.completeSearch(administrativeAreaSearch: $0) },
                     onDismiss: router.dismissPresentedRoute
                 )
             }

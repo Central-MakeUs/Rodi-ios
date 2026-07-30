@@ -17,4 +17,10 @@ struct CourseBottomSheetActions {
     let loadNextPage: () -> Void
     let expand: () -> Void
     let collapse: () -> Void
+    let presentFilter: () -> Void
+    let resetFilter: () -> Void
+    let selectFilterCategory: (HomePracticeCategory) -> Void
+    let toggleFilterType: (PlacePracticeType) -> Void
+    let selectAllFilterTypes: () -> Void
+    let applyFilter: () -> Void
 }

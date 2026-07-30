@@ -30,12 +30,15 @@ struct HomeAdministrativeAreaList: View {
                         Spacer(minLength: 0)
                     }
                     .padding(.horizontal, 16)
-                    .frame(height: 61)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: .infinity, minHeight: 61, alignment: .leading)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .frame(maxWidth: .infinity, minHeight: 61, alignment: .leading)
+                .contentShape(Rectangle())
                 .accessibilityLabel("\(area.searchDisplayName) 지도에서 보기")
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

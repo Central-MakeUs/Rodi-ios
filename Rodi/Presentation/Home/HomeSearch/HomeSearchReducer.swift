@@ -6,6 +6,11 @@
 import Foundation
 
 struct HomeSearchReducer: Reducer {
+    enum SearchContext: Equatable {
+        case regular
+        case administrativeArea(KoreanAdministrativeArea)
+    }
+
     enum ViewState: Equatable {
         case initial
         case searching
@@ -26,7 +31,9 @@ struct HomeSearchReducer: Reducer {
         var nextCursor: String?
         var snackbarMessage: String?
         var selectedPlace: PlaceListItem?
-        var selectedAdministrativeArea: KoreanAdministrativeArea?
+        var selectedAdministrativeAreaSearch: AdministrativeAreaSearchResult?
+        var searchRequestID = 0
+        var activeSearchContext: SearchContext?
     }
 
     enum Action {
@@ -35,8 +42,10 @@ struct HomeSearchReducer: Reducer {
         case searchSubmitted
         case recentSearchTapped(RecentSearch)
         case loadNextPage
-        case searchLoaded(PlaceCursorPage, query: String, isAppending: Bool)
-        case searchFailed(NetworkError, query: String, isAppending: Bool)
+        case searchLoaded(PlaceCursorPage, requestID: Int, isAppending: Bool)
+        case searchFailed(NetworkError, requestID: Int, isAppending: Bool)
+        case administrativeAreaSearchLoaded(KoreanAdministrativeArea, [PlaceListItem], requestID: Int)
+        case administrativeAreaSearchFailed(NetworkError, requestID: Int)
         case recentSearchesLoaded([RecentSearch])
         case recentSearchesFailed(NetworkError)
         case recentSearchDeleteTapped(Int)
@@ -48,7 +57,7 @@ struct HomeSearchReducer: Reducer {
         case resultTapped(PlaceListItem)
         case selectionHandled
         case administrativeAreaTapped(KoreanAdministrativeArea)
-        case administrativeAreaSelectionHandled
+        case administrativeAreaSearchSelectionHandled
         case dismissSnackbar
     }
 
@@ -86,9 +95,11 @@ struct HomeSearchReducer: Reducer {
             let query = String(rawQuery.prefix(50))
             state.query = query
             state.selectedPlace = nil
-            state.selectedAdministrativeArea = nil
+            state.selectedAdministrativeAreaSearch = nil
 
             guard normalized(query) == state.submittedQuery else {
+                state.searchRequestID += 1
+                state.activeSearchContext = nil
                 state.results = []
                 state.administrativeAreas = []
                 state.hasNextPage = false
@@ -105,25 +116,35 @@ struct HomeSearchReducer: Reducer {
             guard !query.isEmpty else { return .none }
             state.query = query
             state.submittedQuery = query
+            state.searchRequestID += 1
+            state.activeSearchContext = .regular
             state.results = []
             state.administrativeAreas = administrativeAreaSearchService.search(query: query)
             state.hasNextPage = false
             state.nextCursor = nil
             state.viewState = .searching
-            return searchEffect(keyword: query, cursor: nil, isAppending: false)
+            return searchEffect(keyword: query, cursor: nil, requestID: state.searchRequestID, isAppending: false)
 
         case .recentSearchTapped(let recentSearch):
             state.query = recentSearch.keyword
             state.submittedQuery = recentSearch.keyword
+            state.searchRequestID += 1
+            state.activeSearchContext = .regular
             state.results = []
             state.administrativeAreas = administrativeAreaSearchService.search(query: recentSearch.keyword)
             state.hasNextPage = false
             state.nextCursor = nil
             state.viewState = .searching
-            return searchEffect(keyword: recentSearch.keyword, cursor: nil, isAppending: false)
+            return searchEffect(
+                keyword: recentSearch.keyword,
+                cursor: nil,
+                requestID: state.searchRequestID,
+                isAppending: false
+            )
 
         case .loadNextPage:
             guard let query = state.submittedQuery,
+                  state.activeSearchContext == .regular,
                   state.hasNextPage,
                   !state.isLoadingNextPage,
                   let cursor = state.nextCursor
@@ -131,11 +152,16 @@ struct HomeSearchReducer: Reducer {
                 return .none
             }
             state.isLoadingNextPage = true
-            return searchEffect(keyword: query, cursor: cursor, isAppending: true)
+            return searchEffect(
+                keyword: query,
+                cursor: cursor,
+                requestID: state.searchRequestID,
+                isAppending: true
+            )
 
-        case let .searchLoaded(page, query, isAppending):
-            guard state.submittedQuery == normalized(query),
-                  normalized(state.query) == normalized(query)
+        case let .searchLoaded(page, requestID, isAppending):
+            guard requestID == state.searchRequestID,
+                  state.activeSearchContext == .regular
             else {
                 return .none
             }
@@ -148,9 +174,9 @@ struct HomeSearchReducer: Reducer {
             state.isLoadingRecentSearches = true
             return loadRecentSearchesEffect()
 
-        case let .searchFailed(error, query, isAppending):
-            guard state.submittedQuery == normalized(query),
-                  normalized(state.query) == normalized(query)
+        case let .searchFailed(error, requestID, isAppending):
+            guard requestID == state.searchRequestID,
+                  state.activeSearchContext == .regular
             else {
                 return .none
             }
@@ -199,11 +225,45 @@ struct HomeSearchReducer: Reducer {
             return .none
 
         case .administrativeAreaTapped(let area):
-            state.selectedAdministrativeArea = area
+            let keyword = area.searchDisplayName
+            state.query = keyword
+            state.submittedQuery = keyword
+            state.searchRequestID += 1
+            state.activeSearchContext = .administrativeArea(area)
+            state.administrativeAreas = []
+            state.results = []
+            state.hasNextPage = false
+            state.nextCursor = nil
+            state.isLoadingNextPage = false
+            state.viewState = .searching
+            return administrativeAreaSearchEffect(area: area, requestID: state.searchRequestID)
+
+        case let .administrativeAreaSearchLoaded(area, items, requestID):
+            guard requestID == state.searchRequestID,
+                  state.activeSearchContext == .administrativeArea(area)
+            else {
+                return .none
+            }
+            state.isLoadingNextPage = false
+            guard !items.isEmpty else {
+                state.viewState = .emptyResults
+                return .none
+            }
+            state.viewState = .results
+            state.selectedAdministrativeAreaSearch = AdministrativeAreaSearchResult(area: area, items: items)
             return .none
 
-        case .administrativeAreaSelectionHandled:
-            state.selectedAdministrativeArea = nil
+        case let .administrativeAreaSearchFailed(error, requestID):
+            guard requestID == state.searchRequestID,
+                  case .administrativeArea = state.activeSearchContext
+            else {
+                return .none
+            }
+            state.viewState = .initial
+            return showSnackbar(error.localizedDescription, state: &state)
+
+        case .administrativeAreaSearchSelectionHandled:
+            state.selectedAdministrativeAreaSearch = nil
             return .none
 
         case .dismissSnackbar:
@@ -229,6 +289,7 @@ struct HomeSearchReducer: Reducer {
     private func searchEffect(
         keyword: String,
         cursor: String?,
+        requestID: Int,
         isAppending: Bool
     ) -> Effect<Action> {
         let repository = placeRepository
@@ -243,11 +304,48 @@ struct HomeSearchReducer: Reducer {
                         cursor: cursor
                     )
                 )
-                await send(.searchLoaded(page, query: keyword, isAppending: isAppending))
+                await send(.searchLoaded(page, requestID: requestID, isAppending: isAppending))
             } catch let error as NetworkError {
-                await send(.searchFailed(error, query: keyword, isAppending: isAppending))
+                await send(.searchFailed(error, requestID: requestID, isAppending: isAppending))
             } catch {
-                await send(.searchFailed(.unknown(errorCode: error.localizedDescription), query: keyword, isAppending: isAppending))
+                await send(.searchFailed(.unknown(errorCode: error.localizedDescription), requestID: requestID, isAppending: isAppending))
+            }
+        }
+        .cancelTask(id: EffectID.search)
+    }
+
+    private func administrativeAreaSearchEffect(
+        area: KoreanAdministrativeArea,
+        requestID: Int
+    ) -> Effect<Action> {
+        let repository = placeRepository
+        let origin = origin
+        return .run { send in
+            do {
+                var cursor: String?
+                var allItems: [PlaceListItem] = []
+                var hasNext = true
+
+                while hasNext {
+                    let page = try await repository.searchPlaces(
+                        query: PlaceSearchQuery(
+                            keyword: area.searchDisplayName,
+                            currentLatitude: origin.latitude,
+                            currentLongitude: origin.longitude,
+                            cursor: cursor
+                        )
+                    )
+                    let existingIDs = Set(allItems.map(\.id))
+                    allItems += page.items.filter { !existingIDs.contains($0.id) }
+                    hasNext = page.hasNext
+                    cursor = page.nextCursor
+                    if hasNext, cursor == nil { break }
+                }
+                await send(.administrativeAreaSearchLoaded(area, allItems, requestID: requestID))
+            } catch let error as NetworkError {
+                await send(.administrativeAreaSearchFailed(error, requestID: requestID))
+            } catch {
+                await send(.administrativeAreaSearchFailed(.unknown(errorCode: error.localizedDescription), requestID: requestID))
             }
         }
         .cancelTask(id: EffectID.search)

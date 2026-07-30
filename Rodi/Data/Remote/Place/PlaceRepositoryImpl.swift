@@ -32,9 +32,24 @@ final class PlaceRepositoryImpl: PlaceRepository {
         return coordinates
     }
 
-    func fetchPlaces(query: PlaceListQuery) async throws(NetworkError) -> PlaceCursorPage {
-        let response = try await publicNetworkManager.request(
-            PlaceTarget.list(query),
+    func fetchPlaces(
+        query: PlaceListQuery,
+        access: PlaceListAccess
+    ) async throws(NetworkError) -> PlaceCursorPage {
+        let networkManager: NetworkManager
+        let target: PlaceTarget
+
+        switch access {
+        case .public:
+            networkManager = publicNetworkManager
+            target = .list(query)
+        case .member:
+            networkManager = authenticatedNetworkManager
+            target = .authenticatedList(query)
+        }
+
+        let response = try await networkManager.request(
+            target,
             as: ServerResponse<PlaceCursorPageDTO>.self
         )
         guard response.isSuccess, let data = response.data else {

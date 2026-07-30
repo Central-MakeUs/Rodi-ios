@@ -54,3 +54,11 @@ struct MemberOnboardingRequestDTO: Encodable {
 struct MemberDrivingGoalUpdateRequestDTO: Encodable {
     let drivingGoal: String
 }
+
+struct MemberPlaceFilterTagsUpdateRequestDTO: Encodable {
+    let filterTags: [String]
+
+    init(_ tags: [PlacePracticeType]) {
+        filterTags = tags.map(\.rawValue)
+    }
+}

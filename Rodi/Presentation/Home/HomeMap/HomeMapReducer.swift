@@ -8,7 +8,12 @@ import Foundation
 struct HomeMapReducer: Reducer {
     struct State {
         var items: [RodiCourseItem] = []
+        var administrativeAreaSearchItems: [RodiCourseItem]?
         var visibleMapMarkers: [RodiMapMarker] = []
+
+        var markerItems: [RodiCourseItem] {
+            administrativeAreaSearchItems ?? items
+        }
 
         var isRetryingAfterNetworkFailure = false
         var isNetworkUnavailable = false
@@ -43,6 +48,8 @@ struct HomeMapReducer: Reducer {
         case setShouldRender(Bool)
         case setCameraState(target: RodiCoordinate, requestID: Int, animatedRequestID: Int?, focus: RodiMapCameraFocus)
         case setItems([RodiCourseItem])
+        case showAdministrativeAreaSearchItems([RodiCourseItem])
+        case clearAdministrativeAreaSearchItems
         case setVisibleMapMarkers([RodiMapMarker])
         case setUserLocationCoordinate(RodiCoordinate?)
         case setUserHeadingDegrees(Double?)
@@ -117,6 +124,12 @@ struct HomeMapReducer: Reducer {
 
         case .setItems(let items):
             state.items = items
+
+        case .showAdministrativeAreaSearchItems(let items):
+            state.administrativeAreaSearchItems = items
+
+        case .clearAdministrativeAreaSearchItems:
+            state.administrativeAreaSearchItems = nil
 
         case .setVisibleMapMarkers(let markers):
             state.visibleMapMarkers = markers

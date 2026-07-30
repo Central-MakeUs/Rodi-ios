@@ -9,6 +9,7 @@ import Foundation
 enum MemberTarget: TargetType {
     case myProfile
     case updateDrivingGoal(MemberDrivingGoalUpdateRequestDTO)
+    case updatePlaceFilterTags(MemberPlaceFilterTagsUpdateRequestDTO)
     case withdraw
     case submitOnboarding(MemberOnboardingRequestDTO)
 
@@ -18,6 +19,8 @@ enum MemberTarget: TargetType {
             .get
         case .updateDrivingGoal:
             .patch
+        case .updatePlaceFilterTags:
+            .put
         case .withdraw:
             .delete
         case .submitOnboarding:
@@ -29,6 +32,8 @@ enum MemberTarget: TargetType {
         switch self {
         case .myProfile, .updateDrivingGoal, .withdraw:
             "/api/v1/members/me"
+        case .updatePlaceFilterTags:
+            "/api/v1/members/me/filter-tags"
         case .submitOnboarding:
             "/api/v1/members/me/onboarding"
         }
@@ -47,6 +52,8 @@ enum MemberTarget: TargetType {
         case .myProfile, .withdraw:
             nil
         case .updateDrivingGoal(let request):
+            requestToBody(request)
+        case .updatePlaceFilterTags(let request):
             requestToBody(request)
         case .submitOnboarding(let request):
             requestToBody(request)

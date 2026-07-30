@@ -143,11 +143,11 @@ struct OnboardingOptionalDrivingPreferenceView: View {
     }
 
     private var practiceSituationChips: some View {
-        OnboardingChipFlow {
+        RodiChipFlow {
             ForEach(PracticeSituation.allCases) { situation in
                 let selectionOrder = preferences.selectedPracticeSituations.firstIndex(of: situation).map { $0 + 1 }
 
-                OnboardingChip(
+                RodiSelectionChip(
                     title: situation.rawValue,
                     isSelected: selectionOrder != nil,
                     selectionOrder: selectionOrder,
@@ -177,7 +177,7 @@ struct OnboardingOptionalDrivingPreferenceView: View {
     }
 
     private func vehicleChip(_ vehicleType: VehicleType) -> some View {
-        OnboardingChip(
+        RodiSelectionChip(
             title: vehicleType.rawValue,
             isSelected: preferences.vehicleType == vehicleType,
             action: {

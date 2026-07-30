@@ -72,9 +72,9 @@ struct OnboardingDrivingExperienceView: View {
 
             if answers.recentDrivingFrequency != nil {
                 OnboardingSection(title: "면허 취득후 도로주행을 해본 적이 있나요?", trailing: "복수선택") {
-                    OnboardingChipFlow {
+                    RodiChipFlow {
                         ForEach(RoadDrivingExperience.allCases) { experience in
-                            OnboardingChip(
+                            RodiSelectionChip(
                                 title: experience.rawValue,
                                 isSelected: answers.selectedRoadDrivingExperiences.contains(experience),
                                 action: { send(.toggleRoadDrivingExperience(experience)) }
@@ -117,9 +117,9 @@ struct OnboardingDrivingExperienceView: View {
         selected: Option?,
         action: @escaping (Option) -> Void
     ) -> some View where Option.RawValue == String {
-        OnboardingChipFlow {
+        RodiChipFlow {
             ForEach(options) { option in
-                OnboardingChip(
+                RodiSelectionChip(
                     title: option.rawValue,
                     isSelected: option == selected,
                     action: { action(option) }

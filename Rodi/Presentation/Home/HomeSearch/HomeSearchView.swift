@@ -10,13 +10,13 @@ struct HomeSearchView: View {
     @FocusState private var isSearchFieldFocused: Bool
 
     private let onPlaceSelected: (PlaceListItem) -> Void
-    private let onAdministrativeAreaSelected: (KoreanAdministrativeArea) -> Void
+    private let onAdministrativeAreaSelected: (AdministrativeAreaSearchResult) -> Void
     private let onDismiss: () -> Void
 
     init(
         origin: RodiCoordinate,
         onPlaceSelected: @escaping (PlaceListItem) -> Void,
-        onAdministrativeAreaSelected: @escaping (KoreanAdministrativeArea) -> Void,
+        onAdministrativeAreaSelected: @escaping (AdministrativeAreaSearchResult) -> Void,
         onDismiss: @escaping () -> Void,
         placeRepository: PlaceRepository = AuthDependencyContainer.shared.placeRepository,
         recentSearchRepository: RecentSearchRepository = AuthDependencyContainer.shared.recentSearchRepository,
@@ -70,6 +70,11 @@ struct HomeSearchView: View {
                 .padding(.top, store.state.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 24 : 0)
                 .padding(.bottom, 32)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                isSearchFieldFocused = false
+            }
         }
         .background(RodiColor.white.ignoresSafeArea())
         .onAppear {
@@ -84,11 +89,11 @@ struct HomeSearchView: View {
             onPlaceSelected(place)
             store.send(.selectionHandled)
         }
-        .onChange(of: store.state.selectedAdministrativeArea) { area in
-            guard let area else { return }
+        .onChange(of: store.state.selectedAdministrativeAreaSearch) { result in
+            guard let result else { return }
             isSearchFieldFocused = false
-            onAdministrativeAreaSelected(area)
-            store.send(.administrativeAreaSelectionHandled)
+            onAdministrativeAreaSelected(result)
+            store.send(.administrativeAreaSearchSelectionHandled)
         }
         .rodiSnackbar(message: store.state.snackbarMessage)
     }
