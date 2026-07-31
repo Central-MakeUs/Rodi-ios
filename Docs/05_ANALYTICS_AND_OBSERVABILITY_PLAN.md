@@ -23,7 +23,7 @@ Rodi가 확인하려는 핵심 질문은 다음과 같다.
 | Firebase Performance Monitoring | 앱 시작, 화면 렌더링, HTTP 요청, 핵심 흐름의 성능 분석 | 도입 |
 | Microsoft Clarity | dead tap, rage tap, 지도·바텀싯·검색 UX의 정성 분석 | 도입 |
 
-- Firebase는 Debug/Staging과 Release를 **별도 Firebase 프로젝트**로 운영한다.
+- Firebase는 Dev(Debug)와 Prod(Release)를 **별도 Firebase 프로젝트**로 운영한다.
 - `RODI_ANALYTICS_ENABLED`가 `YES`인 환경에서만 앱 시작 시 Firebase Analytics
   collection을 명시적으로 활성화한다. Firebase Console에서도 각 Firebase 프로젝트의
   Google Analytics 연결·수집 상태를 별도로 확인한다.
@@ -33,8 +33,8 @@ Rodi가 확인하려는 핵심 질문은 다음과 같다.
   trace를 추가한다. [Firebase Performance guide](https://firebase.google.com/docs/perf-mon/get-started-ios)
 - Clarity는 Dev와 Prod에 별도 프로젝트로 적용한다. Dev에서 초기화·마스킹·제스처 회귀를
   먼저 검증한 뒤 Prod 사용을 유지한다.
-  Clarity는 SwiftUI를 지원하지만 공식 지원 표에 iOS 15~18이 명시되어 있으므로,
-  Rodi의 iOS 26 환경은 별도 실기기 검증 대상이다.
+  Clarity는 SwiftUI를 지원하지만 공식 지원 표에 iOS 15~18만 명시되어 있다. iOS 26은
+  Clarity 수집 검증 대상이 아니며, 지원 범위의 iOS 15~18 기기에서만 검증한다.
   [Clarity mobile overview](https://learn.microsoft.com/en-us/clarity/mobile-sdk/mobile-sdk-overview)
 
 ## Measurement Model
@@ -202,8 +202,8 @@ custom trace는 프레임 단위 또는 고빈도 호출에 사용하지 않는�
 2. P0 이벤트가 사용자 의도 한 번당 한 번만 기록되는지 Firebase DebugView로 검증한다.
 3. 디버거 없이 테스트 크래시와 non-fatal 오류 한 건을 전송해 Crashlytics를 검증한다.
 4. Performance 자동 network trace에 Alamofire 요청이 나타나는지 확인한다.
-5. Dev 환경의 iOS 18과 iOS 26 실기기에서 Clarity의 지도 드래그, 바텀싯, 검색, 키보드 동작을
-   회귀 검증하고, 모든 민감 영역이 마스킹되는지 확인한다.
+5. Dev와 Prod의 지원 범위 iOS 15~18 실기기에서 Clarity의 지도 드래그, 바텀싯, 검색, 키보드
+   동작을 회귀 검증하고, 모든 민감 영역이 마스킹되는지 확인한다.
 6. 출시 후 첫 2주 동안은 P0의 누락·중복·카디널리티를 검토한 뒤 P1을 추가한다.
 
 ## Explicit Non-Goals

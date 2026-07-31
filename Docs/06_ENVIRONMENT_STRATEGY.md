@@ -32,8 +32,9 @@ Config/
 ```
 
 `Dev.xcconfig`과 `Prod.xcconfig`은 bundle ID, 표시명, 앱 아이콘, API URL,
-`RODI_ENVIRONMENT`를 정의한다. 실제 Kakao 키, App Store Connect `.p8` 경로와
-Fastlane 인증값은 local secret 파일에서만 제공한다.
+`RODI_ENVIRONMENT`의 공통 기본값을 정의한다. local secret 파일은 각 xcconfig의 마지막에
+include되므로, 필요한 경우 API URL을 포함한 값은 local 파일 값이 우선한다. 실제 Kakao 키,
+App Store Connect `.p8` 경로와 Fastlane 인증값은 local secret 파일에서만 제공한다.
 
 xcconfig에서 URL의 `//`는 주석으로 해석될 수 있으므로 API URL은
 `https:/$()/api.stillstar.store` 형태로 작성한다. 빌드 결과에는 정상적인
@@ -63,6 +64,10 @@ Firebase는 Dev 프로젝트(`rodi-dev`)와 Prod 프로젝트(`rodi-prod`)를 �
 설정으로 fallback하지 않는다. `Upload Crashlytics Symbols`는 이 복사 단계 뒤 마지막
 Build Phase에서 실행된다.
 
+Firebase Console에서 각 프로젝트의 Google Analytics 연결과 데이터 수집을 활성화한 뒤
+동일 프로젝트에서 내려받은 plist를 사용한다. 앱 코드는 `RODI_ANALYTICS_ENABLED=YES`일 때
+collection을 명시적으로 활성화하지만, Console의 Analytics 설정 자체를 대신 구성하지는 않는다.
+
 Analytics, Crashlytics, Performance Monitoring을 SDK로 연결했지만 제품 이벤트 설계와
 사용자 식별값 설정은 [05_ANALYTICS_AND_OBSERVABILITY_PLAN.md](05_ANALYTICS_AND_OBSERVABILITY_PLAN.md)를
 기준으로 별도 진행한다.
@@ -70,6 +75,12 @@ Analytics, Crashlytics, Performance Monitoring을 SDK로 연결했지만 제품 
 Clarity는 `CLARITY_ENABLED`, `CLARITY_PROJECT_ID`, `CLARITY_LOG_LEVEL`로 분리한다.
 Dev는 `xuel7v1h92`, Prod는 `xuepsqfoyk` 프로젝트를 사용한다. Prod 활성화 전 개인정보·위치기반
 서비스 약관과 App Store Privacy Label의 분석·세션 리플레이 고지는 별도로 검토한다.
+
+Clarity 진단은 일시적으로 `CLARITY_LOG_LEVEL=verbose`로 변경해 수행하고, 확인 후에는
+`none`으로 복원한다. `NSURLErrorDomain -1200`과 Secure Transport `-9816`이 보이면 SDK
+초기화 문제가 아니라 `l.clarity.ms` 업로드 TLS 세션이 서버 또는 네트워크에서 종료된 경우다.
+App Transport Security 예외를 추가하지 말고, 지원 범위의 iOS 기기와 다른 Wi-Fi에서 재현한 뒤
+Clarity 지원팀에 프로젝트 ID와 오류 로그를 전달한다.
 
 ## Required Console Setup
 
@@ -121,6 +132,7 @@ build train을 조회해 다음 빌드 번호를 archive에만 주입하므로, 
 - [ ] `dev_beta` 업로드 빌드가 App Store Connect의 `Rodi - dev` 레코드에만 표시된다.
 - [ ] Apple 로그인, Kakao 앱·웹 로그인, 지도, 길안내를 Dev와 Prod 실기기에서 각각 검증한다.
 - [ ] Dev/Prod 앱 번들의 `GoogleService-Info.plist`가 각각 올바른 Firebase 프로젝트를 가리킨다.
+- [ ] Firebase Console의 Dev/Prod 프로젝트에서 Google Analytics 연결과 데이터 수집이 활성화됐다.
 - [ ] 실제 키, Firebase plist와 `.p8`이 Git status, tracked files, 커밋 diff에 포함되지 않는다.
 
 Clarity 운영은 [05_ANALYTICS_AND_OBSERVABILITY_PLAN.md](05_ANALYTICS_AND_OBSERVABILITY_PLAN.md)의
