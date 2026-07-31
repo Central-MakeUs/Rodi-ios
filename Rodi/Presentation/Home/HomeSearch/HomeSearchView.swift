@@ -3,6 +3,7 @@
 //  Rodi
 //
 
+import Clarity
 import SwiftUI
 
 struct HomeSearchView: View {
@@ -49,6 +50,7 @@ struct HomeSearchView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 5)
             .background(RodiColor.white)
+            .clarityMask()
 
             ScrollView {
                 Group {

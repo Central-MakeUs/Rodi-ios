@@ -41,6 +41,9 @@ struct OnboardingReducer: Reducer {
         var presentation: OnboardingPresentation?
         var requestedRoute: OnboardingRoute?
         var didComplete = false
+        var hasTrackedOnboardingStart = false
+        var pendingAuthenticationProvider: SocialLoginProvider?
+        var isRestoringWithdrawal = false
 
         init(
             payload: OnboardingDraftPayload?,
@@ -70,6 +73,7 @@ struct OnboardingReducer: Reducer {
         }
 
         case screen(route: OnboardingRoute, action: Screen)
+        case appeared
         case routeChanged(OnboardingRoute)
         case analysisCompletionConfirmed
         case dismissLoginFailure
@@ -119,6 +123,11 @@ struct OnboardingReducer: Reducer {
 
     func reduce(_ state: inout State, with action: Action) -> Effect<Action> {
         switch action {
+        case .appeared:
+            guard !state.hasTrackedOnboardingStart else { return .none }
+            state.hasTrackedOnboardingStart = true
+            RodiAnalytics.track(.onboardingStarted(entryMode: entryMode(for: state.draft)))
+
         case .screen(let route, let screenAction):
             return reduceScreenAction(route: route, action: screenAction, state: &state)
 
@@ -145,6 +154,7 @@ struct OnboardingReducer: Reducer {
 
         case .restoreWithdrawal(let recovery):
             state.presentation = nil
+            state.isRestoringWithdrawal = true
             return .send(
                 .screen(
                     route: .entry,
@@ -193,6 +203,7 @@ struct OnboardingReducer: Reducer {
             state.draft.agreedTerms = childState.agreedTerms
 
             if case .nextTapped = childAction, childState.isAllTermsAgreed {
+                trackStepCompletion("terms", draft: state.draft)
                 requestRoute(state.draft.isBrowseUser ? .safety : .nickname, state: &state)
             }
 
@@ -204,6 +215,7 @@ struct OnboardingReducer: Reducer {
             state.draft.nickname = childState.nickname
 
             if case .nextTapped = childAction, childState.canProceed {
+                trackStepCompletion("nickname", draft: state.draft)
                 requestRoute(.drivingExperience, state: &state)
             }
 
@@ -215,6 +227,7 @@ struct OnboardingReducer: Reducer {
             state.draft.drivingExperience = childState.answers
 
             if case .nextTapped = childAction, childState.answers.canProceed {
+                trackStepCompletion("driving_experience", draft: state.draft)
                 requestRoute(.optionalDrivingPreference, state: &state)
             }
 
@@ -227,8 +240,10 @@ struct OnboardingReducer: Reducer {
 
             switch childAction {
             case .skipTapped:
+                trackStepCompletion("optional_driving_preference", draft: state.draft)
                 return startSubmission(drivingGoal: "", route: route, state: &state)
             case .nextTapped(let goal) where childState.preferences.canProceed:
+                trackStepCompletion("optional_driving_preference", draft: state.draft)
                 return startSubmission(drivingGoal: goal, route: route, state: &state)
             default:
                 break
@@ -242,6 +257,7 @@ struct OnboardingReducer: Reducer {
             state.draft.agreedSafetyItems = childState.agreedSafetyItems
 
             if case .nextTapped = childAction, childState.isAllSafetyAgreed {
+                trackStepCompletion("safety", draft: state.draft)
                 requestRoute(.locationPermission, state: &state)
             }
 
@@ -252,6 +268,7 @@ struct OnboardingReducer: Reducer {
             state.screen = .locationPermission(childState)
 
             if case .continueTapped = childAction {
+                trackStepCompletion("location_permission", draft: state.draft)
                 finishOnboarding(state: &state)
             }
 
@@ -276,6 +293,13 @@ struct OnboardingReducer: Reducer {
             state.draft.loginProvider = nil
             state.presentation = nil
             requestRoute(.terms, state: &state)
+            RodiAnalytics.track(.browseStarted)
+            RodiAnalytics.setUserContext(
+                userMode: "guest",
+                loginProvider: nil,
+                memberLevel: nil,
+                hasDrivingGoal: nil
+            )
             RodiLogger.info("Browse mode started; local auth session cleared")
 
         case .authenticationSucceeded(let provider, let isNewMember, let nickname):
@@ -283,6 +307,18 @@ struct OnboardingReducer: Reducer {
             state.draft.isBrowseUser = false
             state.draft.loginProvider = provider
             state.draft.nickname = nickname?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            state.pendingAuthenticationProvider = nil
+            if state.isRestoringWithdrawal {
+                RodiAnalytics.track(.withdrawalRestored)
+                state.isRestoringWithdrawal = false
+            }
+            RodiAnalytics.track(.loginSucceeded(provider: provider.rawValue, isNewMember: isNewMember))
+            RodiAnalytics.setUserContext(
+                userMode: "member",
+                loginProvider: provider.rawValue,
+                memberLevel: nil,
+                hasDrivingGoal: nil
+            )
 
             if isNewMember {
                 requestRoute(.terms, state: &state)
@@ -291,9 +327,17 @@ struct OnboardingReducer: Reducer {
             }
 
         case .authenticationCancelled:
-            break
+            if let provider = state.pendingAuthenticationProvider {
+                RodiAnalytics.track(.loginCancelled(provider: provider.rawValue))
+            }
+            state.pendingAuthenticationProvider = nil
+            state.isRestoringWithdrawal = false
 
         case .authenticationFailed(let message):
+            let provider = state.pendingAuthenticationProvider?.rawValue ?? "unknown"
+            RodiAnalytics.track(.loginFailed(provider: provider, failureCategory: loginFailureCategory(for: message)))
+            state.pendingAuthenticationProvider = nil
+            state.isRestoringWithdrawal = false
             state.presentation = .loginFailure(message)
 
         case .withdrawalRecoveryRequired(let recovery):
@@ -302,7 +346,15 @@ struct OnboardingReducer: Reducer {
         case .withdrawalRestoreLocked(let date):
             state.presentation = .withdrawal(.rejoinLocked(rejoinAvailableAt: date))
 
-        case .onKakaoLoginTapped, .onAppleLoginTapped, .restoreTapped, .openedURL:
+        case .onKakaoLoginTapped:
+            state.pendingAuthenticationProvider = .kakao
+            RodiAnalytics.track(.loginAttempted(provider: SocialLoginProvider.kakao.rawValue))
+
+        case .onAppleLoginTapped:
+            state.pendingAuthenticationProvider = .apple
+            RodiAnalytics.track(.loginAttempted(provider: SocialLoginProvider.apple.rawValue))
+
+        case .restoreTapped, .openedURL:
             break
         }
     }
@@ -345,8 +397,19 @@ struct OnboardingReducer: Reducer {
                 try await memberRepository.submitOnboarding(submission)
                 outcome = .completed
             } catch let error as NetworkError {
+                if Self.shouldRecordSubmissionFailure(error) {
+                    RodiCrashReporter.record(
+                        message: "Onboarding submission technical failure",
+                        endpointCategory: "member_onboarding",
+                        statusFamily: Self.statusFamily(for: error)
+                    )
+                }
                 outcome = Self.submissionOutcome(for: error)
             } catch {
+                RodiCrashReporter.record(
+                    message: "Onboarding submission unexpected failure",
+                    endpointCategory: "member_onboarding"
+                )
                 outcome = .failed("온보딩 정보를 저장하지 못했어요. 다시 시도해 주세요.")
             }
 
@@ -399,6 +462,32 @@ struct OnboardingReducer: Reducer {
         }
     }
 
+    private static func shouldRecordSubmissionFailure(_ error: NetworkError) -> Bool {
+        switch error {
+        case .networkUnavailable, .timeOut, .decodingFail, .errorModelDecodingFail, .unknown:
+            true
+        case .httpStatusCode(let code):
+            code >= 500
+        case .apiError(_, _, let code?):
+            code >= 500
+        default:
+            false
+        }
+    }
+
+    private static func statusFamily(for error: NetworkError) -> String? {
+        switch error {
+        case .httpStatusCode(let code), .apiError(_, _, let code?):
+            "\(code / 100)xx"
+        case .networkUnavailable:
+            "network"
+        case .timeOut:
+            "timeout"
+        default:
+            nil
+        }
+    }
+
     private func persistDraftIfNeeded(state: State, route: OnboardingRoute) {
         guard persistsDraft,
               let provider = state.draft.loginProvider,
@@ -413,9 +502,31 @@ struct OnboardingReducer: Reducer {
 
     private func finishOnboarding(state: inout State) {
         state.didComplete = true
+        RodiAnalytics.track(
+            .onboardingCompleted(
+                entryMode: entryMode(for: state.draft),
+                memberLevel: "unknown"
+            )
+        )
 
         guard persistsDraft else { return }
         progressStore.markCompleted()
+    }
+
+    private func trackStepCompletion(_ step: String, draft: OnboardingFlowDraft) {
+        RodiAnalytics.track(.onboardingStepCompleted(step: step, entryMode: entryMode(for: draft)))
+    }
+
+    private func entryMode(for draft: OnboardingFlowDraft) -> String {
+        if draft.isBrowseUser { return "guest" }
+        return draft.loginProvider == nil ? "unknown" : "member"
+    }
+
+    private func loginFailureCategory(for message: String) -> String {
+        let normalized = message.lowercased()
+        if normalized.contains("network") || normalized.contains("네트워크") { return "network" }
+        if normalized.contains("server") || normalized.contains("서버") { return "server" }
+        return "authentication"
     }
 }
 

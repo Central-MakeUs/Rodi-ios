@@ -3,6 +3,7 @@
 //  Rodi
 //
 
+import Clarity
 import SwiftUI
 
 struct OnboardingView: View {
@@ -64,7 +65,10 @@ struct OnboardingView: View {
         .onOpenURL { url in
             store.send(.screen(route: router.route, action: .entry(.openedURL(url))))
         }
-        .onAppear(perform: requestAutomaticLoginIfNeeded)
+        .onAppear {
+            store.send(.appeared)
+            requestAutomaticLoginIfNeeded()
+        }
         .onChange(of: store.state.requestedRoute) { route in
             guard let route else { return }
             router.navigate(to: route)
@@ -74,6 +78,7 @@ struct OnboardingView: View {
             guard didComplete else { return }
             onComplete()
         }
+        .clarityMask()
     }
 
     @ViewBuilder

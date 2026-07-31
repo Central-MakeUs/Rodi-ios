@@ -54,6 +54,7 @@ struct HomeBottomSheetReducer: Reducer {
         var placeDetail: PlaceDetail?
         var isPlaceDetailLoading = false
         var isBookmarkUpdating = false
+        var selectionSource = "unknown"
         var placeList = PlaceListState()
         var filter = FilterState()
     }
@@ -173,6 +174,7 @@ struct HomeBottomSheetReducer: Reducer {
             state.sheetHeight = mediumHeight
             state.filter.draftSelection = state.filter.appliedSelection
             state.filter.isPresented = true
+            RodiAnalytics.track(.practiceFilterOpened(presentation: "bottom_sheet"))
 
         case .dismiss:
             state.filter.isPresented = false
@@ -194,6 +196,7 @@ struct HomeBottomSheetReducer: Reducer {
         case .reset:
             guard !state.filter.isApplying else { return .none }
             state.filter.draftSelection = .default
+            RodiAnalytics.track(.practiceFilterReset)
 
         case .apply:
             guard state.filter.canApply else { return .none }
@@ -206,6 +209,13 @@ struct HomeBottomSheetReducer: Reducer {
             state.filter.isApplying = false
             state.filter.isPresented = false
             filterStore.save(selection)
+            RodiAnalytics.track(
+                .practiceFilterApplied(
+                    category: selection.category.rawValue,
+                    selectedTagCount: selection.filterTags.count,
+                    isAll: selection.isAllSelected
+                )
+            )
             return .send(.placeList(.reloadAfterFilter))
 
         case .authenticationRequired:
@@ -258,18 +268,22 @@ struct HomeBottomSheetReducer: Reducer {
         switch action {
         case .clear:
             clearSelection(state: &state)
+            state.selectionSource = "unknown"
             return .cancel(id: HomeEffectID.routeLoading)
 
         case .selectItem(let item, let mediumHeight):
+            state.selectionSource = "list"
             return select(item, mediumHeight: mediumHeight, state: &state)
 
         case .selectMapItem(let item, let mediumHeight):
             guard hasActiveSession() else {
                 return delegateEffect(.requestAuthentication)
             }
+            state.selectionSource = "map"
             return select(item, mediumHeight: mediumHeight, state: &state)
 
         case .selectPlaceID(let placeID, let mediumHeight):
+            state.selectionSource = "handoff"
             return selectPlaceDetail(placeID: placeID, mediumHeight: mediumHeight, state: &state)
 
         case .detailLoaded(let detail):
@@ -280,6 +294,9 @@ struct HomeBottomSheetReducer: Reducer {
             state.placeDetail = detail
             state.isPlaceDetailLoading = false
             state.isBookmarkUpdating = false
+            RodiAnalytics.track(
+                .placeDetailOpened(source: state.selectionSource, placeType: detail.type.rawValue)
+            )
             return configureRoute(for: item, state: &state)
 
         case .detailAuthenticationRequired(let placeID):
@@ -316,6 +333,13 @@ struct HomeBottomSheetReducer: Reducer {
             guard state.placeDetail?.id == placeID else { return .none }
             state.placeDetail = state.placeDetail?.updatingBookmark(isBookmarked: isBookmarked)
             state.isBookmarkUpdating = false
+            RodiAnalytics.track(
+                .bookmarkUpdated(
+                    isBookmarked: isBookmarked,
+                    source: state.selectionSource,
+                    placeType: state.placeDetail?.type.rawValue ?? "unknown"
+                )
+            )
             return delegateEffect(.showSnackbar(isBookmarked ? "북마크를 저장했어요." : "북마크를 해제했어요."))
 
         case .bookmarkFailed(let placeID, let previousDetail, let message):

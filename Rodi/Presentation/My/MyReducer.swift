@@ -14,6 +14,7 @@ struct MyReducer: Reducer {
         var profileErrorMessage: String?
         var snackbarMessage: String?
         var didEndSessionRequestID = 0
+        var hasTrackedMyOpen = false
     }
 
     enum Action {
@@ -23,13 +24,18 @@ struct MyReducer: Reducer {
         case drivingGoalUpdated(MemberProfile)
         case logoutConfirmed
         case withdrawalConfirmed
-        case sessionEnded
+        case sessionEnded(SessionEndReason)
         case snackbarDismissed(String)
     }
 
     enum ProfileLoadResult {
         case success(MemberProfile)
         case failure(String)
+    }
+
+    enum SessionEndReason {
+        case logout
+        case withdrawal
     }
 
     private enum EffectID {
@@ -60,6 +66,10 @@ extension MyReducer {
     func reduce(_ state: inout State, with action: Action) -> Effect<Action> {
         switch action {
         case .appeared:
+            if !state.hasTrackedMyOpen {
+                state.hasTrackedMyOpen = true
+                RodiAnalytics.track(.myOpened)
+            }
             guard state.profile == nil, !state.isLoadingProfile else { return .none }
             return loadProfile(state: &state)
 
@@ -75,6 +85,12 @@ extension MyReducer {
             case .success(let profile):
                 state.profile = profile
                 state.profileErrorMessage = nil
+                RodiAnalytics.setUserContext(
+                    userMode: "member",
+                    loginProvider: nil,
+                    memberLevel: profile.level.rawValue,
+                    hasDrivingGoal: !(profile.drivingGoal?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+                )
                 RodiLogger.info("My profile loaded")
             case .failure(let message):
                 state.profileErrorMessage = message
@@ -91,7 +107,15 @@ extension MyReducer {
         case .withdrawalConfirmed:
             return withdraw(state: &state)
 
-        case .sessionEnded:
+        case .sessionEnded(let reason):
+            switch reason {
+            case .logout:
+                RodiAnalytics.track(.logoutCompleted)
+                RodiAnalytics.setUserContext(userMode: "guest", loginProvider: nil, memberLevel: nil, hasDrivingGoal: nil)
+            case .withdrawal:
+                RodiAnalytics.track(.withdrawalRequested)
+                RodiAnalytics.setUserContext(userMode: "guest", loginProvider: nil, memberLevel: nil, hasDrivingGoal: nil)
+            }
             state.didEndSessionRequestID += 1
 
         case .snackbarDismissed(let message):
@@ -129,7 +153,7 @@ extension MyReducer {
             }
 
             await logoutKakaoSDKSessionIfNeeded()
-            await send(.sessionEnded)
+            await send(.sessionEnded(.logout))
         }
         .cancelTask(id: EffectID.session)
     }
@@ -147,7 +171,7 @@ extension MyReducer {
             authRepository.clearSession()
             recentLoginProviderStore.clear()
             await logoutKakaoSDKSessionIfNeeded()
-            await send(.sessionEnded)
+            await send(.sessionEnded(.withdrawal))
         }
         .cancelTask(id: EffectID.session)
     }

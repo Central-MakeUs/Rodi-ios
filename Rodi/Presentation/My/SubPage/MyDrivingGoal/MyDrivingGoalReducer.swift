@@ -64,6 +64,9 @@ struct MyDrivingGoalReducer: Reducer {
             switch result {
             case .success(let profile):
                 state.updatedProfile = profile
+                RodiAnalytics.track(
+                    .drivingGoalSaved(goalLengthBucket: RodiAnalytics.lengthBucket(for: state.drivingGoal))
+                )
             case .failure(let message):
                 state.errorMessage = message
             }

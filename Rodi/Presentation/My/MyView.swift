@@ -3,6 +3,7 @@
 //  Rodi
 //
 
+import Clarity
 import SwiftUI
 
 struct MyView: View {
@@ -65,6 +66,7 @@ struct MyView: View {
             router.popToRoot()
             onLogoutCompleted()
         }
+        .clarityMask()
     }
 
 }
@@ -89,6 +91,7 @@ private extension MyView {
                 placeRepository: placeRepository,
                 backAction: router.pop,
                 selectPlaceAction: { item in
+                    RodiAnalytics.track(.savedPlaceSelected)
                     router.popToRoot()
                     navigate(.openHomePlace(id: item.id))
                 }

@@ -3,6 +3,7 @@
 //  Rodi
 //
 
+import Clarity
 import SwiftUI
 
 struct HomeMapView: View {
@@ -64,6 +65,7 @@ struct HomeMapView: View {
                 isAccessibilityHidden: configuration.isAccessibilityHidden,
                 onEvent: handleMapEvent
             )
+            .clarityMask()
 
             HomeStatusLayer(
                 homeStore: homeStore,

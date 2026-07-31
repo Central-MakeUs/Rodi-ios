@@ -20,6 +20,7 @@ struct HomeMapReducer: Reducer {
         var errorMessage: String?
         var isLoading = true
         var isReady = false
+        var hasTrackedInitialMapReady = false
         var shouldRender = false
         var cameraTarget = RodiCoordinate.seoulCityHall
         var zoomLevel = RodiMapViewport.initial.zoomLevel
@@ -74,6 +75,15 @@ struct HomeMapReducer: Reducer {
             state.errorMessage = nil
             state.isReady = true
             state.isLoading = false
+            if !state.hasTrackedInitialMapReady {
+                state.hasTrackedInitialMapReady = true
+                RodiAnalytics.track(
+                    .homeMapReady(
+                        entrySource: "home",
+                        hasLocationPermission: state.hasLocationPermission
+                    )
+                )
+            }
 
         case .viewportChanged(_, let zoomLevel, _, _):
             state.zoomLevel = zoomLevel
