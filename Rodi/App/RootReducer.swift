@@ -74,6 +74,7 @@ extension RootReducer {
     }
 
     private func checkAppVersionIfNeeded(state: inout State) -> Effect<Action> {
+        guard AppEnvironment.current.isProduction else { return .none }
         guard !state.hasCheckedAppVersion else { return .none }
 
         state.hasCheckedAppVersion = true

@@ -108,6 +108,8 @@ xcuserdata
 # ignore
 .swiftpm/
 Config/Secrets.local.xcconfig
+Config/Secrets.*.local.xcconfig
+Config/Firebase/**/GoogleService-Info.plist
 *.p8
 .opencode/
 .sisyphus/
