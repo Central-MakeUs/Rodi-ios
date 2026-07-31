@@ -53,15 +53,16 @@ This document is the main operating guide for AI agents working in this reposito
 Build after code or structure changes:
 
 ```sh
-xcodebuild -project /Users/mac/Documents/iOS_projects/SwiftUI/Rodi/Rodi.xcodeproj -scheme Rodi -destination 'generic/platform=iOS Simulator' build
+xcodebuild -project /Users/mac/Documents/iOS_projects/SwiftUI/Rodi/Rodi.xcodeproj -scheme 'Rodi Dev' -configuration Debug -destination 'generic/platform=iOS Simulator' build
+xcodebuild -project /Users/mac/Documents/iOS_projects/SwiftUI/Rodi/Rodi.xcodeproj -scheme Rodi -configuration Release -destination 'generic/platform=iOS Simulator' build
 ```
 
 Fastlane local commands:
 
 ```sh
-bundle exec fastlane build
-bundle exec fastlane archive
-bundle exec fastlane beta
+bundle exec fastlane build_dev
+bundle exec fastlane archive_prod
+bundle exec fastlane prod_beta
 bundle exec fastlane version
 ```
 

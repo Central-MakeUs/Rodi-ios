@@ -45,9 +45,7 @@ Create a production App Store archive locally
 [bundle exec] fastlane ios dev_beta
 ```
 
-Push a new development beta build to the Rodi Dev TestFlight app. The lane uses
-the Dev app's current TestFlight version and build train, without changing the
-production version or build number.
+Push a new development beta build to the Rodi Dev TestFlight app
 
 ### ios prod_beta
 
