@@ -15,7 +15,9 @@ FIREBASE_GOOGLE_SERVICE_INFO_PATH = $(SRCROOT)/Config/Firebase/Prod/GoogleServic
 RODI_ANALYTICS_ENABLED = YES
 CLARITY_ENABLED = YES
 CLARITY_PROJECT_ID = xuepsqfoyk
-CLARITY_LOG_LEVEL = none
+// Keep verbose logging enabled until the production Clarity project receives
+// and confirms its first session. Change this back to `none` afterwards.
+CLARITY_LOG_LEVEL = verbose
 PRODUCT_BUNDLE_IDENTIFIER = com.dororong.rodi
 PRODUCT_DISPLAY_NAME = Rodi
 ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon
