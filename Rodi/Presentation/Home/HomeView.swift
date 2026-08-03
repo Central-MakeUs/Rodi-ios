@@ -12,36 +12,47 @@ struct HomeView: View {
     @ObservedObject private var router: HomeRouter
     private let isHomeTabSelected: () -> Bool
     private let onAuthenticationRequired: () -> Void
+    private let onBottomSheetStateChanged: (HomeBottomSheetState) -> Void
     private let placeRepository: PlaceRepository
+    private let memberRepository: MemberRepository
+    private let recentSearchRepository: RecentSearchRepository
+    private let tokenStore: TokenStoring
 
     init(
         router: HomeRouter,
         isHomeTabSelected: @escaping () -> Bool,
         onAuthenticationRequired: @escaping () -> Void,
-        placeRepository: PlaceRepository = AuthDependencyContainer.shared.placeRepository
+        onBottomSheetStateChanged: @escaping (HomeBottomSheetState) -> Void,
+        dependencies: AppDependencies
     ) {
         self.router = router
         self.isHomeTabSelected = isHomeTabSelected
         self.onAuthenticationRequired = onAuthenticationRequired
-        self.placeRepository = placeRepository
+        self.onBottomSheetStateChanged = onBottomSheetStateChanged
+        placeRepository = dependencies.placeRepository
+        memberRepository = dependencies.memberRepository
+        recentSearchRepository = dependencies.recentSearchRepository
+        tokenStore = dependencies.tokenStore
         _homeStore = StateObject(
             wrappedValue: Store(
                 state: HomeReducer.State(),
-                reducer: HomeReducer(placeRepository: placeRepository)
+                reducer: HomeReducer(
+                    placeRepository: dependencies.placeRepository,
+                    memberRepository: dependencies.memberRepository,
+                    tokenStore: dependencies.tokenStore
+                )
             )
         )
     }
 
     var body: some View {
-        NavigationStack {
-            HomeBottomSheetView(
-                homeStore: homeStore,
-                router: router,
-                isHomeTabSelected: isHomeTabSelected,
-                onSearchRequested: presentSearch,
-                placeRepository: placeRepository
-            )
-        }
+        HomeBottomSheetView(
+            homeStore: homeStore,
+            router: router,
+            isHomeTabSelected: isHomeTabSelected,
+            onSearchRequested: presentSearch,
+            placeRepository: placeRepository
+        )
         .homeInteractions(
             homeStore: homeStore,
             openSettingsAction: openAppSettings
@@ -50,14 +61,22 @@ struct HomeView: View {
             guard requestID > 0 else { return }
             onAuthenticationRequired()
         }
-        .fullScreenCover(item: searchRouteBinding) { route in
-            switch route {
+        .onAppear {
+            onBottomSheetStateChanged(homeStore.state.bottomSheet.bottomSheetState)
+        }
+        .onChange(of: homeStore.state.bottomSheet.bottomSheetState) { state in
+            onBottomSheetStateChanged(state)
+        }
+        .fullScreenCover(item: searchPresentationBinding) { presentation in
+            switch presentation {
             case .search(let origin):
                 HomeSearchView(
                     origin: origin,
                     onPlaceSelected: { router.completeSearch(place: $0) },
                     onAdministrativeAreaSelected: { router.completeSearch(administrativeAreaSearch: $0) },
-                    onDismiss: router.dismissPresentedRoute
+                    onDismiss: router.dismissPresentation,
+                    placeRepository: placeRepository,
+                    recentSearchRepository: recentSearchRepository
                 )
             }
         }
@@ -71,7 +90,6 @@ struct HomeView: View {
     }
 
     private func presentSearch() {
-        let tokenStore = AuthDependencyContainer.shared.tokenStore
         guard [tokenStore.accessToken, tokenStore.refreshToken].contains(where: { $0?.isEmpty == false }) else {
             onAuthenticationRequired()
             return
@@ -80,12 +98,12 @@ struct HomeView: View {
         router.presentSearch(origin: homeStore.state.map.userLocationCoordinate ?? .southKoreaCenter)
     }
 
-    private var searchRouteBinding: Binding<HomeRoute?> {
+    private var searchPresentationBinding: Binding<HomePresentation?> {
         Binding(
-            get: { router.presentedRoute },
-            set: { route in
-                if route == nil {
-                    router.dismissPresentedRoute()
+            get: { router.presentedPresentation },
+            set: { presentation in
+                if presentation == nil {
+                    router.dismissPresentation()
                 }
             }
         )

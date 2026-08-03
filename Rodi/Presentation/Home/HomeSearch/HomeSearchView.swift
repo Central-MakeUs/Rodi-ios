@@ -19,8 +19,8 @@ struct HomeSearchView: View {
         onPlaceSelected: @escaping (PlaceListItem) -> Void,
         onAdministrativeAreaSelected: @escaping (AdministrativeAreaSearchResult) -> Void,
         onDismiss: @escaping () -> Void,
-        placeRepository: PlaceRepository = AuthDependencyContainer.shared.placeRepository,
-        recentSearchRepository: RecentSearchRepository = AuthDependencyContainer.shared.recentSearchRepository,
+        placeRepository: PlaceRepository,
+        recentSearchRepository: RecentSearchRepository,
         administrativeAreaSearchService: KoreanAdministrativeAreaSearching = KoreanAdministrativeAreaSearchService.shared
     ) {
         self.onPlaceSelected = onPlaceSelected
