@@ -5,6 +5,23 @@
 
 import Foundation
 
+struct PlaceRelatedSearchQuery: Equatable {
+    let keyword: String
+    let size: Int
+    let cursor: String?
+
+    init(keyword: String, size: Int = 20, cursor: String? = nil) {
+        self.keyword = keyword
+        self.size = size
+        self.cursor = cursor
+    }
+}
+
+struct PlaceRelatedSearchResult: Equatable {
+    let regions: [String]
+    let places: PlaceCursorPage
+}
+
 enum PlaceType: String, Equatable {
     case course = "COURSE"
     case parking = "PARKING"

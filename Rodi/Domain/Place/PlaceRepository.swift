@@ -16,6 +16,8 @@ protocol PlaceRepository {
     /// 키워드로 코스와 주차장을 검색합니다. JWT가 필요합니다.
     func searchPlaces(query: PlaceSearchQuery) async throws(NetworkError) -> PlaceCursorPage
 
+    func fetchRelatedSearches(query: PlaceRelatedSearchQuery) async throws(NetworkError) -> PlaceRelatedSearchResult
+
     /// 현재 회원이 저장한 장소를 최신 저장순으로 cursor pagination 조회합니다. JWT가 필요합니다.
     func fetchBookmarkedPlaces(query: PlaceBookmarkListQuery) async throws(NetworkError) -> PlaceCursorPage
 

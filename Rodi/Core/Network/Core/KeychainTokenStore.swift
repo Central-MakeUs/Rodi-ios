@@ -8,8 +8,14 @@ import Security
 
 final class KeychainTokenStore: TokenStoring {
     private enum Account {
-        static let accessToken = "accessToken"
-        static let refreshToken = "refreshToken"
+        static let session = "authSession"
+        static let legacyAccessToken = "accessToken"
+        static let legacyRefreshToken = "refreshToken"
+    }
+
+    private struct Session: Codable {
+        var accessToken: String?
+        var refreshToken: String?
     }
 
     private let service: String
@@ -19,59 +25,101 @@ final class KeychainTokenStore: TokenStoring {
     }
 
     var accessToken: String? {
-        get { read(account: Account.accessToken) }
-        set { write(newValue, account: Account.accessToken) }
+        get { session()?.accessToken }
+        set {
+            var session = session() ?? .init(accessToken: nil, refreshToken: nil)
+            session.accessToken = newValue
+            write(session)
+        }
     }
 
     var refreshToken: String? {
-        get { read(account: Account.refreshToken) }
-        set { write(newValue, account: Account.refreshToken) }
+        get { session()?.refreshToken }
+        set {
+            var session = session() ?? .init(accessToken: nil, refreshToken: nil)
+            session.refreshToken = newValue
+            write(session)
+        }
     }
 
     func update(accessToken: String, refreshToken: String) {
-        self.accessToken = accessToken
-        self.refreshToken = refreshToken
+        write(.init(accessToken: accessToken, refreshToken: refreshToken))
     }
 
     func clear() {
-        delete(account: Account.accessToken)
-        delete(account: Account.refreshToken)
+        delete(account: Account.session)
+        delete(account: Account.legacyAccessToken)
+        delete(account: Account.legacyRefreshToken)
     }
 }
 
 private extension KeychainTokenStore {
-    func read(account: String) -> String? {
+    private func session() -> Session? {
+        if let session = readSession(account: Account.session) {
+            return session
+        }
+
+        let legacySession = Session(
+            accessToken: readString(account: Account.legacyAccessToken),
+            refreshToken: readString(account: Account.legacyRefreshToken)
+        )
+        guard legacySession.accessToken != nil || legacySession.refreshToken != nil else { return nil }
+
+        write(legacySession)
+        delete(account: Account.legacyAccessToken)
+        delete(account: Account.legacyRefreshToken)
+        return legacySession
+    }
+
+    private func write(_ session: Session) {
+        guard session.accessToken?.isEmpty == false || session.refreshToken?.isEmpty == false else {
+            delete(account: Account.session)
+            return
+        }
+
+        guard let data = try? JSONEncoder().encode(session) else {
+            RodiLogger.warning("Keychain token session encoding failed")
+            return
+        }
+
+        let attributes = [kSecValueData as String: data]
+        let status = SecItemUpdate(baseQuery(account: Account.session) as CFDictionary, attributes as CFDictionary)
+
+        switch status {
+        case errSecSuccess:
+            return
+        case errSecItemNotFound:
+            var query = baseQuery(account: Account.session)
+            query[kSecValueData as String] = data
+            query[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+            let addStatus = SecItemAdd(query as CFDictionary, nil)
+            if addStatus != errSecSuccess {
+                RodiLogger.warning("Keychain token session add failed status=\(addStatus)")
+            }
+        default:
+            RodiLogger.warning("Keychain token session update failed status=\(status)")
+        }
+    }
+
+    private func readSession(account: String) -> Session? {
+        guard let data = readData(account: account) else { return nil }
+        return try? JSONDecoder().decode(Session.self, from: data)
+    }
+
+    func readString(account: String) -> String? {
+        guard let data = readData(account: account) else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+
+    func readData(account: String) -> Data? {
         var query = baseQuery(account: account)
         query[kSecReturnData as String] = true
         query[kSecMatchLimit as String] = kSecMatchLimitOne
 
         var result: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
-        guard status == errSecSuccess,
-              let data = result as? Data,
-              let value = String(data: data, encoding: .utf8) else {
-            return nil
-        }
-
-        return value
-    }
-
-    func write(_ value: String?, account: String) {
-        delete(account: account)
-        guard let value,
-              value.isEmpty == false,
-              let data = value.data(using: .utf8) else {
-            return
-        }
-
-        var query = baseQuery(account: account)
-        query[kSecValueData as String] = data
-        query[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
-
-        let status = SecItemAdd(query as CFDictionary, nil)
-        if status != errSecSuccess {
-            RodiLogger.warning("Keychain token write failed account=\(account) status=\(status)")
-        }
+        guard status == errSecSuccess else { return nil }
+        return result as? Data
     }
 
     func delete(account: String) {
