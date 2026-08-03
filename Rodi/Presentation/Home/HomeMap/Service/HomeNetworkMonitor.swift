@@ -11,7 +11,7 @@ final class HomeNetworkMonitor {
         didSet { onStatusChange?(isNetworkUnavailable) }
     }
 
-    private let monitor = NWPathMonitor()
+    private var monitor: NWPathMonitor?
     private let queue = DispatchQueue(label: "rodi.home.network.monitor")
     private var isStarted = false
     private var onStatusChange: ((Bool) -> Void)?
@@ -21,18 +21,23 @@ final class HomeNetworkMonitor {
         guard !isStarted else { return }
         isStarted = true
 
+        let monitor = NWPathMonitor()
         monitor.pathUpdateHandler = { [weak self] path in
             let isNetworkUnavailable = path.status != .satisfied
             Task { @MainActor [weak self] in
                 self?.isNetworkUnavailable = isNetworkUnavailable
             }
         }
+        self.monitor = monitor
         monitor.start(queue: queue)
     }
 
     func stop() {
         guard isStarted else { return }
         isStarted = false
-        monitor.cancel()
+        monitor?.pathUpdateHandler = nil
+        monitor?.cancel()
+        monitor = nil
+        onStatusChange = nil
     }
 }

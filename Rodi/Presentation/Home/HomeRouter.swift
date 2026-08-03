@@ -6,7 +6,7 @@
 import Combine
 import Foundation
 
-enum HomeRoute: Identifiable {
+enum HomePresentation: Identifiable {
     case search(origin: RodiCoordinate)
 
     var id: String {
@@ -30,20 +30,19 @@ final class HomeRouter: ObservableObject {
     @Published private(set) var pendingAdministrativeAreaSearch: HomeAdministrativeAreaSearchDestination?
     @Published private(set) var activeAdministrativeAreaSearch: HomeAdministrativeAreaSearchDestination?
     @Published private(set) var selectedSearchResultName: String?
-    @Published private(set) var bottomSheetState: HomeBottomSheetState = .collapsed
     @Published private(set) var listPresentationRequestID = 0
-    @Published private(set) var presentedRoute: HomeRoute?
+    @Published private(set) var presentedPresentation: HomePresentation?
 
     func presentSearch(origin: RodiCoordinate) {
-        presentedRoute = .search(origin: origin)
+        presentedPresentation = .search(origin: origin)
     }
 
-    func dismissPresentedRoute() {
-        presentedRoute = nil
+    func dismissPresentation() {
+        presentedPresentation = nil
     }
 
     func completeSearch(place: PlaceListItem) {
-        presentedRoute = nil
+        presentedPresentation = nil
         clearAdministrativeAreaSearch()
         selectedSearchResultName = place.name
         DispatchQueue.main.async { [weak self] in
@@ -52,7 +51,7 @@ final class HomeRouter: ObservableObject {
     }
 
     func completeSearch(administrativeAreaSearch result: AdministrativeAreaSearchResult) {
-        presentedRoute = nil
+        presentedPresentation = nil
         let destination = HomeAdministrativeAreaSearchDestination(
             name: result.area.searchDisplayName,
             coordinate: result.area.coordinate,
@@ -99,10 +98,6 @@ final class HomeRouter: ObservableObject {
         selectedSearchResultName = nil
     }
 
-    func updateBottomSheetState(_ state: HomeBottomSheetState) {
-        bottomSheetState = state
-    }
-
     func requestListPresentation() {
         listPresentationRequestID += 1
     }
@@ -112,8 +107,7 @@ final class HomeRouter: ObservableObject {
         pendingAdministrativeAreaSearch = nil
         activeAdministrativeAreaSearch = nil
         selectedSearchResultName = nil
-        bottomSheetState = .collapsed
         listPresentationRequestID = 0
-        presentedRoute = nil
+        presentedPresentation = nil
     }
 }

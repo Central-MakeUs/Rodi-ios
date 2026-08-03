@@ -34,6 +34,7 @@ struct HomeSearchReducer: Reducer {
         var selectedAdministrativeAreaSearch: AdministrativeAreaSearchResult?
         var searchRequestID = 0
         var activeSearchContext: SearchContext?
+        var hasTrackedSearchOpen = false
     }
 
     enum Action {
@@ -87,6 +88,10 @@ struct HomeSearchReducer: Reducer {
     func reduce(_ state: inout State, with action: Action) -> Effect<Action> {
         switch action {
         case .appeared:
+            if !state.hasTrackedSearchOpen {
+                state.hasTrackedSearchOpen = true
+                RodiAnalytics.track(.searchOpened)
+            }
             guard !state.isLoadingRecentSearches, state.recentSearches.isEmpty else { return .none }
             state.isLoadingRecentSearches = true
             return loadRecentSearchesEffect()
@@ -114,6 +119,12 @@ struct HomeSearchReducer: Reducer {
         case .searchSubmitted:
             let query = normalized(state.query)
             guard !query.isEmpty else { return .none }
+            RodiAnalytics.track(
+                .searchSubmitted(
+                    inputSource: "keyboard",
+                    queryLengthBucket: RodiAnalytics.lengthBucket(for: query)
+                )
+            )
             state.query = query
             state.submittedQuery = query
             state.searchRequestID += 1
@@ -126,6 +137,12 @@ struct HomeSearchReducer: Reducer {
             return searchEffect(keyword: query, cursor: nil, requestID: state.searchRequestID, isAppending: false)
 
         case .recentSearchTapped(let recentSearch):
+            RodiAnalytics.track(
+                .searchSubmitted(
+                    inputSource: "recent_search",
+                    queryLengthBucket: RodiAnalytics.lengthBucket(for: recentSearch.keyword)
+                )
+            )
             state.query = recentSearch.keyword
             state.submittedQuery = recentSearch.keyword
             state.searchRequestID += 1
@@ -171,6 +188,12 @@ struct HomeSearchReducer: Reducer {
             state.nextCursor = page.nextCursor
             state.viewState = state.results.isEmpty ? .emptyResults : .results
             guard !isAppending else { return .none }
+            RodiAnalytics.track(
+                .searchResultsLoaded(
+                    resultCountBucket: RodiAnalytics.countBucket(for: page.items.count),
+                    hasLocalAreaCandidates: !state.administrativeAreas.isEmpty
+                )
+            )
             state.isLoadingRecentSearches = true
             return loadRecentSearchesEffect()
 
@@ -217,6 +240,7 @@ struct HomeSearchReducer: Reducer {
             return showSnackbar(error.localizedDescription, state: &state)
 
         case .resultTapped(let place):
+            RodiAnalytics.track(.searchResultSelected(resultType: place.type.rawValue, source: "search_results"))
             state.selectedPlace = place
             return .none
 
@@ -225,6 +249,12 @@ struct HomeSearchReducer: Reducer {
             return .none
 
         case .administrativeAreaTapped(let area):
+            RodiAnalytics.track(
+                .administrativeAreaSelected(
+                    areaLevel: area.level.rawValue,
+                    candidateCountBucket: RodiAnalytics.countBucket(for: state.administrativeAreas.count)
+                )
+            )
             let keyword = area.searchDisplayName
             state.query = keyword
             state.submittedQuery = keyword

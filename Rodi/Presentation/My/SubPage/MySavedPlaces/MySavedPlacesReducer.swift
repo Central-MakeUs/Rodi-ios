@@ -15,6 +15,7 @@ struct MySavedPlacesReducer: Reducer {
         var errorMessage: String?
         fileprivate var nextCursor: String?
         fileprivate var hasNextPage = false
+        var hasTrackedSavedPlacesOpen = false
     }
 
     enum Action {
@@ -33,13 +34,17 @@ struct MySavedPlacesReducer: Reducer {
     private enum EffectID { case firstPage, nextPage }
     private let placeRepository: PlaceRepository
 
-    init(placeRepository: PlaceRepository = AuthDependencyContainer.shared.placeRepository) {
+    init(placeRepository: PlaceRepository) {
         self.placeRepository = placeRepository
     }
 
     func reduce(_ state: inout State, with action: Action) -> Effect<Action> {
         switch action {
         case .appeared:
+            if !state.hasTrackedSavedPlacesOpen {
+                state.hasTrackedSavedPlacesOpen = true
+                RodiAnalytics.track(.savedPlacesOpened)
+            }
             guard state.items.isEmpty, !state.isInitialLoading else { return .none }
             return loadFirstPage(state: &state)
 

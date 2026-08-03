@@ -18,11 +18,11 @@ Setup:
 
 ```sh
 bundle install
-cp Config/Secrets.example.xcconfig Config/Secrets.local.xcconfig
+cp Config/Secrets.example.xcconfig Config/Secrets.prod.local.xcconfig
 export FASTLANE_APPLE_ID="Apple Developer Portal email"
 ```
 
-Local secrets belong in `Config/Secrets.local.xcconfig`:
+Production local secrets belong in `Config/Secrets.prod.local.xcconfig`:
 
 ```xcconfig
 KAKAO_NATIVE_APP_KEY =
@@ -38,16 +38,16 @@ Keep `.p8` files local. `Config/AuthKey_*.p8` and `fastlane/AuthKey_*.p8` are ig
 Commands:
 
 ```sh
-bundle exec fastlane build
-bundle exec fastlane archive
-bundle exec fastlane beta
+bundle exec fastlane build_dev
+bundle exec fastlane archive_prod
+bundle exec fastlane prod_beta
 bundle exec fastlane version
 ```
 
 Use `BUILD_NUMBER` when needed:
 
 ```sh
-BUILD_NUMBER=2 bundle exec fastlane beta
+BUILD_NUMBER=2 bundle exec fastlane prod_beta
 ```
 
 ## App Store Connect Checklist
@@ -129,7 +129,7 @@ Before filing, confirm:
 
 ## Release Safety
 
-- Keep `Config/Secrets.local.xcconfig` out of git.
+- Keep `Config/Secrets.dev.local.xcconfig` and `Config/Secrets.prod.local.xcconfig` out of git.
 - Keep `.p8` files out of git.
 - Do not expose full API keys in build logs.
 - Archive/TestFlight verification does not replace App Store legal and metadata review.

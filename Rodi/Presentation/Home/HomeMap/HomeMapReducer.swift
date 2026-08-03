@@ -8,6 +8,8 @@ import Foundation
 struct HomeMapReducer: Reducer {
     struct State {
         var items: [RodiCourseItem] = []
+        var isItemsLoading = false
+        var itemsRequestRevision = 0
         var administrativeAreaSearchItems: [RodiCourseItem]?
         var visibleMapMarkers: [RodiMapMarker] = []
 
@@ -20,6 +22,7 @@ struct HomeMapReducer: Reducer {
         var errorMessage: String?
         var isLoading = true
         var isReady = false
+        var hasTrackedInitialMapReady = false
         var shouldRender = false
         var cameraTarget = RodiCoordinate.seoulCityHall
         var zoomLevel = RodiMapViewport.initial.zoomLevel
@@ -35,6 +38,10 @@ struct HomeMapReducer: Reducer {
     }
 
     enum Action {
+        case loadItems
+        case itemsLoaded([RodiCourseItem], revision: Int)
+        case itemsLoadingFailed(revision: Int)
+        case cancelItemsLoading
         case ready
         case viewportChanged(center: RodiCoordinate, zoomLevel: Int, viewport: PlaceViewport, isUserInitiated: Bool)
         case cameraMoveFinished(requestID: Int)
@@ -65,15 +72,50 @@ struct HomeMapReducer: Reducer {
         case prepareInitialPlaceListSearch(origin: RodiCoordinate)
     }
 
+    private let placeRepository: PlaceRepository
+
+    init(placeRepository: PlaceRepository) {
+        self.placeRepository = placeRepository
+    }
+
     func reduce(
         _ state: inout State,
         with action: Action
     ) -> Effect<Action> {
         switch action {
+        case .loadItems:
+            guard !state.isItemsLoading else { return .none }
+            state.isItemsLoading = true
+            state.itemsRequestRevision += 1
+            return loadItemsEffect(revision: state.itemsRequestRevision)
+
+        case .itemsLoaded(let items, let revision):
+            guard revision == state.itemsRequestRevision else { return .none }
+            state.isItemsLoading = false
+            state.items = items
+
+        case .itemsLoadingFailed(let revision):
+            guard revision == state.itemsRequestRevision else { return .none }
+            state.isItemsLoading = false
+
+        case .cancelItemsLoading:
+            state.itemsRequestRevision += 1
+            state.isItemsLoading = false
+            return .cancel(id: HomeEffectID.mapItemsLoading)
+
         case .ready:
             state.errorMessage = nil
             state.isReady = true
             state.isLoading = false
+            if !state.hasTrackedInitialMapReady {
+                state.hasTrackedInitialMapReady = true
+                RodiAnalytics.track(
+                    .homeMapReady(
+                        entrySource: "home",
+                        hasLocationPermission: state.hasLocationPermission
+                    )
+                )
+            }
 
         case .viewportChanged(_, let zoomLevel, _, _):
             state.zoomLevel = zoomLevel
@@ -169,5 +211,25 @@ struct HomeMapReducer: Reducer {
         }
 
         return .none
+    }
+
+    private func loadItemsEffect(revision: Int) -> Effect<Action> {
+        let repository = placeRepository
+        return .run { send in
+            do {
+                let coordinates = try await repository.fetchCoordinates()
+                let items = await MainActor.run {
+                    coordinates.map(RodiCourseItem.init(placeCoordinate:))
+                }
+                await send(.itemsLoaded(items, revision: revision))
+                RodiLogger.info("Home place coordinates loaded count=\(items.count)")
+            } catch is CancellationError {
+                RodiLogger.info("Home place coordinates request cancelled revision=\(revision)")
+            } catch {
+                await send(.itemsLoadingFailed(revision: revision))
+                RodiLogger.error("Home place coordinates failed to load error=\(error)")
+            }
+        }
+        .cancelTask(id: HomeEffectID.mapItemsLoading)
     }
 }

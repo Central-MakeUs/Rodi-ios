@@ -11,11 +11,17 @@ Rodi/
   Data/
     Local/
     Remote/
+    RepositoryImpl/
   Domain/
-    Entity/
-    Repository/
+    Auth/
+    Home/Search/
+    Member/
+    Onboarding/
+    Place/
   Presentation/
     Home/
+    Login/
+    MainTab/
     My/
     Onboarding/
   Resources/
@@ -54,6 +60,8 @@ Owns feature UI and UI-facing logic.
 
 Current features:
 - `Presentation/Home`
+- `Presentation/Login`
+- `Presentation/MainTab`
 - `Presentation/My`
 - `Presentation/Onboarding`
 
@@ -68,7 +76,8 @@ Current status:
 - not the source of truth for Home dummy JSON yet
 - do not introduce local persistence changes unless explicitly requested
 
-Server-backed DTO, mapper, API, and repository implementation should move here once the API contract is stable.
+`Data/Remote` owns Swagger-facing DTOs, APIs, and remote data sources. `Data/RepositoryImpl`
+owns DTO-to-Domain mapping and concrete repository implementations.
 
 Current server-backed features:
 - `Data/Remote/Auth` + `Domain/Auth`
@@ -85,7 +94,8 @@ call `NetworkManager` directly.
 
 ### Domain
 
-Reserved for pure entities and repository interfaces.
+Owns app-facing entities, repository interfaces, and business policies. Each top-level Domain
+concept keeps its own `Entity`, `Repository`, and, where needed, `Policy` folders.
 
 Domain must not import:
 - SwiftUI
@@ -107,26 +117,44 @@ Examples:
 - bundled JSON
 - `PrivacyInfo.xcprivacy`
 
+## Routing And Composition
+
+`AppDependencies` is the composition root. It constructs network infrastructure, repositories,
+and stores once, then injects them through `RootView` into Feature roots. Reducers and Views do
+not construct or look up dependencies directly.
+
+```text
+RootView
+  AppRouter: onboarding <-> main tabs, login-required presentation
+  RootReducer: version check and session restore lifecycle
+  MainTabView / MainTabReducer: selected tab and cross-tab intent
+    HomeRouter: search presentation and Home handoff
+    MyRouter: typed NavigationStack path
+    OnboardingRouter: typed NavigationStack path
+```
+
+Home and My roots stay mounted while the selected tab changes. Only the inactive tab's rendering, hit testing, and accessibility are disabled so map, bottom sheet, filter, and navigation state survive tab changes.
+
+Home coordinate loading belongs to `HomeMapReducer`. Requests use a revision and cancellation ID so stale results cannot replace newer map state. `HomeNetworkMonitor` creates a fresh `NWPathMonitor` for every start because a cancelled monitor cannot be restarted.
+
+Authentication tokens are written as one Keychain session record. Legacy separate access/refresh entries migrate on first read, and writes use update-or-add so a transient write failure does not first delete an active session.
+
 ## Home Structure
 
-`Presentation/Home` is intentionally self-contained because it combines Kakao SDK lifecycle, location policy, route overlays, marker rendering, bottom sheets, and MVI.
+`Presentation/Home` is intentionally self-contained because it combines a UIKit-backed Kakao map, location policy, marker rendering, search, bottom sheets, and MVI.
 
 ```text
 Presentation/Home/
-  Map/
-  Models/
-  Reducers/
-  Services/
-  States/
-  Views/
+  HomeView.swift                 # Feature entry and injected dependencies
+  HomeReducer.swift              # Map / bottom sheet / presentation composition
+  HomeRouter.swift               # Search presentation and cross-feature handoff
+  HomeMap/                       # Map UI, reducer, Kakao adapter, runtime services
+  HomeBottomSheet/               # List, details, filter, route guidance
+  HomeSearch/                    # Full-screen place and administrative-area search
+  Component/                     # Home-local shared UI and presentation reducer
 ```
 
-Rules:
-- `Map/` is a Kakao UIKit adapter area, not a regular SwiftUI subview folder.
-- `Views/` owns SwiftUI composition and Home-only components.
-- `Services/` owns Home runtime side effects and Home-specific external integrations.
-- `Models/` is temporary for Home display, DTO-like, and map models until server/Data/Domain separation is requested.
-- `States/` and `Reducers/` own Home MVI decomposition.
+`HomeMapView` owns only map SDK and location runtime lifecycle. Coordinate loading belongs to `HomeMapReducer` Effects so it can be cancelled and revision-checked outside the View lifecycle.
 
 ### Map marker clustering
 
@@ -150,16 +178,13 @@ Home deliberately uses two public Place APIs for different jobs.
 
 ## Onboarding Structure
 
-`Presentation/Onboarding` owns onboarding flow state, entry/social login UI, legal agreement UI, nickname/driving preference screens, safety confirmation, and location permission prompt UI.
+`Presentation/Login` owns social login, browse entry, authentication failures, and withdrawal recovery. `Presentation/Onboarding` owns the authenticated/guest onboarding routes after login.
 
-Onboarding UI models are Presentation models, not Domain entities. `Data/Local/Onboarding/OnboardingDraftStore` stores the authenticated new-member's current step and selections after every state change so an interrupted onboarding session can resume. It is cleared only after final onboarding completion or logout/withdrawal. Browse users follow the reduced `terms -> safety -> location permission` flow and never create an onboarding draft or submit member onboarding data. `Core/Setting/AppPreferencesStore` continues to own the separate final `hasSeenOnboarding` flag.
+`OnboardingRouterView` hosts the stack and forwards `OnboardingTransition` values. Individual Terms, Profile, and Permission reducers own their input, validation, presentation, and effects. `OnboardingSession` is the accumulated value model for draft persistence and submission; it does not depend on reducer-owned nested types. Browse users follow `terms -> safety -> location permission` and never create a member draft or submit member onboarding data.
 
 ## My Structure
 
-`Presentation/My` owns the profile screen and settings navigation. `MyProfileViewModel` is the
-single owner of the profile loading state and depends on `MemberRepository`; it does not call the
-network layer directly. `Data/Remote/Member` maps `GET /api/v1/members/me` into the pure
-`Domain/Member/MemberProfile` entity.
+`Presentation/My` owns the profile screen and settings navigation. `MyReducer` owns profile loading, logout, withdrawal, and transient feedback. `MyRouter` owns the typed `NavigationStack` path and keeps system edge-swipe state synchronized.
 
 ## MVI Rules
 
@@ -178,12 +203,11 @@ Do not add mapper/repository layers just to make folders look used.
 
 Use this order when server work begins:
 
-1. Define server DTOs in `Data/Remote/<Feature>`.
-2. Define pure app entities in `Domain/Entity`.
-3. Define repository interfaces in `Domain/Repository`.
-4. Add mapper functions from DTO to Domain entity.
-5. Add Data repository implementation.
-6. Update Presentation to depend on Domain-facing models/interfaces.
+1. Define server DTOs, APIs, and remote data sources in `Data/Remote/<Resource>`.
+2. Define app entities and repository interfaces in their `Domain/<Concept>` folders.
+3. Add mapper functions in `Data/RepositoryImpl/<Concept>`.
+4. Add the concrete repository implementation beside its mapper.
+5. Update Presentation to depend on Domain-facing models/interfaces.
 
 Until then, Home dummy JSON can stay inside `Presentation/Home`.
 

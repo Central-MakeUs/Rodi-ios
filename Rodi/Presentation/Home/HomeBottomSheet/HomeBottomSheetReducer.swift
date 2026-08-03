@@ -7,23 +7,6 @@ import Foundation
 
 struct HomeBottomSheetReducer: Reducer {
     struct State {
-        struct FilterState {
-            var isPresented = false
-            var appliedSelection: HomePracticeFilterSelection
-            var draftSelection: HomePracticeFilterSelection
-            var isApplying = false
-
-            init(filterStore: HomePracticeFilterStore = HomePracticeFilterStore()) {
-                let selection = filterStore.load()
-                appliedSelection = selection
-                draftSelection = selection
-            }
-
-            var canApply: Bool {
-                !isApplying && draftSelection.filterTags != appliedSelection.filterTags
-            }
-        }
-
         struct PlaceListState {
             var items: [PlaceListItem] = []
             var activeViewport: PlaceViewport?
@@ -54,8 +37,9 @@ struct HomeBottomSheetReducer: Reducer {
         var placeDetail: PlaceDetail?
         var isPlaceDetailLoading = false
         var isBookmarkUpdating = false
+        var selectionSource = "unknown"
         var placeList = PlaceListState()
-        var filter = FilterState()
+        var filter = HomePracticeFilterReducer.State()
     }
 
     enum Action {
@@ -102,18 +86,7 @@ struct HomeBottomSheetReducer: Reducer {
         case consumeAutoExpandAfterResearch
     }
 
-    enum FilterAction {
-        case present(mediumHeight: CGFloat)
-        case dismiss
-        case selectCategory(HomePracticeCategory)
-        case toggleType(PlacePracticeType)
-        case selectAll
-        case reset
-        case apply
-        case applied(HomePracticeFilterSelection)
-        case authenticationRequired
-        case failed(String)
-    }
+    typealias FilterAction = HomePracticeFilterReducer.Action
 
     enum Delegate {
         case focusMapOnParking(RodiCoordinate)
@@ -122,20 +95,22 @@ struct HomeBottomSheetReducer: Reducer {
     }
 
     let placeRepository: PlaceRepository
-    let memberRepository: MemberRepository
-    let filterStore: HomePracticeFilterStore
     let hasActiveSession: () -> Bool
+    private let filterReducer: HomePracticeFilterReducer
 
     init(
         placeRepository: PlaceRepository,
-        memberRepository: MemberRepository = AuthDependencyContainer.shared.memberRepository,
+        memberRepository: MemberRepository,
         filterStore: HomePracticeFilterStore = HomePracticeFilterStore(),
         hasActiveSession: @escaping () -> Bool
     ) {
         self.placeRepository = placeRepository
-        self.memberRepository = memberRepository
-        self.filterStore = filterStore
         self.hasActiveSession = hasActiveSession
+        filterReducer = HomePracticeFilterReducer(
+            memberRepository: memberRepository,
+            filterStore: filterStore,
+            hasActiveSession: hasActiveSession
+        )
     }
 
     func reduce(
@@ -152,72 +127,35 @@ struct HomeBottomSheetReducer: Reducer {
         case .placeList(let action):
             return reducePlaceList(action, state: &state)
 
+        case .filter(.delegate(let delegate)):
+            return handleFilterDelegate(delegate, state: &state)
+
         case .filter(let action):
-            return reduceFilter(action, state: &state)
+            return filterReducer
+                .reduce(&state.filter, with: action)
+                .map(Action.filter)
 
         case .delegate:
             return .none
         }
     }
 
-    private func reduceFilter(
-        _ action: FilterAction,
+    private func handleFilterDelegate(
+        _ delegate: HomePracticeFilterReducer.Delegate,
         state: inout State
     ) -> Effect<Action> {
-        switch action {
-        case .present(let mediumHeight):
-            guard hasActiveSession() else {
-                return delegateEffect(.requestAuthentication)
-            }
+        switch delegate {
+        case .presentSheet(let mediumHeight):
             state.bottomSheetState = .medium
             state.sheetHeight = mediumHeight
-            state.filter.draftSelection = state.filter.appliedSelection
-            state.filter.isPresented = true
-
-        case .dismiss:
-            state.filter.isPresented = false
-            state.filter.isApplying = false
-            state.filter.draftSelection = state.filter.appliedSelection
-
-        case .selectCategory(let category):
-            guard !state.filter.isApplying else { return .none }
-            state.filter.draftSelection.selectCategory(category)
-
-        case .toggleType(let type):
-            guard !state.filter.isApplying else { return .none }
-            state.filter.draftSelection.toggleType(type)
-
-        case .selectAll:
-            guard !state.filter.isApplying else { return .none }
-            state.filter.draftSelection.selectAll()
-
-        case .reset:
-            guard !state.filter.isApplying else { return .none }
-            state.filter.draftSelection = .default
-
-        case .apply:
-            guard state.filter.canApply else { return .none }
-            state.filter.isApplying = true
-            return updateFilterEffect(selection: state.filter.draftSelection)
-
-        case .applied(let selection):
-            state.filter.appliedSelection = selection
-            state.filter.draftSelection = selection
-            state.filter.isApplying = false
-            state.filter.isPresented = false
-            filterStore.save(selection)
+            return .none
+        case .reloadPlaceList:
             return .send(.placeList(.reloadAfterFilter))
-
-        case .authenticationRequired:
-            state.filter.isApplying = false
+        case .requestAuthentication:
             return delegateEffect(.requestAuthentication)
-
-        case .failed(let message):
-            state.filter.isApplying = false
+        case .showSnackbar(let message):
             return delegateEffect(.showSnackbar(message))
         }
-
-        return .none
     }
 
     private func reduceSheet(
@@ -258,18 +196,22 @@ struct HomeBottomSheetReducer: Reducer {
         switch action {
         case .clear:
             clearSelection(state: &state)
+            state.selectionSource = "unknown"
             return .cancel(id: HomeEffectID.routeLoading)
 
         case .selectItem(let item, let mediumHeight):
+            state.selectionSource = "list"
             return select(item, mediumHeight: mediumHeight, state: &state)
 
         case .selectMapItem(let item, let mediumHeight):
             guard hasActiveSession() else {
                 return delegateEffect(.requestAuthentication)
             }
+            state.selectionSource = "map"
             return select(item, mediumHeight: mediumHeight, state: &state)
 
         case .selectPlaceID(let placeID, let mediumHeight):
+            state.selectionSource = "handoff"
             return selectPlaceDetail(placeID: placeID, mediumHeight: mediumHeight, state: &state)
 
         case .detailLoaded(let detail):
@@ -280,6 +222,9 @@ struct HomeBottomSheetReducer: Reducer {
             state.placeDetail = detail
             state.isPlaceDetailLoading = false
             state.isBookmarkUpdating = false
+            RodiAnalytics.track(
+                .placeDetailOpened(source: state.selectionSource, placeType: detail.type.rawValue)
+            )
             return configureRoute(for: item, state: &state)
 
         case .detailAuthenticationRequired(let placeID):
@@ -316,6 +261,13 @@ struct HomeBottomSheetReducer: Reducer {
             guard state.placeDetail?.id == placeID else { return .none }
             state.placeDetail = state.placeDetail?.updatingBookmark(isBookmarked: isBookmarked)
             state.isBookmarkUpdating = false
+            RodiAnalytics.track(
+                .bookmarkUpdated(
+                    isBookmarked: isBookmarked,
+                    source: state.selectionSource,
+                    placeType: state.placeDetail?.type.rawValue ?? "unknown"
+                )
+            )
             return delegateEffect(.showSnackbar(isBookmarked ? "북마크를 저장했어요." : "북마크를 해제했어요."))
 
         case .bookmarkFailed(let placeID, let previousDetail, let message):
@@ -403,13 +355,11 @@ struct HomeBottomSheetReducer: Reducer {
             if let viewport = state.placeList.latestViewport,
                let center = state.placeList.latestViewportCenter,
                center.distanceKilometers(to: origin) <= 0.5 {
-                return .run { send in
-                    await send(.placeList(.viewportChanged(
-                        viewport: viewport,
-                        center: center,
-                        isUserInitiated: false
-                    )))
-                }
+                return .send(.placeList(.viewportChanged(
+                    viewport: viewport,
+                    center: center,
+                    isUserInitiated: false
+                )))
             }
 
         case .reloadCurrentViewport(let origin):
@@ -704,28 +654,6 @@ struct HomeBottomSheetReducer: Reducer {
         .cancelTask(id: HomeEffectID.placeListLoading)
     }
 
-    private func updateFilterEffect(
-        selection: HomePracticeFilterSelection
-    ) -> Effect<Action> {
-        let repository = memberRepository
-        return .run { send in
-            do {
-                try await repository.updatePlaceFilterTags(selection.filterTags)
-                await send(.filter(.applied(selection)))
-            } catch is CancellationError {
-                return
-            } catch {
-                RodiLogger.warning("Home practice filter update failed. error=\(error.localizedDescription)")
-                if requiresAuthentication(error) {
-                    await send(.filter(.authenticationRequired))
-                    return
-                }
-                await send(.filter(.failed("필터를 적용하지 못했어요. 다시 시도해 주세요.")))
-            }
-        }
-        .cancelTask(id: HomeEffectID.practiceFilterUpdating)
-    }
-
     private func loadPlaceDetailEffect(placeID: Int) -> Effect<Action> {
         let repository = placeRepository
         return .run { send in
@@ -811,9 +739,7 @@ struct HomeBottomSheetReducer: Reducer {
     }
 
     private func delegateEffect(_ delegate: Delegate) -> Effect<Action> {
-        .run { send in
-            await send(.delegate(delegate))
-        }
+        .send(.delegate(delegate))
     }
 
     private func requiresAuthentication(_ error: Error) -> Bool {

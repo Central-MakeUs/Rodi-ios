@@ -3,6 +3,7 @@
 //  Rodi
 //
 
+import Clarity
 import SwiftUI
 
 struct HomeSearchView: View {
@@ -18,8 +19,8 @@ struct HomeSearchView: View {
         onPlaceSelected: @escaping (PlaceListItem) -> Void,
         onAdministrativeAreaSelected: @escaping (AdministrativeAreaSearchResult) -> Void,
         onDismiss: @escaping () -> Void,
-        placeRepository: PlaceRepository = AuthDependencyContainer.shared.placeRepository,
-        recentSearchRepository: RecentSearchRepository = AuthDependencyContainer.shared.recentSearchRepository,
+        placeRepository: PlaceRepository,
+        recentSearchRepository: RecentSearchRepository,
         administrativeAreaSearchService: KoreanAdministrativeAreaSearching = KoreanAdministrativeAreaSearchService.shared
     ) {
         self.onPlaceSelected = onPlaceSelected
@@ -49,6 +50,7 @@ struct HomeSearchView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 5)
             .background(RodiColor.white)
+            .clarityMask()
 
             ScrollView {
                 Group {

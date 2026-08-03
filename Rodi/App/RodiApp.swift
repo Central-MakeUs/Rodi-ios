@@ -12,6 +12,8 @@ import KakaoMapsSDK
 @main
 struct RodiApp: App {
 
+    @UIApplicationDelegateAdaptor(AppLifecycleDelegate.self) private var appLifecycleDelegate
+
     init() {
         RodiLogger.configure()
         RodiFontRegistrar.registerFonts()

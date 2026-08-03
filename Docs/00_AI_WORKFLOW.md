@@ -16,7 +16,9 @@ This document is the main operating guide for AI agents working in this reposito
 | --- | --- | --- |
 | App startup/root flow | `Rodi/App/` | `RodiApp.swift`, `RootView.swift` own app entry and root routing. |
 | Home feature | `Rodi/Presentation/Home/` | Map, location, bottom sheet, marker, route, and Home MVI live here. |
-| Onboarding | `Rodi/Presentation/Onboarding/` | Onboarding MVI, legal agreements, and permission screen live here. |
+| Login | `Rodi/Presentation/Login/` | Social login, browse entry, and withdrawal recovery. |
+| Onboarding | `Rodi/Presentation/Onboarding/` | RouterView, session, terms, profile, and permission screens. |
+| Main tabs | `Rodi/Presentation/MainTab/` | Tab state and cross-tab intents. |
 | My profile | `Rodi/Presentation/My/` | Profile UI, settings routing, and authenticated member summary rendering live here. |
 | Design tokens | `Rodi/Core/RodiDesignSystem.swift` | Use `RodiColor`, `RodiTypography`, and Pretendard helpers. |
 | Assets/fonts/data | `Rodi/Resources/` | Asset catalog, bundled JSON, fonts, privacy manifest. |
@@ -32,20 +34,23 @@ This document is the main operating guide for AI agents working in this reposito
 | Symbol/File | Role |
 | --- | --- |
 | `RodiApp` | App entry point and global setup. |
-| `RootView` | Chooses onboarding or home based on app preferences. |
+| `RootView` | App composition root; injects dependencies and renders the root route. |
+| `AppDependencies` | Creates repositories and stores once for explicit Feature injection. |
+| `AppRouter` | Owns onboarding/main tab root route and login-required presentation. |
+| `MainTabView` / `MainTabReducer` | Keeps Home/My roots alive and owns tab selection. |
 | `HomeView` | Home screen composition; should render state and send actions. |
-| `HomeState` | Single render-state source for Home. |
-| `HomeAction` | User intents, runtime events, route events, and presentation actions. |
 | `HomeReducer` | Home state transitions and effect orchestration. |
-| `HomeRuntimeService` | Location, heading, fallback, and marker runtime side effects. |
+| `HomeMapReducer` | Map coordinate loading and map render state. |
+| `HomeMapRuntimeService` | Location, heading, fallback, and marker runtime side effects. |
 | `KakaoMapContainerView` | SwiftUI wrapper around the Kakao UIKit map adapter. |
 | `RodiKakaoMapView` | UIKit Kakao map lifecycle and rendering control. |
 | `KakaoDirectionsService` | Kakao Mobility route API integration for route overlay. |
 | `RouteGuidanceService` | External KakaoMap/KakaoNavi handoff. |
-| `OnboardingView` | Onboarding MVI entry view. |
-| `OnboardingReducer` | Onboarding state transitions. |
+| `OnboardingRouterView` | NavigationStack host that forwards feature transitions. |
+| `OnboardingSession` | Draft and submission value model shared across onboarding routes. |
+| `LoginReducer` | Social login and browse entry state transitions. |
 | `SocialLoginService` | Apple/Kakao onboarding login side effects. |
-| `MyProfileViewModel` | Loads and renders the authenticated member's profile summary. |
+| `MyReducer` | Loads the authenticated profile and handles logout/withdrawal. |
 | `RodiDesignSystem` | Colors, typography, fonts, and design token helpers. |
 
 ## Commands
@@ -53,15 +58,16 @@ This document is the main operating guide for AI agents working in this reposito
 Build after code or structure changes:
 
 ```sh
-xcodebuild -project /Users/mac/Documents/iOS_projects/SwiftUI/Rodi/Rodi.xcodeproj -scheme Rodi -destination 'generic/platform=iOS Simulator' build
+xcodebuild -project /Users/mac/Documents/iOS_projects/SwiftUI/Rodi/Rodi.xcodeproj -scheme 'Rodi Dev' -configuration Debug -destination 'generic/platform=iOS Simulator' build
+xcodebuild -project /Users/mac/Documents/iOS_projects/SwiftUI/Rodi/Rodi.xcodeproj -scheme Rodi -configuration Release -destination 'generic/platform=iOS Simulator' build
 ```
 
 Fastlane local commands:
 
 ```sh
-bundle exec fastlane build
-bundle exec fastlane archive
-bundle exec fastlane beta
+bundle exec fastlane build_dev
+bundle exec fastlane archive_prod
+bundle exec fastlane prod_beta
 bundle exec fastlane version
 ```
 
@@ -200,7 +206,9 @@ Use when touching async/await, `Task`, actors, location callbacks, network calls
 5. Prefer structured cancellation for long-running or repeatable tasks.
 6. Match a `Task` entry's isolation to its synchronous prefix before the first `await`.
 7. Avoid `@unchecked Sendable`, `nonisolated(unsafe)`, semaphores, and ad hoc locking unless the safety invariant is documented.
-8. Build after the smallest safe change.
+8. Keep `Effect`, `Reducer`, and `Store` on the main actor. Use `.send` for synchronous follow-up actions and reserve `.run` for genuinely asynchronous work.
+9. A tappable row or card must use `.contentShape(Rectangle())` so its whole visual container, not only its label or icon, is interactive. A search screen should dismiss the keyboard when its background is tapped.
+10. Build after the smallest safe change.
 
 If a concurrency warning depends on project settings, inspect the `.pbxproj` settings first:
 - Swift language version

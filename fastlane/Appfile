@@ -1,4 +1,3 @@
-app_identifier("com.dororong.rodi") # The bundle identifier of your app
 apple_id(ENV["FASTLANE_APPLE_ID"]) # Your Apple Developer Portal username
 
 itc_team_id("123875520") # App Store Connect Team ID

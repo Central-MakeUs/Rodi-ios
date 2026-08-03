@@ -23,29 +23,37 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 
 Show the current app version and build number
 
-### ios build
+### ios build_dev
 
 ```sh
-[bundle exec] fastlane ios build
+[bundle exec] fastlane ios build_dev
 ```
 
-Build Rodi for the iOS Simulator
+Build Rodi Dev for the iOS Simulator
 
-### ios archive
+### ios archive_prod
 
 ```sh
-[bundle exec] fastlane ios archive
+[bundle exec] fastlane ios archive_prod
 ```
 
-Create an App Store archive locally
+Create a production App Store archive locally
 
-### ios beta
+### ios dev_beta
 
 ```sh
-[bundle exec] fastlane ios beta
+[bundle exec] fastlane ios dev_beta
 ```
 
-Push a new beta build to TestFlight
+Push a new development beta build to the Rodi Dev TestFlight app
+
+### ios prod_beta
+
+```sh
+[bundle exec] fastlane ios prod_beta
+```
+
+Push a new production beta build to TestFlight
 
 ----
 

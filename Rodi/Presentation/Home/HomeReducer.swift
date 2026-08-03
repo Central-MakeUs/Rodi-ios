@@ -53,21 +53,22 @@ struct HomeReducer: Reducer {
         case presentation(HomePresentationReducer.Action)
     }
 
-    private let mapReducer = HomeMapReducer()
+    private let mapReducer: HomeMapReducer
     private let bottomSheetReducer: HomeBottomSheetReducer
     private let presentationReducer = HomePresentationReducer()
 
     init(
         placeRepository: PlaceRepository,
-        hasActiveSession: @escaping () -> Bool = {
-            let tokenStore = AuthDependencyContainer.shared.tokenStore
-            return [tokenStore.accessToken, tokenStore.refreshToken]
-                .contains { $0?.isEmpty == false }
-        }
+        memberRepository: MemberRepository,
+        tokenStore: TokenStoring
     ) {
+        mapReducer = HomeMapReducer(placeRepository: placeRepository)
         bottomSheetReducer = HomeBottomSheetReducer(
             placeRepository: placeRepository,
-            hasActiveSession: hasActiveSession
+            memberRepository: memberRepository,
+            hasActiveSession: {
+                [tokenStore.accessToken, tokenStore.refreshToken].contains { $0?.isEmpty == false }
+            }
         )
     }
 
@@ -77,10 +78,7 @@ struct HomeReducer: Reducer {
             switch delegate {
             case .prepareInitialPlaceListSearch(origin: let origin):
                 
-                // TODO: return .send() need plz Fix
-                return .run { send in
-                    await send(.bottomSheet(.placeList(.prepareInitialSearch(origin: origin))))
-                }
+                return .send(.bottomSheet(.placeList(.prepareInitialSearch(origin: origin))))
             }
             
         case .bottomSheet(.delegate(let delegate)):
@@ -110,19 +108,13 @@ struct HomeReducer: Reducer {
     ) -> Effect<Action> {
         switch delegate {
         case .focusMapOnParking(let coordinate):
-            return .run { send in
-                await send(.map(.focusParking(coordinate)))
-            }
+            return .send(.map(.focusParking(coordinate)))
 
         case .showSnackbar(let message):
-            return .run { send in
-                await send(.presentation(.showSnackbar(message)))
-            }
+            return .send(.presentation(.showSnackbar(message)))
 
         case .requestAuthentication:
-            return .run { send in
-                await send(.presentation(.requestAuthentication))
-            }
+            return .send(.presentation(.requestAuthentication))
         }
 
     }

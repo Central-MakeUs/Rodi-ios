@@ -4,6 +4,7 @@
 //
 
 enum HomeEffectID {
+    static let mapItemsLoading = "home.map.items-loading"
     static let routeLoading = "home.route.loading"
     static let placeDetailLoading = "home.place-detail.loading"
     static let bookmarkUpdating = "home.place-detail.bookmark-updating"

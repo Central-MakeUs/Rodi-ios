@@ -3,6 +3,7 @@
 //  Rodi
 //
 
+import Clarity
 import SwiftUI
 
 struct HomeMapView: View {
@@ -37,18 +38,15 @@ struct HomeMapView: View {
     @StateObject private var runtimeService = HomeMapRuntimeService()
     @State private var networkMonitor = HomeNetworkMonitor()
     @ObservedObject private var homeStore: StoreOf<HomeReducer>
-    private let placeRepository: PlaceRepository
     private let configuration: Configuration
     private let onOutput: (Output) -> Void
 
     init(
         homeStore: StoreOf<HomeReducer>,
-        placeRepository: PlaceRepository,
         configuration: Configuration,
         onOutput: @escaping (Output) -> Void
     ) {
         self.homeStore = homeStore
-        self.placeRepository = placeRepository
         self.configuration = configuration
         self.onOutput = onOutput
     }
@@ -64,6 +62,7 @@ struct HomeMapView: View {
                 isAccessibilityHidden: configuration.isAccessibilityHidden,
                 onEvent: handleMapEvent
             )
+            .clarityMask()
 
             HomeStatusLayer(
                 homeStore: homeStore,
@@ -122,12 +121,15 @@ struct HomeMapView: View {
         .onChange(of: homeStore.state.map.administrativeAreaSearchItems?.map(\.id)) { _ in
             runtimeService.refreshMapMarkers(for: homeStore.state.visibleItems)
         }
+        .onChange(of: homeStore.state.map.items.map(\.id)) { _ in
+            runtimeService.refreshMapMarkers(for: homeStore.state.visibleItems)
+        }
     }
 
     private func startServices() {
         runtimeService.start(onEvent: handleRuntimeEvent)
         runtimeService.showInitialPlaceMapIfNeeded()
-        loadHomeItems()
+        homeStore.send(.map(.loadItems))
         networkMonitor.start { isUnavailable in
             homeStore.send(.map(.setNetworkUnavailable(isUnavailable)))
         }
@@ -136,21 +138,7 @@ struct HomeMapView: View {
     private func stopServices() {
         runtimeService.stop()
         networkMonitor.stop()
-    }
-
-    private func loadHomeItems() {
-        Task {
-            do {
-                let coordinates = try await placeRepository.fetchCoordinates()
-                let items = coordinates.map(RodiCourseItem.init(placeCoordinate:))
-                homeStore.send(.map(.setItems(items)))
-                runtimeService.renderInitialMapMarkers(for: homeStore.state.visibleItems)
-                RodiLogger.info("Home place coordinates loaded count=\(items.count)")
-            } catch {
-                homeStore.send(.map(.setItems([])))
-                RodiLogger.error("Home place coordinates failed to load error=\(error)")
-            }
-        }
+        homeStore.send(.map(.cancelItemsLoading))
     }
 
     private func handleMapEvent(_ event: RodiMapEvent) {

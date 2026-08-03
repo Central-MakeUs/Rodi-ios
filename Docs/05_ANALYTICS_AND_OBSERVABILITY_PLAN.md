@@ -1,8 +1,8 @@
 # RODI Analytics And Observability Plan
 
 이 문서는 Firebase Analytics(GA4), Firebase Crashlytics, Firebase Performance
-Monitoring, Microsoft Clarity 도입을 위한 설계 기준이다. 이 문서는 SDK 연결이나
-이벤트 구현을 의미하지 않는다.
+Monitoring, Microsoft Clarity의 설계·구현 기준이다. Firebase 초기화와 P0 이벤트
+전송은 적용되어 있으며, 신규 이벤트도 이 문서의 개인정보 경계를 따라 추가한다.
 
 ## Goals
 
@@ -23,14 +23,18 @@ Rodi가 확인하려는 핵심 질문은 다음과 같다.
 | Firebase Performance Monitoring | 앱 시작, 화면 렌더링, HTTP 요청, 핵심 흐름의 성능 분석 | 도입 |
 | Microsoft Clarity | dead tap, rage tap, 지도·바텀싯·검색 UX의 정성 분석 | 도입 |
 
-- Firebase는 Debug/Staging과 Release를 **별도 Firebase 프로젝트**로 운영한다.
+- Firebase는 Dev(Debug)와 Prod(Release)를 **별도 Firebase 프로젝트**로 운영한다.
+- `RODI_ANALYTICS_ENABLED`가 `YES`인 환경에서만 앱 시작 시 Firebase Analytics
+  collection을 명시적으로 활성화한다. Firebase Console에서도 각 Firebase 프로젝트의
+  Google Analytics 연결·수집 상태를 별도로 확인한다.
 - Firebase Analytics를 Crashlytics와 함께 사용해 크래시 전 사용자 행동 breadcrumb을
   확인한다. [Firebase Crashlytics iOS guide](https://firebase.google.com/docs/crashlytics/ios/get-started)
 - Performance Monitoring은 자동 trace를 먼저 확인하고, 부족한 핵심 흐름에만 custom
   trace를 추가한다. [Firebase Performance guide](https://firebase.google.com/docs/perf-mon/get-started-ios)
-- Clarity는 운영 사용자에게 적용하되, 아래 마스킹·법무 기준을 충족한 뒤 활성화한다.
-  Clarity는 SwiftUI를 지원하지만 공식 지원 표에 iOS 15~18이 명시되어 있으므로,
-  Rodi의 iOS 26 환경은 별도 실기기 검증 대상이다.
+- Clarity는 Dev와 Prod에 별도 프로젝트로 적용한다. Dev에서 초기화·마스킹·제스처 회귀를
+  먼저 검증한 뒤 Prod 사용을 유지한다.
+  Clarity는 SwiftUI를 지원하지만 공식 지원 표에 iOS 15~18만 명시되어 있다. iOS 26은
+  Clarity 수집 검증 대상이 아니며, 지원 범위의 iOS 15~18 기기에서만 검증한다.
   [Clarity mobile overview](https://learn.microsoft.com/en-us/clarity/mobile-sdk/mobile-sdk-overview)
 
 ## Measurement Model
@@ -116,6 +120,20 @@ login_attempted -> login_succeeded -> onboarding_completed
 - 사용자 속성은 `user_mode`(guest/member), `login_provider`, `member_level`,
   `has_driving_goal`처럼 low-cardinality 값으로 제한한다.
 
+## Firebase Console Setup
+
+- Firebase Analytics의 Events 화면은 앱이 `Analytics.logEvent`로 보낸 custom event를
+  수집한다. 이벤트마다 별도 SDK 또는 별도 Firebase 연결은 필요하지 않다.
+- Debug 빌드는 Xcode Scheme의 Run Arguments에 `-FIRDebugEnabled`를 넣고 Firebase
+  DebugView에서 즉시 검증한다. Release 이벤트는 일반 보고서 반영까지 시간이 걸릴 수 있다.
+- 퍼널·탐색 보고서에서 파라미터별 분해가 필요하면 GA4 Custom Definitions에 다음
+  low-cardinality 파라미터만 등록한다: `entry_mode`, `step`, `provider`,
+  `failure_category`, `place_type`, `source`, `result_type`, `area_level`,
+  `category`, `navigation_provider`, `status`.
+- `query_length_bucket`, `result_count_bucket`, `candidate_count_bucket`,
+  `goal_length_bucket`, `selected_tag_count`는 숫자 또는 문자열 구간으로만 사용한다.
+  검색어 원문·좌표·장소 ID는 Custom Definition에도 등록하지 않는다.
+
 ## Privacy And Data Boundaries
 
 다음 값은 Analytics event parameter, user property, Crashlytics key/log, Clarity custom
@@ -180,12 +198,12 @@ custom trace는 프레임 단위 또는 고빈도 호출에 사용하지 않는�
 
 ## Validation And Rollout
 
-1. Debug/Staging과 Release가 서로 다른 Firebase 프로젝트로 전송되는지 확인한다.
+1. Debug와 Release가 서로 다른 Firebase 프로젝트로 전송되는지 확인한다.
 2. P0 이벤트가 사용자 의도 한 번당 한 번만 기록되는지 Firebase DebugView로 검증한다.
 3. 디버거 없이 테스트 크래시와 non-fatal 오류 한 건을 전송해 Crashlytics를 검증한다.
 4. Performance 자동 network trace에 Alamofire 요청이 나타나는지 확인한다.
-5. iOS 18과 iOS 26 실기기에서 Clarity의 지도 드래그, 바텀싯, 검색, 키보드 동작을
-   회귀 검증하고, 모든 민감 영역이 마스킹되는지 확인한다.
+5. Dev와 Prod의 지원 범위 iOS 15~18 실기기에서 Clarity의 지도 드래그, 바텀싯, 검색, 키보드
+   동작을 회귀 검증하고, 모든 민감 영역이 마스킹되는지 확인한다.
 6. 출시 후 첫 2주 동안은 P0의 누락·중복·카디널리티를 검토한 뒤 P1을 추가한다.
 
 ## Explicit Non-Goals

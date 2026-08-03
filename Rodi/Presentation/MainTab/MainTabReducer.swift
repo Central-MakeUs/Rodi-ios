@@ -1,0 +1,87 @@
+//
+//  MainTabReducer.swift
+//  Rodi
+//
+
+import Foundation
+
+enum MainTabIntent: Equatable {
+    case presentHomeList
+    case openHomePlace(id: Int)
+    case openMyProfile
+    case openMySavedPlaces
+}
+
+@MainActor
+struct MainTabReducer: Reducer {
+    struct State {
+        var selectedTab: RodiTab = .home
+        var navigationIntent: MainTabIntent?
+        var authenticationIntent: MainTabIntent?
+        var homeBottomSheetState: HomeBottomSheetState = .collapsed
+    }
+
+    enum Action {
+        case homeTabTapped
+        case myTabTapped
+        case navigationRequested(MainTabIntent)
+        case navigationHandled
+        case authenticationRequestHandled
+        case homeBottomSheetStateChanged(HomeBottomSheetState)
+    }
+
+    private let tokenStore: TokenStoring
+
+    init(tokenStore: TokenStoring) {
+        self.tokenStore = tokenStore
+    }
+
+    func reduce(_ state: inout State, with action: Action) -> Effect<Action> {
+        switch action {
+        case .homeTabTapped:
+            if state.selectedTab == .home {
+                state.navigationIntent = .presentHomeList
+            } else {
+                state.selectedTab = .home
+            }
+
+        case .myTabTapped:
+            guard !hasActiveSession else {
+                state.selectedTab = .my
+                return .none
+            }
+
+            state.authenticationIntent = .openMyProfile
+
+        case .navigationRequested(let intent):
+            state.selectedTab = tab(for: intent)
+            state.navigationIntent = intent
+
+        case .navigationHandled:
+            state.navigationIntent = nil
+
+        case .authenticationRequestHandled:
+            state.authenticationIntent = nil
+
+        case .homeBottomSheetStateChanged(let bottomSheetState):
+            state.homeBottomSheetState = bottomSheetState
+        }
+
+        return .none
+    }
+}
+
+private extension MainTabReducer {
+    var hasActiveSession: Bool {
+        [tokenStore.accessToken, tokenStore.refreshToken].contains { $0?.isEmpty == false }
+    }
+
+    func tab(for intent: MainTabIntent) -> RodiTab {
+        switch intent {
+        case .presentHomeList, .openHomePlace:
+            .home
+        case .openMyProfile, .openMySavedPlaces:
+            .my
+        }
+    }
+}

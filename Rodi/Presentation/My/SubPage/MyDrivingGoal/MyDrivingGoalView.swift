@@ -3,6 +3,7 @@
 //  Rodi
 //
 
+import Clarity
 import SwiftUI
 
 struct MyDrivingGoalView: View {
@@ -54,6 +55,7 @@ struct MyDrivingGoalView: View {
                 .frame(height: 20)
                 .padding(.vertical, 16)
                 .background(RodiColor.white)
+                .clarityMask()
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .overlay {
                     RoundedRectangle(cornerRadius: 8)

@@ -51,7 +51,6 @@ struct HomeBottomSheetView: View {
         ZStack(alignment: .bottom) {
             HomeMapView(
                 homeStore: homeStore,
-                placeRepository: placeRepository,
                 configuration: .init(
                     logoBottomInset: floatingControlBottomInset,
                     cameraBottomInset: cameraObscuredBottomInset,
@@ -77,7 +76,6 @@ struct HomeBottomSheetView: View {
         .onAppear {
             consumePendingPlaceSelectionIfNeeded()
             consumePendingAdministrativeAreaSearchIfNeeded()
-            router.updateBottomSheetState(bottomSheetState)
         }
         .animation(.easeOut(duration: 0.25), value: bottomSheetState)
         .onChange(of: selectedItem?.id) { _ in
@@ -98,9 +96,6 @@ struct HomeBottomSheetView: View {
             homeStore.send(.map(.clearAdministrativeAreaSearchItems))
             homeStore.send(.bottomSheet(.placeList(.clearAdministrativeAreaSearchResults)))
         }
-        .onChange(of: bottomSheetState) { state in
-            router.updateBottomSheetState(state)
-        }
         .onChange(of: router.listPresentationRequestID) { _ in
             presentBottomSheet()
         }
@@ -120,7 +115,7 @@ struct HomeBottomSheetView: View {
     private var isRouteLoading: Bool { homeStore.state.bottomSheet.isRouteLoading }
     private var routeStatusMessage: String? { homeStore.state.bottomSheet.routeStatusMessage }
     private var placeList: HomeBottomSheetReducer.State.PlaceListState { homeStore.state.bottomSheet.placeList }
-    private var filterState: HomeBottomSheetReducer.State.FilterState { homeStore.state.bottomSheet.filter }
+    private var filterState: HomePracticeFilterReducer.State { homeStore.state.bottomSheet.filter }
     private var userLocationCoordinate: RodiCoordinate? { homeStore.state.map.userLocationCoordinate }
     private var hasLocationPermission: Bool { homeStore.state.map.hasLocationPermission }
     private var isCurrentLocationButtonActive: Bool { homeStore.state.map.isCurrentLocationButtonActive }

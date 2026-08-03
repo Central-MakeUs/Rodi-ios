@@ -45,15 +45,20 @@ struct RouteGuidanceService {
     func open(_ app: RouteGuidanceApp, for item: RodiCourseItem, userLocation: RodiCoordinate?) async -> RouteGuidanceResult {
         let payload = RouteGuidancePayload(item: item, userLocation: userLocation)
         guard let payload else {
-            return .failed("경로 안내에 필요한 현재 위치와 목적지가 아직 준비되지 않았어요.")
+            let result: RouteGuidanceResult = .failed("경로 안내에 필요한 현재 위치와 목적지가 아직 준비되지 않았어요.")
+            track(result: result, app: app, item: item)
+            return result
         }
 
+        let result: RouteGuidanceResult
         switch app {
         case .kakaoMap:
-            return await openKakaoMap(payload)
+            result = await openKakaoMap(payload)
         case .kakaoNavi:
-            return await openKakaoNavi(payload)
+            result = await openKakaoNavi(payload)
         }
+        track(result: result, app: app, item: item)
+        return result
     }
 
     func openURL(_ url: URL, success: RouteGuidanceResult, failureMessage: String) async -> RouteGuidanceResult {
@@ -74,6 +79,34 @@ struct RouteGuidanceService {
         guard actualCount > limit else { return nil }
         RodiLogger.warning("Route guidance waypoint truncated app=\(app), actual=\(actualCount), sent=\(limit)")
         return "\(app) 경유지 제한으로 앞 \(limit)개 경유지만 전달했어요."
+    }
+
+    private func track(result: RouteGuidanceResult, app: RouteGuidanceApp, item: RodiCourseItem) {
+        let provider = switch app {
+        case .kakaoMap: "kakao_map"
+        case .kakaoNavi: "kakao_navi"
+        }
+
+        switch result {
+        case .openedApp:
+            RodiAnalytics.track(
+                .routeGuidanceOpened(
+                    navigationProvider: provider,
+                    placeType: item.type.rawValue,
+                    source: "place_detail"
+                )
+            )
+        case .openedInstallPage:
+            break
+        case .failed(let message):
+            RodiAnalytics.track(
+                .routeGuidanceLaunchFailed(
+                    navigationProvider: provider,
+                    placeType: item.type.rawValue
+                )
+            )
+            RodiCrashReporter.record(message: message, endpointCategory: "external_navigation")
+        }
     }
 
     private func openKakaoMap(_ payload: RouteGuidancePayload) async -> RouteGuidanceResult {
