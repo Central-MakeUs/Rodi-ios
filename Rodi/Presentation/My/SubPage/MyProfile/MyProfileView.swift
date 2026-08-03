@@ -163,6 +163,14 @@ private struct MyProfileCard: View {
     let profile: MemberProfile
     let openDrivingGoal: () -> Void
 
+    @State private var hasPlayedEntrance = false
+    @State private var cardOpacity = 0.0
+    @State private var cardOffsetY: CGFloat = 16
+    @State private var cardScale: CGFloat = 1
+    @State private var stampOpacity = 0.0
+    @State private var stampScale: CGFloat = 1.8
+    @State private var stampRotation = -18.0
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top, spacing: 16) {
@@ -209,9 +217,64 @@ private struct MyProfileCard: View {
         .frame(maxWidth: .infinity, minHeight: 227, maxHeight: 227, alignment: .top)
         .background(RadialGradient(colors: [RodiColor.white, RodiColor.primary20], center: .bottom, startRadius: 30, endRadius: 250))
         .overlay(alignment: .topTrailing) {
-            Image("img_stamp").resizable().scaledToFit().frame(width: 100, height: 100).opacity(0.2).padding(.top, 15).padding(.trailing, 11).accessibilityHidden(true)
+            Image("img_stamp")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 100, height: 100)
+                .opacity(stampOpacity)
+                .scaleEffect(stampScale)
+                .rotationEffect(.degrees(stampRotation))
+                .padding(.top, 15)
+                .padding(.trailing, 11)
+                .accessibilityHidden(true)
         }
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .overlay { RoundedRectangle(cornerRadius: 8).stroke(RodiColor.primary50, lineWidth: 1) }
+        .opacity(cardOpacity)
+        .offset(y: cardOffsetY)
+        .scaleEffect(cardScale)
+        .onAppear(perform: playEntrance)
+    }
+
+    private func playEntrance() {
+        guard !hasPlayedEntrance else { return }
+        hasPlayedEntrance = true
+
+        withAnimation(.easeOut(duration: 0.34)) {
+            cardOpacity = 1
+            cardOffsetY = 0
+        }
+
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(540))
+            withAnimation(.easeOut(duration: 0.072)) {
+                cardScale = 1.012
+            }
+            try? await Task.sleep(for: .milliseconds(72))
+            withAnimation(.easeOut(duration: 0.288)) {
+                cardScale = 1
+            }
+        }
+
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(200))
+            withAnimation(.easeOut(duration: 0.385)) {
+                stampOpacity = 0.28
+                stampScale = 0.97
+                stampRotation = 3
+            }
+            try? await Task.sleep(for: .milliseconds(140))
+            withAnimation(.easeOut(duration: 0.14)) {
+                stampOpacity = 0.16
+                stampScale = 1.02
+                stampRotation = -2
+            }
+            try? await Task.sleep(for: .milliseconds(175))
+            withAnimation(.easeOut(duration: 0.175)) {
+                stampOpacity = 0.2
+                stampScale = 1
+                stampRotation = 0
+            }
+        }
     }
 }

@@ -10,6 +10,7 @@ struct MyView: View {
     @ObservedObject var router: MyRouter
     @StateObject private var store: StoreOf<MyReducer>
 
+    let isMyTabSelected: () -> Bool
     let navigate: (MainTabIntent) -> Void
     let onLogoutCompleted: () -> Void
     private let memberRepository: MemberRepository
@@ -17,28 +18,27 @@ struct MyView: View {
 
     init(
         router: MyRouter,
-        authRepository: AuthRepository = AuthDependencyContainer.shared.authRepository,
-        memberRepository: MemberRepository = AuthDependencyContainer.shared.memberRepository,
-        placeRepository: PlaceRepository = AuthDependencyContainer.shared.placeRepository,
-        recentLoginProviderStore: RecentLoginProviderStore = AuthDependencyContainer.shared.recentLoginProviderStore,
+        isMyTabSelected: @escaping () -> Bool,
         navigate: @escaping (MainTabIntent) -> Void,
-        onLogoutCompleted: @escaping () -> Void
+        onLogoutCompleted: @escaping () -> Void,
+        dependencies: AppDependencies
     ) {
         self.router = router
+        self.isMyTabSelected = isMyTabSelected
         self.navigate = navigate
         self.onLogoutCompleted = onLogoutCompleted
         _store = StateObject(
             wrappedValue: Store(
                 state: MyReducer.State(),
                 reducer: MyReducer(
-                    authRepository: authRepository,
-                    memberRepository: memberRepository,
-                    recentLoginProviderStore: recentLoginProviderStore
+                    authRepository: dependencies.authRepository,
+                    memberRepository: dependencies.memberRepository,
+                    recentLoginProviderStore: dependencies.recentLoginProviderStore
                 )
             )
         )
-        self.memberRepository = memberRepository
-        self.placeRepository = placeRepository
+        memberRepository = dependencies.memberRepository
+        placeRepository = dependencies.placeRepository
     }
 
     var body: some View {
@@ -60,7 +60,14 @@ struct MyView: View {
             }
         }
         .rodiSnackbar(message: store.state.snackbarMessage)
-        .onAppear { store.send(.appeared) }
+        .onAppear {
+            guard isMyTabSelected() else { return }
+            store.send(.appeared)
+        }
+        .onChange(of: isMyTabSelected()) { isSelected in
+            guard isSelected else { return }
+            store.send(.appeared)
+        }
         .onChange(of: store.state.didEndSessionRequestID) { requestID in
             guard requestID > 0 else { return }
             router.popToRoot()

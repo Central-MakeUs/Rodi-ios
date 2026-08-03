@@ -49,9 +49,9 @@ struct MyReducer: Reducer {
     private let recentLoginProviderStore: RecentLoginProviderStore
 
     init(
-        authRepository: AuthRepository = AuthDependencyContainer.shared.authRepository,
-        memberRepository: MemberRepository = AuthDependencyContainer.shared.memberRepository,
-        recentLoginProviderStore: RecentLoginProviderStore = AuthDependencyContainer.shared.recentLoginProviderStore
+        authRepository: AuthRepository,
+        memberRepository: MemberRepository,
+        recentLoginProviderStore: RecentLoginProviderStore
     ) {
         self.authRepository = authRepository
         self.memberRepository = memberRepository

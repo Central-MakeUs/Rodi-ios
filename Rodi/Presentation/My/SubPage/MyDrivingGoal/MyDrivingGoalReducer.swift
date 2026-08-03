@@ -33,7 +33,7 @@ struct MyDrivingGoalReducer: Reducer {
     private enum EffectID { case save }
     private let memberRepository: MemberRepository
 
-    init(memberRepository: MemberRepository = AuthDependencyContainer.shared.memberRepository) {
+    init(memberRepository: MemberRepository) {
         self.memberRepository = memberRepository
     }
 

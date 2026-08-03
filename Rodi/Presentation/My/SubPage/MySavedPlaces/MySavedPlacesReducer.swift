@@ -34,7 +34,7 @@ struct MySavedPlacesReducer: Reducer {
     private enum EffectID { case firstPage, nextPage }
     private let placeRepository: PlaceRepository
 
-    init(placeRepository: PlaceRepository = AuthDependencyContainer.shared.placeRepository) {
+    init(placeRepository: PlaceRepository) {
         self.placeRepository = placeRepository
     }
 
