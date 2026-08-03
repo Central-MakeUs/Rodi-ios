@@ -4,25 +4,59 @@
 //
 
 import Combine
-import Foundation
+import SwiftUI
 
-/// 온보딩 화면 전환만 담당한다. 입력 상태, 인증, 제출과 저장 정책은 OnboardingReducer가 소유한다.
+enum OnboardingRoute: Int, Hashable {
+    case terms
+    case nickname
+    case drivingExperience
+    case optionalDrivingPreference
+    case safety
+    case locationPermission
+}
+
 @MainActor
 final class OnboardingRouter: ObservableObject {
-    @Published private(set) var route: OnboardingRoute
+    @Published private(set) var path: [OnboardingRoute]
 
-    init(initialRoute: OnboardingRoute) {
-        route = initialRoute
+    init(initialPath: [OnboardingRoute] = []) {
+        path = initialPath
     }
 
-    func navigate(to route: OnboardingRoute) {
-        self.route = route
+    var pathBinding: Binding<[OnboardingRoute]> {
+        Binding(
+            get: { self.path },
+            set: { self.replacePath(with: $0) }
+        )
     }
 
-    @discardableResult
-    func goBack() -> OnboardingRoute? {
-        guard let previous = route.previous else { return nil }
-        route = previous
-        return previous
+    var currentRoute: OnboardingRoute? {
+        path.last
+    }
+
+    func push(_ route: OnboardingRoute) {
+        guard currentRoute != route else { return }
+        path.append(route)
+    }
+
+    func reset(to route: OnboardingRoute? = nil) {
+        path = route.map { [$0] } ?? []
+    }
+
+    func pop() {
+        guard path.count > 1 else { return }
+        path.removeLast()
+    }
+
+    /// 시스템 edge-swipe까지 Router의 뒤로가기 정책으로 일관되게 처리한다.
+    func replacePath(with path: [OnboardingRoute]) {
+        guard !self.path.isEmpty else {
+            self.path = path
+            return
+        }
+
+        // 약관은 로그인 root로 돌아가지 않는 온보딩의 첫 단계다.
+        guard !(self.path == [.terms] && path.isEmpty) else { return }
+        self.path = path
     }
 }

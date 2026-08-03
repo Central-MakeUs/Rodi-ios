@@ -1,13 +1,13 @@
 //
-//  OnboardingNicknameView.swift
+//  NicknameView.swift
 //  Rodi
 //
 
 import SwiftUI
 
-struct OnboardingNicknameView: View {
-    let state: OnboardingNicknameReducer.State
-    let send: (OnboardingNicknameReducer.Action) -> Void
+struct NicknameView: View {
+    let state: OnboardingProfileReducer.State
+    let send: (OnboardingProfileReducer.Action) -> Void
 
     var body: some View {
         VStack(spacing: 0) {
@@ -44,9 +44,9 @@ struct OnboardingNicknameView: View {
 
             PrimaryBottomButton(
                 title: "다음",
-                isEnabled: state.canProceed,
+                isEnabled: state.canProceedFromNickname,
                 showsDivider: true,
-                action: { send(.nextTapped) }
+                action: { send(.nicknameNextTapped) }
             )
         }
     }

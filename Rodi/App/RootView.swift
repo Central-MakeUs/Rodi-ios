@@ -14,14 +14,20 @@ struct RootView: View {
 
     @StateObject private var store: StoreOf<RootReducer>
     @StateObject private var appRouter: AppRouter
+    private let dependencies: AppDependencies
 
     init() {
         let onboardingProgressStore = OnboardingProgressStore()
+        let dependencies = AppDependencies()
+        self.dependencies = dependencies
 
         _store = StateObject(
             wrappedValue: Store(
                 state: RootReducer.State(),
-                reducer: RootReducer()
+                reducer: RootReducer(
+                    tokenStore: dependencies.tokenStore,
+                    authRepository: dependencies.authRepository
+                )
             )
         )
         _appRouter = StateObject(
@@ -73,17 +79,18 @@ extension RootView {
     private var rootContent: some View {
         switch appRouter.rootRoute {
         case .onboarding(let context):
-            OnboardingView(
+            OnboardingRouterView(
                 onComplete: appRouter.completeOnboarding,
                 automaticLoginProvider: automaticLoginProvider(for: context),
-                automaticLoginRequestConsumed: appRouter.consumeAutomaticLogin
+                automaticLoginRequestConsumed: appRouter.consumeAutomaticLogin,
+                dependencies: dependencies
             )
         case .mainTabs:
-            MainTabContainer(
+            MainTabView(
                 consumePendingAuthenticationIntent: appRouter.consumePendingAuthenticationIntent,
-                requestMemberAccess: appRouter.requestMemberAccess,
-                requestLogin: { appRouter.requireLogin() },
-                onLogoutCompleted: appRouter.completeLogout
+                requestLogin: appRouter.requireLogin,
+                onLogoutCompleted: appRouter.completeLogout,
+                dependencies: dependencies
             )
         }
     }

@@ -7,8 +7,8 @@ import Foundation
 
 enum OnboardingSubmissionMapper {
     static func make(
-        drivingExperience: OnboardingDrivingExperienceReducer.Answers,
-        preferences: OnboardingOptionalDrivingPreferenceReducer.Preferences,
+        drivingExperience: OnboardingDrivingExperience,
+        preferences: OnboardingDrivingPreferences,
         drivingGoal: String
     ) -> MemberOnboardingSubmission? {
         guard let drivingPeriod = drivingExperience.licenseDrivingPeriod?.memberDrivingPeriod else {

@@ -1,16 +1,16 @@
 //
-//  OnboardingDrivingExperienceView.swift
+//  DrivingExperienceView.swift
 //  Rodi
 //
 
 import SwiftUI
 
-struct OnboardingDrivingExperienceView: View {
-    let state: OnboardingDrivingExperienceReducer.State
-    let send: (OnboardingDrivingExperienceReducer.Action) -> Void
+struct DrivingExperienceView: View {
+    let state: OnboardingProfileReducer.State
+    let send: (OnboardingProfileReducer.Action) -> Void
 
-    private var answers: OnboardingDrivingExperienceReducer.Answers {
-        state.answers
+    private var answers: OnboardingDrivingExperience {
+        state.drivingExperience
     }
 
     var body: some View {
@@ -28,7 +28,7 @@ struct OnboardingDrivingExperienceView: View {
                 title: "다음",
                 isEnabled: answers.canProceed,
                 showsDivider: true,
-                action: { send(.nextTapped) }
+                action: { send(.drivingExperienceNextTapped) }
             )
         }
         .animation(.easeInOut(duration: 0.2), value: answers.licenseDrivingPeriod)

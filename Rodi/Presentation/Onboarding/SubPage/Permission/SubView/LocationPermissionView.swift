@@ -1,12 +1,12 @@
 //
-//  OnboardingLocationPermissionView.swift
+//  LocationPermissionView.swift
 //  Rodi
 //
 
 import SwiftUI
 
-struct OnboardingLocationPermissionView: View {
-    let send: (OnboardingLocationPermissionReducer.Action) -> Void
+struct LocationPermissionView: View {
+    let send: (OnboardingPermissionReducer.Action) -> Void
 
     var body: some View {
         VStack(spacing: 0) {
@@ -34,7 +34,7 @@ struct OnboardingLocationPermissionView: View {
                 title: "계속하기",
                 isEnabled: true,
                 showsDivider: true,
-                action: { send(.continueTapped) }
+                action: { send(.locationContinueTapped) }
             )
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

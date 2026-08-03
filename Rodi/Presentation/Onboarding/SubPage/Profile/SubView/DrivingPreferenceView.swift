@@ -1,23 +1,22 @@
 //
-//  OnboardingOptionalDrivingPreferenceView.swift
+//  DrivingPreferenceView.swift
 //  Rodi
 //
 
 import SwiftUI
 
-struct OnboardingOptionalDrivingPreferenceView: View {
-    let state: OnboardingOptionalDrivingPreferenceReducer.State
-    let send: (OnboardingOptionalDrivingPreferenceReducer.Action) -> Void
+struct DrivingPreferenceView: View {
+    let state: OnboardingProfileReducer.State
+    let send: (OnboardingProfileReducer.Action) -> Void
 
     private enum Metrics {
         static let horizontalPadding: CGFloat = 16
         static let goalLimit = 30
     }
 
-    @State private var goalText = ""
     @FocusState private var isGoalFieldFocused: Bool
 
-    private var preferences: OnboardingOptionalDrivingPreferenceReducer.Preferences {
+    private var preferences: OnboardingDrivingPreferences {
         state.preferences
     }
 
@@ -48,8 +47,8 @@ struct OnboardingOptionalDrivingPreferenceView: View {
                 secondaryTitle: "건너뛰기",
                 primaryTitle: "다음",
                 isPrimaryEnabled: preferences.canProceed,
-                secondaryAction: { send(.skipTapped) },
-                primaryAction: { send(.nextTapped(drivingGoal: goalText)) }
+                secondaryAction: { send(.preferenceSkipTapped) },
+                primaryAction: { send(.preferenceNextTapped) }
             )
             .opacity(isGoalFieldFocused ? 0 : 1)
             .allowsHitTesting(!isGoalFieldFocused)
@@ -111,7 +110,7 @@ struct OnboardingOptionalDrivingPreferenceView: View {
                 .padding(.bottom, 12)
 
             RodiTextField(
-                text: $goalText,
+                text: drivingGoalBinding,
                 placeholder: "ex)강남 운전 자신있게 하기!",
                 characterLimit: Metrics.goalLimit,
                 isFocused: $isGoalFieldFocused
@@ -133,13 +132,20 @@ struct OnboardingOptionalDrivingPreferenceView: View {
                 }
             }
 
-            Text("\(goalText.count) / \(Metrics.goalLimit)")
+            Text("\(state.drivingGoal.count) / \(Metrics.goalLimit)")
                 .rodiTypography(.body3Medium)
                 .foregroundStyle(RodiColor.gray600)
                 .frame(maxWidth: .infinity, alignment: .trailing)
                 .padding(.top, 4)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var drivingGoalBinding: Binding<String> {
+        Binding(
+            get: { state.drivingGoal },
+            set: { send(.drivingGoalChanged($0)) }
+        )
     }
 
     private var practiceSituationChips: some View {
@@ -206,7 +212,7 @@ struct OnboardingOptionalDrivingPreferenceView: View {
     }
 }
 
-private extension OnboardingOptionalDrivingPreferenceView {
+private extension DrivingPreferenceView {
     enum ScrollTarget {
         case drivingGoal
     }

@@ -6,11 +6,24 @@
 import SwiftUI
 
 struct OnboardingTermsView: View {
-    let state: OnboardingTermsReducer.State
-    let send: (OnboardingTermsReducer.Action) -> Void
+    @StateObject private var store: StoreOf<OnboardingTermsReducer>
+    private let onTransition: (OnboardingTransition) -> Void
 
     private enum Layout {
         static let titleTopInset: CGFloat = 52
+    }
+
+    init(
+        session: OnboardingSession,
+        onTransition: @escaping (OnboardingTransition) -> Void
+    ) {
+        _store = StateObject(
+            wrappedValue: Store(
+                state: .init(session: session),
+                reducer: OnboardingTermsReducer()
+            )
+        )
+        self.onTransition = onTransition
     }
 
     var body: some View {
@@ -30,6 +43,20 @@ struct OnboardingTermsView: View {
         .sheet(item: selectedTermsPageBinding) { terms in
             LegalWebView(title: terms.title, url: terms.url)
         }
+        .onChange(of: store.state.transition) { transition in
+            guard let transition else { return }
+            onTransition(transition)
+            store.send(.transitionConsumed)
+        }
+    }
+
+    private var state: OnboardingTermsReducer.State {
+        store.state
+    }
+
+    private func send(_ action: OnboardingTermsReducer.Action) {
+        store.send(action)
+
     }
 
     private var header: some View {

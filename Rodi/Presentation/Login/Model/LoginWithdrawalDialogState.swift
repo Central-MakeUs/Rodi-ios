@@ -1,11 +1,11 @@
 //
-//  OnboardingWithdrawalDialogState.swift
+//  LoginWithdrawalDialogState.swift
 //  Rodi
 //
 
 import Foundation
 
-enum OnboardingWithdrawalDialogState: Equatable {
+enum LoginWithdrawalDialogState: Equatable {
     case restore(AuthWithdrawalRecovery)
     case rejoinLocked(rejoinAvailableAt: Date?)
 }

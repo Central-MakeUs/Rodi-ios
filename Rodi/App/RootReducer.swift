@@ -35,8 +35,13 @@ struct RootReducer: Reducer {
         case sessionRestore
     }
 
-    private let tokenStore: TokenStoring = AuthDependencyContainer.shared.tokenStore
-    private let authRepository: AuthRepository = AuthDependencyContainer.shared.authRepository
+    private let tokenStore: TokenStoring
+    private let authRepository: AuthRepository
+
+    init(tokenStore: TokenStoring, authRepository: AuthRepository) {
+        self.tokenStore = tokenStore
+        self.authRepository = authRepository
+    }
 }
 
 // MARK: Core Logic

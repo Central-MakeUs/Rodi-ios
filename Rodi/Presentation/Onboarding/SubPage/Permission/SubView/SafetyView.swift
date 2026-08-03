@@ -1,13 +1,13 @@
 //
-//  OnboardingSafetyView.swift
+//  SafetyView.swift
 //  Rodi
 //
 
 import SwiftUI
 
-struct OnboardingSafetyView: View {
-    let state: OnboardingSafetyReducer.State
-    let send: (OnboardingSafetyReducer.Action) -> Void
+struct SafetyView: View {
+    let state: OnboardingPermissionReducer.State
+    let send: (OnboardingPermissionReducer.Action) -> Void
 
     var body: some View {
         VStack(spacing: 0) {
@@ -36,7 +36,7 @@ struct OnboardingSafetyView: View {
                     SafetyCheckRow(
                         item: item,
                         isChecked: state.agreedSafetyItems.contains(item),
-                        onToggle: { send(.toggle(item)) }
+                        onToggle: { send(.toggleSafety(item)) }
                     )
                 }
             }
@@ -49,7 +49,7 @@ struct OnboardingSafetyView: View {
                 title: "다음",
                 isEnabled: state.isAllSafetyAgreed,
                 showsDivider: true,
-                action: { send(.nextTapped) }
+                action: { send(.safetyNextTapped) }
             )
         }
     }

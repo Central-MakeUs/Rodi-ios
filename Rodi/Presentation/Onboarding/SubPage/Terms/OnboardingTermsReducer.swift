@@ -7,11 +7,14 @@ import Foundation
 
 struct OnboardingTermsReducer: Reducer {
     struct State {
+        var session: OnboardingSession
         var agreedTerms: Set<TermsAgreement>
         var selectedTermsPage: TermsAgreement?
+        var transition: OnboardingTransition?
 
-        init(agreedTerms: Set<TermsAgreement> = []) {
-            self.agreedTerms = agreedTerms
+        init(session: OnboardingSession) {
+            self.session = session
+            agreedTerms = session.agreedTerms
         }
 
         var isAllTermsAgreed: Bool {
@@ -25,6 +28,7 @@ struct OnboardingTermsReducer: Reducer {
         case open(TermsAgreement)
         case dismissTermsPage
         case nextTapped
+        case transitionConsumed
     }
 
     func reduce(_ state: inout State, with action: Action) -> Effect<Action> {
@@ -49,6 +53,15 @@ struct OnboardingTermsReducer: Reducer {
 
         case .nextTapped:
             guard state.isAllTermsAgreed else { return .none }
+            state.session.agreedTerms = state.agreedTerms
+            RodiAnalytics.track(.onboardingStepCompleted(step: "terms", entryMode: state.session.entryMode))
+            state.transition = .init(
+                updatedSession: state.session,
+                navigation: .push(state.session.isGuest ? .safety : .nickname)
+            )
+
+        case .transitionConsumed:
+            state.transition = nil
         }
 
         return .none

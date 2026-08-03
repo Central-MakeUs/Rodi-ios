@@ -6,7 +6,7 @@
 import SwiftUI
 
 struct WithdrawalAccountDialog: View {
-    let state: OnboardingWithdrawalDialogState
+    let state: LoginWithdrawalDialogState
     let restoreAction: () -> Void
     let dismissAction: () -> Void
 
