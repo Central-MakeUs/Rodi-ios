@@ -7,7 +7,8 @@
 
 import Foundation
 
-struct Effect<Action>: @unchecked Sendable {
+@MainActor
+struct Effect<Action> {
     let caseOf: EffectCase
     let taskID: _CancelID?
 
@@ -61,7 +62,7 @@ struct Effect<Action>: @unchecked Sendable {
     }
 
     func map<MappedAction>(
-        _ transform: @escaping @Sendable (Action) -> MappedAction
+        _ transform: @escaping (Action) -> MappedAction
     ) -> Effect<MappedAction> {
         switch caseOf {
         case .none:
