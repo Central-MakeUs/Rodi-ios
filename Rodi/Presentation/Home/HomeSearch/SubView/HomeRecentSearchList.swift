@@ -52,11 +52,18 @@ struct HomeRecentSearchList: View {
                                 selectAction(search)
                             } label: {
                                 HStack(spacing: 10) {
-                                    Image("ic_search")
-                                        .resizable()
-                                        .renderingMode(.template)
-                                        .foregroundStyle(RodiColor.gray600)
-                                        .frame(width: 20, height: 20)
+                                    Group {
+                                        if search.kind == .region {
+                                            Image("ic_search")
+                                                .resizable()
+                                                .renderingMode(.template)
+                                                .foregroundStyle(RodiColor.gray600)
+                                        } else {
+                                            Image("ic_map_pin")
+                                                .resizable()
+                                        }
+                                    }
+                                    .frame(width: 20, height: 20)
 
                                     Text(search.keyword)
                                         .rodiTypography(.body1Medium)

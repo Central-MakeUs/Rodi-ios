@@ -9,12 +9,13 @@ struct HomeSearchResultList: View {
     let results: [PlaceListItem]
     let isSearching: Bool
     let isLoadingNextPage: Bool
+    let showsEmptyMessage: Bool
     let loadNextPage: () -> Void
     let selectAction: (PlaceListItem) -> Void
 
     var body: some View {
         LazyVStack(spacing: 0) {
-            if results.isEmpty, !isSearching {
+            if results.isEmpty, !isSearching, showsEmptyMessage {
                 Text("검색 결과가 없어요.")
                     .rodiTypography(.body3Medium)
                     .foregroundStyle(RodiColor.gray600)

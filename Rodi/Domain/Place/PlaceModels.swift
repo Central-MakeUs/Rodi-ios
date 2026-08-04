@@ -19,7 +19,22 @@ struct PlaceRelatedSearchQuery: Equatable {
 
 struct PlaceRelatedSearchResult: Equatable {
     let regions: [String]
-    let places: PlaceCursorPage
+    let places: PlaceRelatedSearchCursorPage
+}
+
+/// 지역·장소명 자동완성 API가 반환하는 축약 장소 후보입니다.
+/// 상세 조회는 선택 후 placeID로 수행합니다.
+struct PlaceRelatedSearchSuggestion: Equatable, Identifiable {
+    let id: Int
+    let name: String
+    let region: String
+}
+
+struct PlaceRelatedSearchCursorPage: Equatable {
+    let items: [PlaceRelatedSearchSuggestion]
+    let hasNext: Bool
+    let nextCursor: String?
+    let totalCount: Int?
 }
 
 enum PlaceType: String, Equatable {

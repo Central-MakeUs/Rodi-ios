@@ -7,8 +7,8 @@ import Foundation
 
 struct HomeSearchReducer: Reducer {
     enum SearchContext: Equatable {
-        case regular
-        case administrativeArea(KoreanAdministrativeArea)
+        case suggestions(keyword: String)
+        case selectedRegion(keyword: String)
     }
 
     enum ViewState: Equatable {
@@ -20,9 +20,9 @@ struct HomeSearchReducer: Reducer {
 
     struct State {
         var query = ""
-        var submittedQuery: String?
         var recentSearches: [RecentSearch] = []
-        var administrativeAreas: [KoreanAdministrativeArea] = []
+        var regions: [String] = []
+        var relatedPlaceSuggestions: [PlaceRelatedSearchSuggestion] = []
         var results: [PlaceListItem] = []
         var viewState: ViewState = .initial
         var isLoadingRecentSearches = false
@@ -30,11 +30,19 @@ struct HomeSearchReducer: Reducer {
         var hasNextPage = false
         var nextCursor: String?
         var snackbarMessage: String?
-        var selectedPlace: PlaceListItem?
-        var selectedAdministrativeAreaSearch: AdministrativeAreaSearchResult?
+        var selectedPlaceID: Int?
+        var selectedPlaceName: String?
         var searchRequestID = 0
         var activeSearchContext: SearchContext?
+        var loadedSuggestionKeyword: String?
         var hasTrackedSearchOpen = false
+
+        var isSelectedRegionSearch: Bool {
+            if case .selectedRegion = activeSearchContext {
+                return true
+            }
+            return false
+        }
     }
 
     enum Action {
@@ -42,11 +50,12 @@ struct HomeSearchReducer: Reducer {
         case queryChanged(String)
         case searchSubmitted
         case recentSearchTapped(RecentSearch)
+        case regionTapped(String)
         case loadNextPage
+        case relatedSearchLoaded(PlaceRelatedSearchResult, requestID: Int, isAppending: Bool)
+        case relatedSearchFailed(NetworkError, requestID: Int, isAppending: Bool)
         case searchLoaded(PlaceCursorPage, requestID: Int, isAppending: Bool)
         case searchFailed(NetworkError, requestID: Int, isAppending: Bool)
-        case administrativeAreaSearchLoaded(KoreanAdministrativeArea, [PlaceListItem], requestID: Int)
-        case administrativeAreaSearchFailed(NetworkError, requestID: Int)
         case recentSearchesLoaded([RecentSearch])
         case recentSearchesFailed(NetworkError)
         case recentSearchDeleteTapped(Int)
@@ -56,9 +65,8 @@ struct HomeSearchReducer: Reducer {
         case allRecentSearchesDeleted
         case allRecentSearchesDeleteFailed(NetworkError)
         case resultTapped(PlaceListItem)
+        case relatedPlaceSuggestionTapped(PlaceRelatedSearchSuggestion)
         case selectionHandled
-        case administrativeAreaTapped(KoreanAdministrativeArea)
-        case administrativeAreaSearchSelectionHandled
         case dismissSnackbar
     }
 
@@ -70,18 +78,15 @@ struct HomeSearchReducer: Reducer {
 
     private let placeRepository: PlaceRepository
     private let recentSearchRepository: RecentSearchRepository
-    private let administrativeAreaSearchService: KoreanAdministrativeAreaSearching
     private let origin: RodiCoordinate
 
     init(
         placeRepository: PlaceRepository,
         recentSearchRepository: RecentSearchRepository,
-        administrativeAreaSearchService: KoreanAdministrativeAreaSearching,
         origin: RodiCoordinate
     ) {
         self.placeRepository = placeRepository
         self.recentSearchRepository = recentSearchRepository
-        self.administrativeAreaSearchService = administrativeAreaSearchService
         self.origin = origin
     }
 
@@ -99,22 +104,18 @@ struct HomeSearchReducer: Reducer {
         case .queryChanged(let rawQuery):
             let query = String(rawQuery.prefix(50))
             state.query = query
-            state.selectedPlace = nil
-            state.selectedAdministrativeAreaSearch = nil
+            clearSelectedPlace(state: &state)
+            state.loadedSuggestionKeyword = nil
 
-            guard normalized(query) == state.submittedQuery else {
-                state.searchRequestID += 1
-                state.activeSearchContext = nil
-                state.results = []
-                state.administrativeAreas = []
-                state.hasNextPage = false
-                state.nextCursor = nil
-                state.isLoadingNextPage = false
-                state.viewState = .initial
-                state.submittedQuery = nil
+            guard !normalized(query).isEmpty else {
+                resetSearch(state: &state)
                 return .cancel(id: EffectID.search)
             }
-            return .none
+            return beginSuggestionSearch(
+                keyword: normalized(query),
+                delay: true,
+                state: &state
+            )
 
         case .searchSubmitted:
             let query = normalized(state.query)
@@ -126,15 +127,8 @@ struct HomeSearchReducer: Reducer {
                 )
             )
             state.query = query
-            state.submittedQuery = query
-            state.searchRequestID += 1
-            state.activeSearchContext = .regular
-            state.results = []
-            state.administrativeAreas = administrativeAreaSearchService.search(query: query)
-            state.hasNextPage = false
-            state.nextCursor = nil
-            state.viewState = .searching
-            return searchEffect(keyword: query, cursor: nil, requestID: state.searchRequestID, isAppending: false)
+            guard state.loadedSuggestionKeyword != query else { return .none }
+            return beginSuggestionSearch(keyword: query, delay: false, state: &state)
 
         case .recentSearchTapped(let recentSearch):
             RodiAnalytics.track(
@@ -144,68 +138,109 @@ struct HomeSearchReducer: Reducer {
                 )
             )
             state.query = recentSearch.keyword
-            state.submittedQuery = recentSearch.keyword
-            state.searchRequestID += 1
-            state.activeSearchContext = .regular
-            state.results = []
-            state.administrativeAreas = administrativeAreaSearchService.search(query: recentSearch.keyword)
-            state.hasNextPage = false
-            state.nextCursor = nil
-            state.viewState = .searching
-            return searchEffect(
-                keyword: recentSearch.keyword,
-                cursor: nil,
-                requestID: state.searchRequestID,
-                isAppending: false
-            )
+            switch recentSearch.kind {
+            case .region:
+                return beginPlaceSearch(keyword: recentSearch.keyword, state: &state)
+
+            case .place:
+                guard let placeID = recentSearch.placeID else {
+                    return showSnackbar("장소 정보를 불러오지 못했어요.", state: &state)
+                }
+                selectPlace(id: placeID, name: recentSearch.keyword, state: &state)
+                return .cancel(id: EffectID.search)
+            }
+
+        case .regionTapped(let region):
+            state.query = region
+            return beginPlaceSearch(keyword: region, state: &state, registration: .init(kind: .region, keyword: region))
 
         case .loadNextPage:
-            guard let query = state.submittedQuery,
-                  state.activeSearchContext == .regular,
-                  state.hasNextPage,
+            guard state.hasNextPage,
                   !state.isLoadingNextPage,
                   let cursor = state.nextCursor
             else {
                 return .none
             }
             state.isLoadingNextPage = true
-            return searchEffect(
-                keyword: query,
-                cursor: cursor,
-                requestID: state.searchRequestID,
-                isAppending: true
-            )
+            switch state.activeSearchContext {
+            case .suggestions(let keyword):
+                return relatedSearchEffect(
+                    keyword: keyword,
+                    cursor: cursor,
+                    requestID: state.searchRequestID,
+                    isAppending: true,
+                    delay: false
+                )
+            case .selectedRegion(let keyword):
+                return placeSearchEffect(
+                    keyword: keyword,
+                    cursor: cursor,
+                    requestID: state.searchRequestID,
+                    isAppending: true,
+                    registration: nil
+                )
+            case nil:
+                return .none
+            }
 
-        case let .searchLoaded(page, requestID, isAppending):
+        case let .relatedSearchLoaded(result, requestID, isAppending):
             guard requestID == state.searchRequestID,
-                  state.activeSearchContext == .regular
+                  case .suggestions = state.activeSearchContext
             else {
                 return .none
             }
             state.isLoadingNextPage = false
-            state.results = isAppending ? state.results + page.items : page.items
-            state.hasNextPage = page.hasNext
-            state.nextCursor = page.nextCursor
-            state.viewState = state.results.isEmpty ? .emptyResults : .results
+            state.loadedSuggestionKeyword = normalized(state.query)
+            state.regions = isAppending ? uniqueRegions(state.regions + result.regions) : result.regions
+            state.relatedPlaceSuggestions = isAppending
+                ? uniqueSuggestions(state.relatedPlaceSuggestions + result.places.items)
+                : result.places.items
+            state.hasNextPage = result.places.hasNext
+            state.nextCursor = result.places.nextCursor
+            state.viewState = state.regions.isEmpty && state.relatedPlaceSuggestions.isEmpty ? .emptyResults : .results
             guard !isAppending else { return .none }
             RodiAnalytics.track(
                 .searchResultsLoaded(
-                    resultCountBucket: RodiAnalytics.countBucket(for: page.items.count),
-                    hasLocalAreaCandidates: !state.administrativeAreas.isEmpty
+                    resultCountBucket: RodiAnalytics.countBucket(for: result.places.items.count),
+                    hasRegionCandidates: !result.regions.isEmpty
                 )
             )
-            state.isLoadingRecentSearches = true
-            return loadRecentSearchesEffect()
+            return .none
+
+        case let .relatedSearchFailed(error, requestID, isAppending):
+            guard requestID == state.searchRequestID,
+                  case .suggestions = state.activeSearchContext
+            else {
+                return .none
+            }
+            state.isLoadingNextPage = false
+            if !isAppending, state.relatedPlaceSuggestions.isEmpty, state.regions.isEmpty {
+                state.viewState = .emptyResults
+            }
+            return showSnackbar(error.localizedDescription, state: &state)
+
+        case let .searchLoaded(page, requestID, isAppending):
+            guard requestID == state.searchRequestID,
+                  case .selectedRegion = state.activeSearchContext
+            else {
+                return .none
+            }
+            state.isLoadingNextPage = false
+            state.results = isAppending ? uniqueItems(state.results + page.items) : page.items
+            state.hasNextPage = page.hasNext
+            state.nextCursor = page.nextCursor
+            state.viewState = state.results.isEmpty ? .emptyResults : .results
+            return .none
 
         case let .searchFailed(error, requestID, isAppending):
             guard requestID == state.searchRequestID,
-                  state.activeSearchContext == .regular
+                  case .selectedRegion = state.activeSearchContext
             else {
                 return .none
             }
             state.isLoadingNextPage = false
             if !isAppending, state.results.isEmpty {
-                state.viewState = .initial
+                state.viewState = .emptyResults
             }
             return showSnackbar(error.localizedDescription, state: &state)
 
@@ -241,65 +276,83 @@ struct HomeSearchReducer: Reducer {
 
         case .resultTapped(let place):
             RodiAnalytics.track(.searchResultSelected(resultType: place.type.rawValue, source: "search_results"))
-            state.selectedPlace = place
-            return .none
+            selectPlace(id: place.id, name: place.name, state: &state)
+            return registerRecentSearchEffect(.init(kind: .place, keyword: place.name, placeID: place.id))
+
+        case .relatedPlaceSuggestionTapped(let suggestion):
+            RodiAnalytics.track(.searchResultSelected(resultType: "RELATED_SUGGESTION", source: "search_suggestions"))
+            selectPlace(id: suggestion.id, name: suggestion.name, state: &state)
+            return registerRecentSearchEffect(
+                .init(kind: .place, keyword: suggestion.name, placeID: suggestion.id)
+            )
 
         case .selectionHandled:
-            state.selectedPlace = nil
-            return .none
-
-        case .administrativeAreaTapped(let area):
-            RodiAnalytics.track(
-                .administrativeAreaSelected(
-                    areaLevel: area.level.rawValue,
-                    candidateCountBucket: RodiAnalytics.countBucket(for: state.administrativeAreas.count)
-                )
-            )
-            let keyword = area.searchDisplayName
-            state.query = keyword
-            state.submittedQuery = keyword
-            state.searchRequestID += 1
-            state.activeSearchContext = .administrativeArea(area)
-            state.administrativeAreas = []
-            state.results = []
-            state.hasNextPage = false
-            state.nextCursor = nil
-            state.isLoadingNextPage = false
-            state.viewState = .searching
-            return administrativeAreaSearchEffect(area: area, requestID: state.searchRequestID)
-
-        case let .administrativeAreaSearchLoaded(area, items, requestID):
-            guard requestID == state.searchRequestID,
-                  state.activeSearchContext == .administrativeArea(area)
-            else {
-                return .none
-            }
-            state.isLoadingNextPage = false
-            guard !items.isEmpty else {
-                state.viewState = .emptyResults
-                return .none
-            }
-            state.viewState = .results
-            state.selectedAdministrativeAreaSearch = AdministrativeAreaSearchResult(area: area, items: items)
-            return .none
-
-        case let .administrativeAreaSearchFailed(error, requestID):
-            guard requestID == state.searchRequestID,
-                  case .administrativeArea = state.activeSearchContext
-            else {
-                return .none
-            }
-            state.viewState = .initial
-            return showSnackbar(error.localizedDescription, state: &state)
-
-        case .administrativeAreaSearchSelectionHandled:
-            state.selectedAdministrativeAreaSearch = nil
+            clearSelectedPlace(state: &state)
             return .none
 
         case .dismissSnackbar:
             state.snackbarMessage = nil
             return .none
         }
+    }
+
+    private func beginSuggestionSearch(
+        keyword: String,
+        delay: Bool,
+        state: inout State
+    ) -> Effect<Action> {
+        state.searchRequestID += 1
+        state.activeSearchContext = .suggestions(keyword: keyword)
+        state.regions = []
+        state.relatedPlaceSuggestions = []
+        state.results = []
+        state.hasNextPage = false
+        state.nextCursor = nil
+        state.isLoadingNextPage = false
+        state.viewState = .searching
+        return relatedSearchEffect(
+            keyword: keyword,
+            cursor: nil,
+            requestID: state.searchRequestID,
+            isAppending: false,
+            delay: delay
+        )
+    }
+
+    private func beginPlaceSearch(
+        keyword: String,
+        state: inout State,
+        registration: RecentSearchRegistration? = nil
+    ) -> Effect<Action> {
+        state.searchRequestID += 1
+        state.activeSearchContext = .selectedRegion(keyword: keyword)
+        state.loadedSuggestionKeyword = nil
+        state.regions = []
+        state.relatedPlaceSuggestions = []
+        state.results = []
+        state.hasNextPage = false
+        state.nextCursor = nil
+        state.isLoadingNextPage = false
+        state.viewState = .searching
+        return placeSearchEffect(
+            keyword: keyword,
+            cursor: nil,
+            requestID: state.searchRequestID,
+            isAppending: false,
+            registration: registration
+        )
+    }
+
+    private func resetSearch(state: inout State) {
+        state.searchRequestID += 1
+        state.activeSearchContext = nil
+        state.regions = []
+        state.relatedPlaceSuggestions = []
+        state.results = []
+        state.hasNextPage = false
+        state.nextCursor = nil
+        state.isLoadingNextPage = false
+        state.viewState = .initial
     }
 
     private func loadRecentSearchesEffect() -> Effect<Action> {
@@ -316,17 +369,55 @@ struct HomeSearchReducer: Reducer {
         .cancelTask(id: EffectID.recentSearches)
     }
 
-    private func searchEffect(
+    private func relatedSearchEffect(
         keyword: String,
         cursor: String?,
         requestID: Int,
-        isAppending: Bool
+        isAppending: Bool,
+        delay: Bool
     ) -> Effect<Action> {
         let repository = placeRepository
-        let origin = origin
         return .run { send in
             do {
-                let page = try await repository.searchPlaces(
+                if delay {
+                    try await Task.sleep(for: .milliseconds(300))
+                }
+                let result = try await repository.fetchRelatedSearches(
+                    query: PlaceRelatedSearchQuery(keyword: keyword, cursor: cursor)
+                )
+                await send(.relatedSearchLoaded(result, requestID: requestID, isAppending: isAppending))
+            } catch is CancellationError {
+                return
+            } catch let error as NetworkError {
+                await send(.relatedSearchFailed(error, requestID: requestID, isAppending: isAppending))
+            } catch {
+                await send(.relatedSearchFailed(.unknown(errorCode: error.localizedDescription), requestID: requestID, isAppending: isAppending))
+            }
+        }
+        .cancelTask(id: EffectID.search)
+    }
+
+    private func placeSearchEffect(
+        keyword: String,
+        cursor: String?,
+        requestID: Int,
+        isAppending: Bool,
+        registration: RecentSearchRegistration?
+    ) -> Effect<Action> {
+        let placeRepository = placeRepository
+        let recentSearchRepository = recentSearchRepository
+        let origin = origin
+        return .run { send in
+            if let registration {
+                do {
+                    try await recentSearchRepository.registerRecentSearch(registration)
+                } catch {
+                    RodiLogger.warning("Recent region search registration failed. error=\(error.localizedDescription)")
+                }
+            }
+
+            do {
+                let page = try await placeRepository.searchPlaces(
                     query: PlaceSearchQuery(
                         keyword: keyword,
                         currentLatitude: origin.latitude,
@@ -335,6 +426,8 @@ struct HomeSearchReducer: Reducer {
                     )
                 )
                 await send(.searchLoaded(page, requestID: requestID, isAppending: isAppending))
+            } catch is CancellationError {
+                return
             } catch let error as NetworkError {
                 await send(.searchFailed(error, requestID: requestID, isAppending: isAppending))
             } catch {
@@ -344,41 +437,15 @@ struct HomeSearchReducer: Reducer {
         .cancelTask(id: EffectID.search)
     }
 
-    private func administrativeAreaSearchEffect(
-        area: KoreanAdministrativeArea,
-        requestID: Int
-    ) -> Effect<Action> {
-        let repository = placeRepository
-        let origin = origin
-        return .run { send in
+    private func registerRecentSearchEffect(_ registration: RecentSearchRegistration) -> Effect<Action> {
+        let repository = recentSearchRepository
+        return .run { _ in
             do {
-                var cursor: String?
-                var allItems: [PlaceListItem] = []
-                var hasNext = true
-
-                while hasNext {
-                    let page = try await repository.searchPlaces(
-                        query: PlaceSearchQuery(
-                            keyword: area.searchDisplayName,
-                            currentLatitude: origin.latitude,
-                            currentLongitude: origin.longitude,
-                            cursor: cursor
-                        )
-                    )
-                    let existingIDs = Set(allItems.map(\.id))
-                    allItems += page.items.filter { !existingIDs.contains($0.id) }
-                    hasNext = page.hasNext
-                    cursor = page.nextCursor
-                    if hasNext, cursor == nil { break }
-                }
-                await send(.administrativeAreaSearchLoaded(area, allItems, requestID: requestID))
-            } catch let error as NetworkError {
-                await send(.administrativeAreaSearchFailed(error, requestID: requestID))
+                try await repository.registerRecentSearch(registration)
             } catch {
-                await send(.administrativeAreaSearchFailed(.unknown(errorCode: error.localizedDescription), requestID: requestID))
+                RodiLogger.warning("Recent place search registration failed. error=\(error.localizedDescription)")
             }
         }
-        .cancelTask(id: EffectID.search)
     }
 
     private func deleteRecentSearchEffect(id: Int) -> Effect<Action> {
@@ -416,6 +483,33 @@ struct HomeSearchReducer: Reducer {
             await send(.dismissSnackbar)
         }
         .cancelTask(id: EffectID.snackbar)
+    }
+
+    private func uniqueItems(_ items: [PlaceListItem]) -> [PlaceListItem] {
+        var ids = Set<Int>()
+        return items.filter { ids.insert($0.id).inserted }
+    }
+
+    private func uniqueSuggestions(
+        _ suggestions: [PlaceRelatedSearchSuggestion]
+    ) -> [PlaceRelatedSearchSuggestion] {
+        var ids = Set<Int>()
+        return suggestions.filter { ids.insert($0.id).inserted }
+    }
+
+    private func selectPlace(id: Int, name: String, state: inout State) {
+        state.selectedPlaceID = id
+        state.selectedPlaceName = name
+    }
+
+    private func clearSelectedPlace(state: inout State) {
+        state.selectedPlaceID = nil
+        state.selectedPlaceName = nil
+    }
+
+    private func uniqueRegions(_ regions: [String]) -> [String] {
+        var names = Set<String>()
+        return regions.filter { names.insert($0).inserted }
     }
 
     private func normalized(_ query: String) -> String {

@@ -5,7 +5,7 @@
 
 import Foundation
 
-enum PlaceMapper {
+struct PlaceMapper {
     static func coordinate(
         from dto: PlaceCoordinateDTO
     ) throws(NetworkError) -> PlaceCoordinate {
@@ -35,7 +35,12 @@ enum PlaceMapper {
     ) throws(NetworkError) -> PlaceRelatedSearchResult {
         PlaceRelatedSearchResult(
             regions: dto.regions,
-            places: try cursorPage(from: dto.places)
+            places: PlaceRelatedSearchCursorPage(
+                items: dto.places.items.map(relatedSearchSuggestion(from:)),
+                hasNext: dto.places.hasNext,
+                nextCursor: dto.places.nextCursor,
+                totalCount: dto.places.totalCount
+            )
         )
     }
 
@@ -59,6 +64,16 @@ enum PlaceMapper {
 }
 
 private extension PlaceMapper {
+    static func relatedSearchSuggestion(
+        from dto: PlaceRelatedSearchItemDTO
+    ) -> PlaceRelatedSearchSuggestion {
+        PlaceRelatedSearchSuggestion(
+            id: dto.placeID,
+            name: dto.name,
+            region: dto.region
+        )
+    }
+
     static func listItem(
         from dto: PlaceListItemDTO
     ) throws(NetworkError) -> PlaceListItem {
