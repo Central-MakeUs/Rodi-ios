@@ -66,13 +66,23 @@ struct HomeSearchEntryButton: View {
             }
         }
         .frame(maxWidth: .infinity, minHeight: 46)
-        .background(RodiColor.white)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-        .shadow(
-            color: RodiColor.black.opacity(0.2),
-            radius: selectedSearchResultName == nil ? 2 : 4,
-            x: 0,
-            y: 0
-        )
+        .modifier(Example(selectedSearchResultName: selectedSearchResultName))
+    }
+}
+
+struct Example: ViewModifier {
+    
+    let selectedSearchResultName: String?
+    
+    func body(content: Content) -> some View {
+        content
+            .background(RodiColor.white)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .shadow(
+                color: RodiColor.black.opacity(0.2),
+                radius: selectedSearchResultName == nil ? 2 : 4,
+                x: 0,
+                y: 0
+            )
     }
 }

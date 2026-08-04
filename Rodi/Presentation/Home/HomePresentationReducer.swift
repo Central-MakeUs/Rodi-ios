@@ -5,7 +5,14 @@
 
 import Foundation
 
+// TODO: SnackbarService로 분리하기 (윤수)
 struct HomePresentationReducer: Reducer {
+    struct State {
+        var snackbarMessage: String?
+        var showsLocationSettingsAlert = false
+        var authenticationRequestID = 0
+    }
+    
     enum Action {
         case showSnackbar(String)
         case setSnackbarMessage(String?)
@@ -16,9 +23,7 @@ struct HomePresentationReducer: Reducer {
     }
 
     func reduce(
-        _ state: inout HomePresentationState,
-        with action: Action
-    ) -> Effect<Action> {
+        _ state: inout State, with action: Action) -> Effect<Action> {
         switch action {
         case .showSnackbar(let message), .setSnackbarMessage(let message?):
             state.snackbarMessage = message

@@ -68,18 +68,26 @@ struct HomeView: View {
         )
         .homeInteractions(
             homeStore: homeStore,
-            openSettingsAction: openAppSettings
+            openSettingsAction: AppSettings.openSetting
         )
+        
+        // 관찰 대상 값이 바뀔 때마다 실행
         .onChange(of: homeStore.state.presentation.authenticationRequestID) { requestID in
             guard requestID > 0 else { return }
             onAuthenticationRequired()
         }
+        
+        // View가 화면에 처음 나타날 때 실행
         .onAppear {
             onBottomSheetStateChanged(homeStore.state.bottomSheet.bottomSheetState)
         }
+        
+        
         .onChange(of: homeStore.state.bottomSheet.bottomSheetState) { state in
             onBottomSheetStateChanged(state)
         }
+        
+        // 새 화면을 전체 화면으로 띄우는 SwiftUI의 모달 표시 방식
         .fullScreenCover(item: searchPresentationBinding) { presentation in
             switch presentation {
             case .search(let origin):
@@ -97,28 +105,11 @@ struct HomeView: View {
     }
 }
 
+
 extension HomeView {
-    
-    private func openAppSettings() {
-        guard let url = URL(
-            string: UIApplication.openSettingsURLString
-        ) else {
-            return
-        }
-        UIApplication.shared
-            .open(
-                url, options: [:]
-            ) { didOpen in
-                RodiLogger.info(
-                    "Open system app settings requested url=\(url.absoluteString), didOpen=\(didOpen)")
-        }
-    }
 
     private func presentSearch() {
-        guard [
-            tokenStore.accessToken,
-            tokenStore.refreshToken
-        ].contains(
+        guard [tokenStore.accessToken, tokenStore.refreshToken].contains(
             where: {
                 $0?.isEmpty == false
             }) else {
@@ -126,10 +117,7 @@ extension HomeView {
             return
         }
         
-        router
-            .presentSearch(
-                origin: homeStore.state.map.userLocationCoordinate ?? .southKoreaCenter
-            )
+        router.presentSearch(origin: homeStore.state.map.userLocationCoordinate ?? .southKoreaCenter)
     }
 
     private var searchPresentationBinding: Binding<HomePresentation?> {
@@ -143,5 +131,6 @@ extension HomeView {
         )
     }
 
+    
 }
 

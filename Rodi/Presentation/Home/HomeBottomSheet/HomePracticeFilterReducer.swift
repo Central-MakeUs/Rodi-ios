@@ -57,74 +57,78 @@ struct HomePracticeFilterReducer: Reducer {
         self.hasActiveSession = hasActiveSession
     }
 
-    func reduce(_ state: inout State, with action: Action) -> Effect<Action> {
-        switch action {
-        case .present(let mediumHeight):
-            guard hasActiveSession() else {
-                return .send(.delegate(.requestAuthentication))
-            }
-            state.draftSelection = state.appliedSelection
-            RodiAnalytics.track(.practiceFilterOpened(presentation: "bottom_sheet"))
-            return .send(.delegate(.presentFilter(mediumHeight: mediumHeight)))
-
-        case .dismiss:
-            state.isApplying = false
-            state.draftSelection = state.appliedSelection
-
-        case .selectCategory(let category):
-            guard !state.isApplying else { return .none }
-            state.draftSelection.selectCategory(category)
-
-        case .toggleType(let type):
-            guard !state.isApplying else { return .none }
-            state.draftSelection.toggleType(type)
-
-        case .selectAll:
-            guard !state.isApplying else { return .none }
-            state.draftSelection.selectAll()
-
-        case .reset:
-            guard !state.isApplying else { return .none }
-            state.draftSelection = .default
-            RodiAnalytics.track(.practiceFilterReset)
-
-        case .apply:
-            guard state.canApply else { return .none }
-            state.isApplying = true
-            return updateFilterEffect(selection: state.draftSelection)
-
-        case .applied(let selection):
-            state.appliedSelection = selection
-            state.draftSelection = selection
-            state.isApplying = false
-            filterStore.save(selection)
-            RodiAnalytics.track(
-                .practiceFilterApplied(
-                    category: selection.category.rawValue,
-                    selectedTagCount: selection.filterTags.count,
-                    isAll: selection.isAllSelected
-                )
-            )
-            return .send(.delegate(.reloadPlaceList))
-
-        case .authenticationRequired:
-            state.isApplying = false
-            return .send(.delegate(.requestAuthentication))
-
-        case .failed(let message):
-            state.isApplying = false
-            return .send(.delegate(.showSnackbar(message)))
-
-        case .delegate:
-            break
-        }
-
-        return .none
-    }
+    
 }
 
-private extension HomePracticeFilterReducer {
-    func updateFilterEffect(selection: HomePracticeFilterSelection) -> Effect<Action> {
+// MARK: Core Logics
+extension HomePracticeFilterReducer {
+     
+     func reduce(_ state: inout State, with action: Action) -> Effect<Action> {
+         switch action {
+         case .present(let mediumHeight):
+             guard hasActiveSession() else {
+                 return .send(.delegate(.requestAuthentication))
+             }
+             state.draftSelection = state.appliedSelection
+             RodiAnalytics.track(.practiceFilterOpened(presentation: "bottom_sheet"))
+             return .send(.delegate(.presentFilter(mediumHeight: mediumHeight)))
+
+         case .dismiss:
+             state.isApplying = false
+             state.draftSelection = state.appliedSelection
+
+         case .selectCategory(let category):
+             guard !state.isApplying else { return .none }
+             state.draftSelection.selectCategory(category)
+
+         case .toggleType(let type):
+             guard !state.isApplying else { return .none }
+             state.draftSelection.toggleType(type)
+
+         case .selectAll:
+             guard !state.isApplying else { return .none }
+             state.draftSelection.selectAll()
+
+         case .reset:
+             guard !state.isApplying else { return .none }
+             state.draftSelection = .default
+             RodiAnalytics.track(.practiceFilterReset)
+
+         case .apply:
+             guard state.canApply else { return .none }
+             state.isApplying = true
+             return updateFilterEffect(selection: state.draftSelection)
+
+         case .applied(let selection):
+             state.appliedSelection = selection
+             state.draftSelection = selection
+             state.isApplying = false
+             filterStore.save(selection)
+             RodiAnalytics.track(
+                 .practiceFilterApplied(
+                     category: selection.category.rawValue,
+                     selectedTagCount: selection.filterTags.count,
+                     isAll: selection.isAllSelected
+                 )
+             )
+             return .send(.delegate(.reloadPlaceList))
+
+         case .authenticationRequired:
+             state.isApplying = false
+             return .send(.delegate(.requestAuthentication))
+
+         case .failed(let message):
+             state.isApplying = false
+             return .send(.delegate(.showSnackbar(message)))
+
+         case .delegate:
+             break
+         }
+
+         return .none
+     }
+     
+     private func updateFilterEffect(selection: HomePracticeFilterSelection) -> Effect<Action> {
         let repository = memberRepository
         return .run { send in
             do {
@@ -144,7 +148,7 @@ private extension HomePracticeFilterReducer {
         .cancelTask(id: HomeEffectID.practiceFilterUpdating)
     }
 
-    func requiresAuthentication(_ error: Error) -> Bool {
+     private func requiresAuthentication(_ error: Error) -> Bool {
         guard let networkError = error as? NetworkError else { return false }
         return switch networkError {
         case .refreshFailGoRoot, .httpStatusCode(401): true

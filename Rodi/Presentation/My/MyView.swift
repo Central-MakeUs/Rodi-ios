@@ -86,6 +86,7 @@ private extension MyView {
         switch route {
         case .settings:
             MySettingsView(backAction: router.pop, navigate: router.push)
+            
         case .drivingGoal:
             MyDrivingGoalView(
                 initialDrivingGoal: "",
@@ -93,6 +94,7 @@ private extension MyView {
                 onUpdated: { store.send(.drivingGoalUpdated($0)) },
                 backAction: router.pop
             )
+            
         case .savedPlaces:
             SavedPlacesView(
                 placeRepository: placeRepository,
@@ -103,12 +105,16 @@ private extension MyView {
                     navigate(.openHomePlace(id: item.id))
                 }
             )
+            
         case .permissions:
             MyPermissionSettingsView(backAction: router.pop)
+            
         case .terms:
             MyTermsView(backAction: router.pop, navigate: router.push)
+            
         case .licenses:
             MyOpenSourceLicenseView(backAction: router.pop)
+            
         case .accountManagement:
             MyAccountManagementView(
                 backAction: router.pop,
@@ -116,11 +122,12 @@ private extension MyView {
                 logoutAction: { store.send(.logoutConfirmed) },
                 withdrawalAction: { store.send(.withdrawalConfirmed) }
             )
+            
         case .contact:
             MyContactView(backAction: router.pop)
+            
         case .legalDocument(let document):
             MyLegalDocumentView(document: document, backAction: router.pop)
         }
     }
-
 }

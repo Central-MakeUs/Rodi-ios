@@ -23,10 +23,15 @@ struct MainTabReducer: Reducer {
 
     enum Action {
         case homeTabTapped
+        
         case myTabTapped
+        
         case navigationRequested(MainTabIntent)
+        
         case navigationHandled
+        
         case authenticationRequestHandled
+        
         case homeBottomSheetStateChanged(HomeBottomSheetState)
     }
 
@@ -35,7 +40,11 @@ struct MainTabReducer: Reducer {
     init(tokenStore: TokenStoring) {
         self.tokenStore = tokenStore
     }
+}
 
+// MARK: Core Logics
+extension MainTabReducer {
+    
     func reduce(_ state: inout State, with action: Action) -> Effect<Action> {
         switch action {
         case .homeTabTapped:
@@ -69,14 +78,12 @@ struct MainTabReducer: Reducer {
 
         return .none
     }
-}
-
-private extension MainTabReducer {
-    var hasActiveSession: Bool {
+    
+    private var hasActiveSession: Bool {
         [tokenStore.accessToken, tokenStore.refreshToken].contains { $0?.isEmpty == false }
     }
 
-    func tab(for intent: MainTabIntent) -> RodiTab {
+    private func tab(for intent: MainTabIntent) -> RodiTab {
         switch intent {
         case .presentHomeList, .openHomePlace:
             .home

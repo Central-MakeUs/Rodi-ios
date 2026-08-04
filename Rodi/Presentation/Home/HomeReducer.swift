@@ -10,8 +10,10 @@ import Foundation
 struct HomeReducer: Reducer {
     struct State {
         var map = HomeMapReducer.State()
+        
         var bottomSheet = HomeBottomSheetReducer.State()
-        var presentation = HomePresentationState()
+        
+        var presentation = HomePresentationReducer.State()
 
         var visibleItems: [RodiCourseItem] {
             map.markerItems
@@ -63,6 +65,7 @@ struct HomeReducer: Reducer {
         tokenStore: TokenStoring
     ) {
         mapReducer = HomeMapReducer(placeRepository: placeRepository)
+        
         bottomSheetReducer = HomeBottomSheetReducer(
             placeRepository: placeRepository,
             memberRepository: memberRepository,
@@ -71,7 +74,11 @@ struct HomeReducer: Reducer {
             }
         )
     }
+}
 
+// MARK: Core Logics
+extension HomeReducer {
+    
     func reduce(_ state: inout State, with action: Action) -> Effect<Action> {
         switch action {
         case .map(.delegate(let delegate)):

@@ -5,9 +5,10 @@
 
 import SwiftUI
 
+@MainActor
 struct HomeInteractionModifier: ViewModifier {
     @ObservedObject var homeStore: StoreOf<HomeReducer>
-    let openSettingsAction: () -> Void
+    let openSettingsAction: @MainActor () -> Void
 
     func body(content: Content) -> some View {
         content
@@ -30,9 +31,10 @@ struct HomeInteractionModifier: ViewModifier {
 }
 
 extension View {
+    @MainActor
     func homeInteractions(
         homeStore: StoreOf<HomeReducer>,
-        openSettingsAction: @escaping () -> Void
+        openSettingsAction: @escaping @MainActor () -> Void
     ) -> some View {
         modifier(
             HomeInteractionModifier(
