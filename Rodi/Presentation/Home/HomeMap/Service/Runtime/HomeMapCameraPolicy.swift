@@ -12,8 +12,6 @@ enum HomeMapCameraPolicy {
             6
         case .closeSingleLocation:
             15
-        case .administrativeArea:
-            12
         }
     }
 }

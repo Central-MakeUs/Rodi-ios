@@ -35,9 +35,20 @@ struct RodiBottomTabBar: View {
         .background(RodiColor.white)
         .shadow(color: Color(hex: 0x222222, alpha: 0.08), radius: 4, x: 0, y: -3)
         .ignoresSafeArea(edges: .bottom)
+        .background {
+            GeometryReader { proxy in
+                Color.clear.preference(
+                    key: RodiBottomTabBarHeightPreferenceKey.self,
+                    value: proxy.size.height
+                )
+            }
+        }
         .accessibilityElement(children: .contain)
     }
+}
 
+// MARK: Layout
+extension RodiBottomTabBar {
     private func tabButton(
         title: String,
         iconName: String,
@@ -61,5 +72,14 @@ struct RodiBottomTabBar: View {
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
+// 실제 탭 바가 화면에서 차지하는 높이를 Home의 지도 오버레이와 공유한다.
+struct RodiBottomTabBarHeightPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
     }
 }

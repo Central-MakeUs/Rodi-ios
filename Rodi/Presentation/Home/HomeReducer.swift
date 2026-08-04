@@ -18,10 +18,10 @@ struct HomeReducer: Reducer {
         }
 
         var overlayState: HomeOverlayState? {
-            if map.isRetryingAfterNetworkFailure { return .loading(.map) }
+            if map.isRetryingAfterNetworkFailure { return .loading }
             if map.isNetworkUnavailable { return .networkUnavailable }
             if let mapErrorMessage = map.errorMessage { return .mapUnavailable(message: mapErrorMessage) }
-            if map.isLoading { return .loading(.map) }
+            if map.isLoading { return .loading }
             return nil
         }
 

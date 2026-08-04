@@ -14,8 +14,8 @@ struct HomeStatusOverlay: View {
             RodiColor.white.ignoresSafeArea()
 
             switch state {
-            case .loading(let kind):
-                MapLoadingContent(kind: kind)
+            case .loading:
+                MapLoadingContent()
             case .networkUnavailable:
                 NetworkUnavailableContent(retryAction: retryAction)
             case .mapUnavailable(let message):

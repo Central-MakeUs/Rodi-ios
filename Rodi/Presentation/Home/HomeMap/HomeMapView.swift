@@ -6,19 +6,20 @@
 import Clarity
 import SwiftUI
 
-struct HomeMapView: View {
-    enum Output {
-        case mapReady
-        case markerSelected(RodiCourseItem)
-        case viewportChanged(viewport: PlaceViewport, center: RodiCoordinate, isUserInitiated: Bool)
-        case selectionInvalidated
-        case initialPlaceListSearchPrepared(RodiCoordinate)
-        case locationNotice(String)
-        case locationSettingsRequested
-        case researchRequested
-        case searchRequested
-        case administrativeAreaSelectionCleared
-    }
+enum HomeMapOutput {
+    case mapReady
+    case markerSelected(RodiCourseItem)
+    case viewportChanged(viewport: PlaceViewport, center: RodiCoordinate, isUserInitiated: Bool)
+    case selectionInvalidated
+    case initialPlaceListSearchPrepared(RodiCoordinate)
+    case locationNotice(String)
+    case locationSettingsRequested
+    case researchRequested
+    case searchRequested
+    case searchSelectionCleared
+}
+
+struct HomeMapView<Overlay: View>: View {
 
     struct Configuration {
         let logoBottomInset: CGFloat
@@ -39,16 +40,19 @@ struct HomeMapView: View {
     @State private var networkMonitor = HomeNetworkMonitor()
     @ObservedObject private var homeStore: StoreOf<HomeReducer>
     private let configuration: Configuration
-    private let onOutput: (Output) -> Void
+    private let onOutput: (HomeMapOutput) -> Void
+    private let overlay: () -> Overlay
 
     init(
         homeStore: StoreOf<HomeReducer>,
         configuration: Configuration,
-        onOutput: @escaping (Output) -> Void
+        onOutput: @escaping (HomeMapOutput) -> Void,
+        @ViewBuilder overlay: @escaping () -> Overlay
     ) {
         self.homeStore = homeStore
         self.configuration = configuration
         self.onOutput = onOutput
+        self.overlay = overlay
     }
 
     var body: some View {
@@ -74,7 +78,7 @@ struct HomeMapView: View {
                     HomeSearchEntryButton(
                         selectedSearchResultName: configuration.selectedSearchResultName,
                         action: { onOutput(.searchRequested) },
-                        clearSelectedSearchResultAction: { onOutput(.administrativeAreaSelectionCleared) }
+                        clearSelectedSearchResultAction: { onOutput(.searchSelectionCleared) }
                     )
 
                     if configuration.showsResearchButton {
@@ -106,6 +110,11 @@ struct HomeMapView: View {
                     currentLocationAction: requestCurrentLocation
                 )
             }
+
+            // Kakao 지도는 UIKit UIViewRepresentable이다. 지도 외부 ZStack의 형제 레이어는
+            // iOS 26에서 지도 UIView 뒤로 합성될 수 있어, Home UI 오버레이를 같은 스택에서 렌더링한다.
+            overlay()
+                .zIndex(4)
         }
         .onAppear(perform: startServices)
         .onDisappear(perform: stopServices)
@@ -117,9 +126,6 @@ struct HomeMapView: View {
             runtimeService.requestCurrentLocationAfterStoreUpdate(
                 minimumCameraRequestID: homeStore.state.map.cameraRequestID
             )
-        }
-        .onChange(of: homeStore.state.map.administrativeAreaSearchItems?.map(\.id)) { _ in
-            runtimeService.refreshMapMarkers(for: homeStore.state.visibleItems)
         }
         .onChange(of: homeStore.state.map.items.map(\.id)) { _ in
             runtimeService.refreshMapMarkers(for: homeStore.state.visibleItems)

@@ -8,8 +8,6 @@
 import SwiftUI
 
 struct MapLoadingContent: View {
-    let kind: HomeLoadingKind
-
     var body: some View {
         VStack(spacing: 10) {
             ProgressView()

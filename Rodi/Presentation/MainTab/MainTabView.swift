@@ -9,6 +9,7 @@ struct MainTabView: View {
     @StateObject private var store: StoreOf<MainTabReducer>
     @StateObject private var homeRouter = HomeRouter()
     @StateObject private var myRouter = MyRouter()
+    @State private var bottomTabBarHeight: CGFloat = 80
 
     let consumePendingAuthenticationIntent: () -> MainTabIntent?
     let requestLogin: (MainTabIntent?) -> Void
@@ -25,6 +26,7 @@ struct MainTabView: View {
         self.requestLogin = requestLogin
         self.onLogoutCompleted = onLogoutCompleted
         self.dependencies = dependencies
+        
         _store = StateObject(
             wrappedValue: Store(
                 state: MainTabReducer.State(),
@@ -40,6 +42,7 @@ struct MainTabView: View {
                 isHomeTabSelected: { store.state.selectedTab == .home },
                 onAuthenticationRequired: { requestLogin(nil) },
                 onBottomSheetStateChanged: { store.send(.homeBottomSheetStateChanged($0)) },
+                bottomTabBarHeight: bottomTabBarHeight,
                 dependencies: dependencies
             )
             .opacity(store.state.selectedTab == .home ? 1 : 0)
@@ -68,6 +71,10 @@ struct MainTabView: View {
             }
         }
         .animation(.easeOut(duration: 0.1), value: shouldShowBottomTabBar)
+        .onPreferenceChange(RodiBottomTabBarHeightPreferenceKey.self) { height in
+            guard height > 0 else { return }
+            bottomTabBarHeight = height
+        }
         .onAppear(perform: consumePendingAuthenticationIntentIfNeeded)
         .onChange(of: store.state.navigationIntent) { intent in
             guard let intent else { return }
@@ -88,6 +95,7 @@ private extension MainTabView {
         switch store.state.selectedTab {
         case .home:
             store.state.homeBottomSheetState == .collapsed
+            
         case .my:
             !myRouter.isDetailPresented
         }
@@ -102,10 +110,13 @@ private extension MainTabView {
         switch intent {
         case .presentHomeList:
             homeRouter.requestListPresentation()
+            
         case .openHomePlace(let id):
             homeRouter.showPlace(id: id)
+            
         case .openMyProfile:
             myRouter.popToRoot()
+            
         case .openMySavedPlaces:
             myRouter.popToRoot()
             myRouter.push(.savedPlaces)

@@ -10,12 +10,21 @@ import UIKit
 struct HomeView: View {
     @StateObject private var homeStore: StoreOf<HomeReducer>
     @ObservedObject private var router: HomeRouter
+    
     private let isHomeTabSelected: () -> Bool
+    
     private let onAuthenticationRequired: () -> Void
+    
     private let onBottomSheetStateChanged: (HomeBottomSheetState) -> Void
+    
+    private let bottomTabBarHeight: CGFloat
+    
     private let placeRepository: PlaceRepository
+    
     private let memberRepository: MemberRepository
+    
     private let recentSearchRepository: RecentSearchRepository
+    
     private let tokenStore: TokenStoring
 
     init(
@@ -23,16 +32,19 @@ struct HomeView: View {
         isHomeTabSelected: @escaping () -> Bool,
         onAuthenticationRequired: @escaping () -> Void,
         onBottomSheetStateChanged: @escaping (HomeBottomSheetState) -> Void,
+        bottomTabBarHeight: CGFloat,
         dependencies: AppDependencies
     ) {
         self.router = router
         self.isHomeTabSelected = isHomeTabSelected
         self.onAuthenticationRequired = onAuthenticationRequired
         self.onBottomSheetStateChanged = onBottomSheetStateChanged
+        self.bottomTabBarHeight = bottomTabBarHeight
         placeRepository = dependencies.placeRepository
         memberRepository = dependencies.memberRepository
         recentSearchRepository = dependencies.recentSearchRepository
         tokenStore = dependencies.tokenStore
+        
         _homeStore = StateObject(
             wrappedValue: Store(
                 state: HomeReducer.State(),
@@ -51,6 +63,7 @@ struct HomeView: View {
             router: router,
             isHomeTabSelected: isHomeTabSelected,
             onSearchRequested: presentSearch,
+            bottomTabBarHeight: bottomTabBarHeight,
             placeRepository: placeRepository
         )
         .homeInteractions(
@@ -72,8 +85,9 @@ struct HomeView: View {
             case .search(let origin):
                 HomeSearchView(
                     origin: origin,
-                    onPlaceSelected: { router.completeSearch(place: $0) },
-                    onAdministrativeAreaSelected: { router.completeSearch(administrativeAreaSearch: $0) },
+                    onPlaceSelected: { placeID, placeName in
+                        router.completeSearch(placeID: placeID, name: placeName)
+                    },
                     onDismiss: router.dismissPresentation,
                     placeRepository: placeRepository,
                     recentSearchRepository: recentSearchRepository
@@ -81,21 +95,41 @@ struct HomeView: View {
             }
         }
     }
+}
 
+extension HomeView {
+    
     private func openAppSettings() {
-        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
-        UIApplication.shared.open(url, options: [:]) { didOpen in
-            RodiLogger.info("Open system app settings requested url=\(url.absoluteString), didOpen=\(didOpen)")
+        guard let url = URL(
+            string: UIApplication.openSettingsURLString
+        ) else {
+            return
+        }
+        UIApplication.shared
+            .open(
+                url, options: [:]
+            ) { didOpen in
+                RodiLogger.info(
+                    "Open system app settings requested url=\(url.absoluteString), didOpen=\(didOpen)")
         }
     }
 
     private func presentSearch() {
-        guard [tokenStore.accessToken, tokenStore.refreshToken].contains(where: { $0?.isEmpty == false }) else {
+        guard [
+            tokenStore.accessToken,
+            tokenStore.refreshToken
+        ].contains(
+            where: {
+                $0?.isEmpty == false
+            }) else {
             onAuthenticationRequired()
             return
         }
-
-        router.presentSearch(origin: homeStore.state.map.userLocationCoordinate ?? .southKoreaCenter)
+        
+        router
+            .presentSearch(
+                origin: homeStore.state.map.userLocationCoordinate ?? .southKoreaCenter
+            )
     }
 
     private var searchPresentationBinding: Binding<HomePresentation?> {
@@ -110,3 +144,4 @@ struct HomeView: View {
     }
 
 }
+

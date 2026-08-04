@@ -10,11 +10,10 @@ struct HomeMapReducer: Reducer {
         var items: [RodiCourseItem] = []
         var isItemsLoading = false
         var itemsRequestRevision = 0
-        var administrativeAreaSearchItems: [RodiCourseItem]?
         var visibleMapMarkers: [RodiMapMarker] = []
 
         var markerItems: [RodiCourseItem] {
-            administrativeAreaSearchItems ?? items
+            items
         }
 
         var isRetryingAfterNetworkFailure = false
@@ -55,8 +54,6 @@ struct HomeMapReducer: Reducer {
         case setShouldRender(Bool)
         case setCameraState(target: RodiCoordinate, requestID: Int, animatedRequestID: Int?, focus: RodiMapCameraFocus)
         case setItems([RodiCourseItem])
-        case showAdministrativeAreaSearchItems([RodiCourseItem])
-        case clearAdministrativeAreaSearchItems
         case setVisibleMapMarkers([RodiMapMarker])
         case setUserLocationCoordinate(RodiCoordinate?)
         case setUserHeadingDegrees(Double?)
@@ -64,7 +61,6 @@ struct HomeMapReducer: Reducer {
         case setCurrentLocationButtonActive(Bool)
         case requestCurrentLocation
         case focusParking(RodiCoordinate)
-        case focusAdministrativeArea(RodiCoordinate, bounds: RodiMapBounds)
         case delegate(Delegate)
     }
 
@@ -167,12 +163,6 @@ struct HomeMapReducer: Reducer {
         case .setItems(let items):
             state.items = items
 
-        case .showAdministrativeAreaSearchItems(let items):
-            state.administrativeAreaSearchItems = items
-
-        case .clearAdministrativeAreaSearchItems:
-            state.administrativeAreaSearchItems = nil
-
         case .setVisibleMapMarkers(let markers):
             state.visibleMapMarkers = markers
 
@@ -197,12 +187,6 @@ struct HomeMapReducer: Reducer {
         case .focusParking(let coordinate):
             state.cameraTarget = coordinate
             state.cameraFocus = .closeSingleLocation
-            state.cameraRequestID += 1
-            state.animatedCameraRequestID = state.cameraRequestID
-
-        case .focusAdministrativeArea(let coordinate, let bounds):
-            state.cameraTarget = coordinate
-            state.cameraFocus = .administrativeArea(bounds)
             state.cameraRequestID += 1
             state.animatedCameraRequestID = state.cameraRequestID
 
