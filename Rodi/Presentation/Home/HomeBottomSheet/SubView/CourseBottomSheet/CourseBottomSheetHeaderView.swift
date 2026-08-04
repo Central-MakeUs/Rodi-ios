@@ -12,10 +12,22 @@ struct CourseBottomSheetHeaderView: View {
     let pageProgress: CGFloat
     let collapseAction: () -> Void
     let filterAction: (() -> Void)?
+    let closeAction: (() -> Void)?
 
     var body: some View {
         ZStack {
             HStack(spacing: 8) {
+                if let closeAction {
+                    Button(action: closeAction) {
+                        Image(systemName: "chevron.left")
+                            .font(.pretendard(size: 20, weight: .medium))
+                            .foregroundStyle(RodiColor.black)
+                            .frame(width: 24, height: 24)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("필터 닫기")
+                }
+
                 Text(title)
                     .rodiTypography(.headline1)
                     .foregroundStyle(RodiColor.black)
@@ -32,14 +44,14 @@ struct CourseBottomSheetHeaderView: View {
                     .foregroundStyle(RodiColor.black)
 
                 HStack {
-                    Button(action: collapseAction) {
+                    Button(action: closeAction ?? collapseAction) {
                         Image(systemName: "chevron.left")
                             .font(.pretendard(size: 20, weight: .medium))
                             .foregroundStyle(RodiColor.black)
                             .frame(width: 24, height: 24)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("연습코스 목록 접기")
+                    .accessibilityLabel(closeAction == nil ? "연습코스 목록 접기" : "필터 닫기")
 
                     Spacer()
 

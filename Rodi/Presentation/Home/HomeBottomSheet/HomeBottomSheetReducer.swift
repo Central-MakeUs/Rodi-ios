@@ -24,11 +24,9 @@ struct HomeBottomSheetReducer: Reducer {
             var errorMessage: String?
             var needsResearch = false
             var requestRevision = 0
-            var isAdministrativeAreaSearchResults = false
         }
 
-        var bottomSheetState: HomeBottomSheetState = .collapsed
-        var sheetHeight: CGFloat = 0
+        var manager = HomeBottomSheetManager.State()
         var selectedItem: RodiCourseItem?
         var selectedRouteOverlay: RodiRouteOverlay?
         var isRouteLoading = false
@@ -40,22 +38,17 @@ struct HomeBottomSheetReducer: Reducer {
         var selectionSource = "unknown"
         var placeList = PlaceListState()
         var filter = HomePracticeFilterReducer.State()
+
+        var bottomSheetState: HomeBottomSheetState { manager.detent }
+        var sheetHeight: CGFloat { manager.height }
     }
 
     enum Action {
-        case sheet(SheetAction)
+        case manager(HomeBottomSheetManager.Action)
         case selection(SelectionAction)
         case placeList(PlaceListAction)
         case filter(FilterAction)
         case delegate(Delegate)
-    }
-
-    enum SheetAction {
-        case present(mediumHeight: CGFloat)
-        case dismiss
-        case expand(availableHeight: CGFloat)
-        case collapse(mediumHeight: CGFloat)
-        case resetToMedium(mediumHeight: CGFloat)
     }
 
     enum SelectionAction {
@@ -78,8 +71,6 @@ struct HomeBottomSheetReducer: Reducer {
         case prepareInitialSearch(origin: RodiCoordinate)
         case reloadCurrentViewport(origin: RodiCoordinate?)
         case reloadAfterFilter
-        case showAdministrativeAreaSearchResults([PlaceListItem])
-        case clearAdministrativeAreaSearchResults
         case loadNextPage
         case pageLoaded(page: PlaceCursorPage, viewport: PlaceViewport, revision: Int, isAppending: Bool, isManualResearch: Bool)
         case pageFailed(message: String, revision: Int, isAppending: Bool, isManualResearch: Bool)
@@ -96,6 +87,7 @@ struct HomeBottomSheetReducer: Reducer {
 
     let placeRepository: PlaceRepository
     let hasActiveSession: () -> Bool
+    private let managerReducer = HomeBottomSheetManager()
     private let filterReducer: HomePracticeFilterReducer
 
     init(
@@ -118,8 +110,12 @@ struct HomeBottomSheetReducer: Reducer {
         with action: Action
     ) -> Effect<Action> {
         switch action {
-        case .sheet(let action):
-            return reduceSheet(action, state: &state)
+        case .manager(let action):
+            let effect = managerReducer.reduce(&state.manager, with: action)
+            if case .dismissFilter = action {
+                return .send(.filter(.dismiss))
+            }
+            return effect.map(Action.manager)
 
         case .selection(let action):
             return reduceSelection(action, state: &state)
@@ -145,48 +141,19 @@ struct HomeBottomSheetReducer: Reducer {
         state: inout State
     ) -> Effect<Action> {
         switch delegate {
-        case .presentSheet(let mediumHeight):
-            state.bottomSheetState = .medium
-            state.sheetHeight = mediumHeight
-            return .none
+        case .presentFilter(let mediumHeight):
+            return .send(.manager(.presentFilter(mediumHeight: mediumHeight)))
         case .reloadPlaceList:
+            _ = managerReducer.reduce(
+                &state.manager,
+                with: .dismissFilter(mediumHeight: state.manager.height)
+            )
             return .send(.placeList(.reloadAfterFilter))
         case .requestAuthentication:
             return delegateEffect(.requestAuthentication)
         case .showSnackbar(let message):
             return delegateEffect(.showSnackbar(message))
         }
-    }
-
-    private func reduceSheet(
-        _ action: SheetAction,
-        state: inout State
-    ) -> Effect<Action> {
-        switch action {
-        case .present(let mediumHeight):
-            state.bottomSheetState = .medium
-            state.sheetHeight = mediumHeight
-
-        case .dismiss:
-            state.bottomSheetState = .collapsed
-            state.sheetHeight = 0
-
-        case .expand(let availableHeight):
-            guard state.bottomSheetState != .expanded else { return .none }
-            state.bottomSheetState = .expanded
-            state.sheetHeight = availableHeight
-
-        case .collapse(let mediumHeight):
-            guard state.bottomSheetState != .medium else { return .none }
-            state.bottomSheetState = .medium
-            state.sheetHeight = mediumHeight
-
-        case .resetToMedium(let mediumHeight):
-            state.bottomSheetState = .medium
-            state.sheetHeight = mediumHeight
-        }
-
-        return .none
     }
 
     private func reduceSelection(
@@ -196,6 +163,7 @@ struct HomeBottomSheetReducer: Reducer {
         switch action {
         case .clear:
             clearSelection(state: &state)
+            _ = managerReducer.reduce(&state.manager, with: .dismissDetail)
             state.selectionSource = "unknown"
             return .cancel(id: HomeEffectID.routeLoading)
 
@@ -394,39 +362,8 @@ struct HomeBottomSheetReducer: Reducer {
                 isManualResearch: false
             )
 
-        case .showAdministrativeAreaSearchResults(let items):
-            state.placeList.requestRevision += 1
-            state.placeList.items = uniqueItems(items)
-            state.placeList.nextCursor = nil
-            state.placeList.hasNext = false
-            state.placeList.totalCount = state.placeList.items.count
-            state.placeList.isInitialLoading = false
-            state.placeList.isNextPageLoading = false
-            state.placeList.isManualResearchLoading = false
-            state.placeList.shouldAutoExpandAfterResearch = false
-            state.placeList.errorMessage = nil
-            state.placeList.needsResearch = false
-            state.placeList.isAdministrativeAreaSearchResults = true
-            return .cancel(id: HomeEffectID.placeListLoading)
-
-        case .clearAdministrativeAreaSearchResults:
-            guard state.placeList.isAdministrativeAreaSearchResults else { return .none }
-            state.placeList.requestRevision += 1
-            state.placeList.items = []
-            state.placeList.nextCursor = nil
-            state.placeList.hasNext = false
-            state.placeList.totalCount = nil
-            state.placeList.isInitialLoading = false
-            state.placeList.isNextPageLoading = false
-            state.placeList.isManualResearchLoading = false
-            state.placeList.errorMessage = nil
-            state.placeList.needsResearch = state.placeList.latestViewport != nil
-            state.placeList.isAdministrativeAreaSearchResults = false
-            return .cancel(id: HomeEffectID.placeListLoading)
-
         case .loadNextPage:
             guard !state.placeList.needsResearch,
-                  !state.placeList.isAdministrativeAreaSearchResults,
                   !state.placeList.isInitialLoading,
                   !state.placeList.isNextPageLoading,
                   state.placeList.hasNext,
@@ -469,7 +406,6 @@ struct HomeBottomSheetReducer: Reducer {
             state.placeList.isNextPageLoading = false
             state.placeList.isManualResearchLoading = false
             state.placeList.errorMessage = nil
-            state.placeList.isAdministrativeAreaSearchResults = false
             state.placeList.shouldAutoExpandAfterResearch = isManualResearch && !isAppending
 
         case let .pageFailed(message, revision, isAppending, isManualResearch):
@@ -497,8 +433,7 @@ struct HomeBottomSheetReducer: Reducer {
         mediumHeight: CGFloat,
         state: inout State
     ) -> Effect<Action> {
-        state.bottomSheetState = .medium
-        state.sheetHeight = mediumHeight
+        _ = managerReducer.reduce(&state.manager, with: .presentDetail(mediumHeight: mediumHeight))
         state.selectedItem = item
         state.routeStatusMessage = nil
         state.selectedRouteOverlay = nil
@@ -515,8 +450,7 @@ struct HomeBottomSheetReducer: Reducer {
         mediumHeight: CGFloat,
         state: inout State
     ) -> Effect<Action> {
-        state.bottomSheetState = .medium
-        state.sheetHeight = mediumHeight
+        _ = managerReducer.reduce(&state.manager, with: .presentDetail(mediumHeight: mediumHeight))
         state.selectedItem = nil
         state.routeStatusMessage = nil
         state.selectedRouteOverlay = nil
@@ -586,7 +520,6 @@ struct HomeBottomSheetReducer: Reducer {
         state.placeList.requestOrigin = origin
         state.placeList.nextCursor = nil
         state.placeList.hasNext = false
-        state.placeList.isAdministrativeAreaSearchResults = false
 
         return loadPageEffect(
             viewport: viewport,

@@ -10,42 +10,71 @@ import SwiftUI
 /// 홈 바텀싯 높이와 지도 위 플로팅 컨트롤 위치를 한 곳에서 계산하는 정책 객체.
 /// 화면마다 동일한 높이 기준을 쓰게 해서 지도 카메라 보정, 버튼 위치, 페이지 전환 진행도가 서로 어긋나지 않도록 한다.
 struct HomeBottomSheetLayoutPolicy {
+    struct Metrics {
+        let mediumHeightRatio: CGFloat = 0.5
+        let floatingControlSpacing: CGFloat = 12
+        let currentLocationButtonSize: CGFloat = 40
+        let listButtonHeight: CGFloat = 34
+        let pageMorphStartRatio: CGFloat = 0.85
+        let expandedSnapRatio: CGFloat = 0.55
+        let collapsedSnapRatio: CGFloat = 0.45
+        let detailDismissThreshold: CGFloat = 48
+        let filterDismissThreshold: CGFloat = 72
+    }
+
+    let containerHeight: CGFloat
     let sheetHeight: CGFloat
     let dragTranslation: CGFloat
-    let settlingSheetHeight: CGFloat?
     let hasSelectedBottomSheet: Bool
     let usesCompactSelectedDetail: Bool
     let selectedSheetContentHeight: CGFloat
     let bottomSheetState: HomeBottomSheetState
-    let sheetHeightRatio: CGFloat
-    let floatingControlSpacing: CGFloat
-    let currentLocationButtonSize: CGFloat
-    let pageMorphStartRatio: CGFloat
-    let expandedSheetSnapRatio: CGFloat
-    let collapsedSheetSnapRatio: CGFloat
     let bottomTabBarHeight: CGFloat
+    let metrics: Metrics
+
+    init(
+        containerHeight: CGFloat,
+        sheetHeight: CGFloat,
+        dragTranslation: CGFloat,
+        hasSelectedBottomSheet: Bool,
+        usesCompactSelectedDetail: Bool,
+        selectedSheetContentHeight: CGFloat,
+        bottomSheetState: HomeBottomSheetState,
+        bottomTabBarHeight: CGFloat,
+        metrics: Metrics = .init()
+    ) {
+        self.containerHeight = containerHeight
+        self.sheetHeight = sheetHeight
+        self.dragTranslation = dragTranslation
+        self.hasSelectedBottomSheet = hasSelectedBottomSheet
+        self.usesCompactSelectedDetail = usesCompactSelectedDetail
+        self.selectedSheetContentHeight = selectedSheetContentHeight
+        self.bottomSheetState = bottomSheetState
+        self.bottomTabBarHeight = bottomTabBarHeight
+        self.metrics = metrics
+    }
 
     /// 기본 상태의 바텀싯 높이. 현재 홈 화면은 기기 높이의 비율로 고정한다.
     var mediumSheetHeight: CGFloat {
-        baseHeight * sheetHeightRatio
+        baseHeight * metrics.mediumHeightRatio
     }
 
     /// 기본 바텀싯 위에 떠야 하는 내 위치/설정 버튼의 하단 여백.
     var mediumOverlayBottomInset: CGFloat {
-        mediumSheetHeight + floatingControlSpacing
+        mediumSheetHeight + metrics.floatingControlSpacing
     }
 
     /// 선택 상세처럼 드래그가 잠긴 바텀싯 위 플로팅 컨트롤 여백.
     var selectedOverlayBottomInset: CGFloat {
         if usesCompactSelectedDetail, selectedSheetContentHeight > 0 {
-            return selectedSheetContentHeight + floatingControlSpacing
+            return selectedSheetContentHeight + metrics.floatingControlSpacing
         }
-        return fixedSheetHeight + floatingControlSpacing
+        return fixedSheetHeight + metrics.floatingControlSpacing
     }
 
     var floatingControlBottomInset: CGFloat {
         if bottomSheetState == .collapsed {
-            return bottomTabBarHeight + floatingControlSpacing
+            return bottomTabBarHeight + metrics.floatingControlSpacing
         }
 
         return hasFixedBottomSheet ? selectedOverlayBottomInset : mediumOverlayBottomInset
@@ -92,14 +121,9 @@ struct HomeBottomSheetLayoutPolicy {
 
     /// 드래그 중인 현재 바텀싯 높이.
     var currentSheetHeight: CGFloat {
-        let resolvedHeight: CGFloat
-        if let settlingSheetHeight {
-            resolvedHeight = settlingSheetHeight
-        } else if shouldAllowSheetDrag {
-            resolvedHeight = height(forDragTranslation: dragTranslation)
-        } else {
-            resolvedHeight = sheetHeight
-        }
+        let resolvedHeight = shouldAllowSheetDrag
+            ? height(forDragTranslation: dragTranslation)
+            : sheetHeight
         return clamp(resolvedHeight, lowerBound: 0, upperBound: availableSheetHeight)
     }
 
@@ -155,7 +179,7 @@ struct HomeBottomSheetLayoutPolicy {
 
         let overlap = currentSheetHeight - mediumOverlayBottomInset
         let expansionOpacity = 1 - clamp(
-            overlap / currentLocationButtonSize,
+            overlap / metrics.currentLocationButtonSize,
             lowerBound: 0,
             upperBound: 1
         )
@@ -169,7 +193,7 @@ struct HomeBottomSheetLayoutPolicy {
             return bottomSheetState == .expanded ? 1 : 0
         }
 
-        let morphStartHeight = availableSheetHeight * pageMorphStartRatio
+        let morphStartHeight = availableSheetHeight * metrics.pageMorphStartRatio
         let progress = (currentSheetHeight - morphStartHeight) / (availableSheetHeight - morphStartHeight)
         return clamp(progress, lowerBound: 0, upperBound: 1)
     }
@@ -181,7 +205,7 @@ struct HomeBottomSheetLayoutPolicy {
 
         let dismissalDistance = max(mediumSheetHeight - currentSheetHeight, 0)
         return clamp(
-            dismissalDistance / currentLocationButtonSize,
+            dismissalDistance / metrics.currentLocationButtonSize,
             lowerBound: 0,
             upperBound: 1
         )
@@ -200,30 +224,36 @@ struct HomeBottomSheetLayoutPolicy {
     func sheetStateAfterDrag(translation: CGFloat) -> HomeBottomSheetState {
         let heightRatio = height(forDragTranslation: translation) / availableSheetHeight
 
-        if heightRatio >= expandedSheetSnapRatio {
+        if heightRatio >= metrics.expandedSnapRatio {
             return .expanded
         }
 
-        if heightRatio <= collapsedSheetSnapRatio {
+        if heightRatio <= metrics.collapsedSnapRatio {
             return .collapsed
         }
 
         return .medium
     }
 
-    private var baseHeight: CGFloat {
-        // HomeView의 ZStack은 상단/하단 Safe Area 안에서 레이아웃된다.
-        // 전체 화면 높이를 그대로 쓰면 확장 시트가 Safe Area보다 위로 밀리므로,
-        // 시트와 헤더는 같은 콘텐츠 높이를 기준으로 계산한다.
-        let safeArea = UIApplication.shared.connectedScenes
-            .compactMap { ($0 as? UIWindowScene)?.keyWindow }
-            .first?
-            .safeAreaInsets ?? .zero
+    var listButtonBottomInset: CGFloat {
+        bottomTabBarHeight
+            + metrics.floatingControlSpacing
+            + (metrics.currentLocationButtonSize - metrics.listButtonHeight) / 2
+    }
 
-        return max(
-            UIScreen.main.bounds.height - safeArea.top - safeArea.bottom,
-            0
-        )
+    func shouldDismissDetail(after translation: CGFloat) -> Bool {
+        translation >= metrics.detailDismissThreshold
+    }
+
+    func shouldDismissFilter(after translation: CGFloat) -> Bool {
+        translation >= metrics.filterDismissThreshold
+    }
+
+    private var baseHeight: CGFloat {
+        // UIScreen/keyWindow는 iOS 26의 다중 window 레이아웃 시점에 0이거나
+        // 현재 SwiftUI 컨테이너와 다른 값을 줄 수 있다. GeometryReader가 측정한
+        // 실제 Home 컨테이너 높이를 시트·카메라·제스처의 공통 기준으로 사용한다.
+        max(containerHeight, 0)
     }
 
     private func clamp(_ value: CGFloat, lowerBound: CGFloat, upperBound: CGFloat) -> CGFloat {

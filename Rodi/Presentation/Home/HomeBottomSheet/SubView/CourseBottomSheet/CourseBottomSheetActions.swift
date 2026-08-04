@@ -23,4 +23,5 @@ struct CourseBottomSheetActions {
     let toggleFilterType: (PlacePracticeType) -> Void
     let selectAllFilterTypes: () -> Void
     let applyFilter: () -> Void
+    let closeFilter: () -> Void
 }

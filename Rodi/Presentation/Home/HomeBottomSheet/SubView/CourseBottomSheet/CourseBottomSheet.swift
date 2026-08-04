@@ -98,7 +98,7 @@ struct CourseBottomSheet<Drag: Gesture>: View {
         }
         .ignoresSafeArea(edges: .bottom)
         .accessibilityAction(named: Text("펼치기")) {
-            guard !content.hasSelectedItem else { return }
+            guard !content.hasSelectedItem, !content.isFilterPresented else { return }
             actions.expand()
         }
     }
@@ -138,7 +138,8 @@ struct CourseBottomSheet<Drag: Gesture>: View {
                     title: headerTitle,
                     pageProgress: content.pageProgress,
                     collapseAction: actions.collapse,
-                    filterAction: content.isFilterPresented ? nil : actions.presentFilter
+                    filterAction: content.isFilterPresented ? nil : actions.presentFilter,
+                    closeAction: content.isFilterPresented ? actions.closeFilter : nil
                 )
             }
         }

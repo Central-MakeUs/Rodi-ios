@@ -22,7 +22,6 @@ struct HomeListButton: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .frame(height: 34)
             .background(RodiColor.white)
             .clipShape(Capsule())
             .shadow(color: RodiColor.black.opacity(0.3), radius: 1.5)
