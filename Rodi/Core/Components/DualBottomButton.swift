@@ -11,6 +11,26 @@ struct DualBottomButton: View {
     let isPrimaryEnabled: Bool
     let secondaryAction: () -> Void
     let primaryAction: () -> Void
+    let secondaryRatio: CGFloat
+    let spacing: CGFloat
+
+    init(
+        secondaryTitle: String,
+        primaryTitle: String,
+        isPrimaryEnabled: Bool,
+        secondaryAction: @escaping () -> Void,
+        primaryAction: @escaping () -> Void,
+        secondaryRatio: CGFloat = 0.4,
+        spacing: CGFloat = 6
+    ) {
+        self.secondaryTitle = secondaryTitle
+        self.primaryTitle = primaryTitle
+        self.isPrimaryEnabled = isPrimaryEnabled
+        self.secondaryAction = secondaryAction
+        self.primaryAction = primaryAction
+        self.secondaryRatio = secondaryRatio
+        self.spacing = spacing
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -18,7 +38,7 @@ struct DualBottomButton: View {
                 .fill(RodiColor.gray200)
                 .frame(height: 1)
 
-            ProportionalButtonRowLayout {
+            ProportionalButtonRowLayout(spacing: spacing, secondaryRatio: secondaryRatio) {
                 secondaryButton
                 primaryButton
             }
@@ -61,8 +81,8 @@ struct DualBottomButton: View {
 }
 
 private struct ProportionalButtonRowLayout: Layout {
-    private let spacing: CGFloat = 6
-    private let secondaryRatio: CGFloat = 0.4
+    let spacing: CGFloat
+    let secondaryRatio: CGFloat
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         let height = subviews.map { $0.sizeThatFits(.unspecified).height }.max() ?? 0

@@ -69,7 +69,6 @@ struct HomePracticeFilterSelection: Codable, Equatable {
     static let `default` = Self()
 
     var filterTags: [PlacePracticeType] {
-        if isAllSelected { return [] }
         if category == .parking { return [.parking] }
         return selectedTypes
     }
@@ -86,16 +85,17 @@ struct HomePracticeFilterSelection: Codable, Equatable {
 
     mutating func toggleType(_ type: PlacePracticeType) {
         guard category != .parking else { return }
-        isAllSelected = false
         if let index = selectedTypes.firstIndex(of: type) {
             selectedTypes.remove(at: index)
         } else {
             selectedTypes.append(type)
         }
+        isAllSelected = selectedTypes.count == category.options.count
     }
 
     mutating func selectAll() {
-        selectedTypes = []
+        guard category != .parking else { return }
+        selectedTypes = category.options.map(\.type)
         isAllSelected = true
     }
 }

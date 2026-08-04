@@ -23,9 +23,8 @@ enum RodiAnalytics {
         case placeDetailOpened(source: String, placeType: String)
         case searchOpened
         case searchSubmitted(inputSource: String, queryLengthBucket: String)
-        case searchResultsLoaded(resultCountBucket: String, hasLocalAreaCandidates: Bool)
+        case searchResultsLoaded(resultCountBucket: String, hasRegionCandidates: Bool)
         case searchResultSelected(resultType: String, source: String)
-        case administrativeAreaSelected(areaLevel: String, candidateCountBucket: String)
         case practiceFilterOpened(presentation: String)
         case practiceFilterApplied(category: String, selectedTagCount: Int, isAll: Bool)
         case practiceFilterReset
@@ -58,7 +57,6 @@ enum RodiAnalytics {
             case .searchSubmitted: "search_submitted"
             case .searchResultsLoaded: "search_results_loaded"
             case .searchResultSelected: "search_result_selected"
-            case .administrativeAreaSelected: "administrative_area_selected"
             case .practiceFilterOpened: "practice_filter_opened"
             case .practiceFilterApplied: "practice_filter_applied"
             case .practiceFilterReset: "practice_filter_reset"
@@ -103,12 +101,10 @@ enum RodiAnalytics {
                 [:]
             case .searchSubmitted(let inputSource, let queryLengthBucket):
                 ["input_source": inputSource, "query_length_bucket": queryLengthBucket]
-            case .searchResultsLoaded(let resultCountBucket, let hasLocalAreaCandidates):
-                ["result_count_bucket": resultCountBucket, "has_local_area_candidates": hasLocalAreaCandidates ? 1 : 0]
+            case .searchResultsLoaded(let resultCountBucket, let hasRegionCandidates):
+                ["result_count_bucket": resultCountBucket, "has_region_candidates": hasRegionCandidates ? 1 : 0]
             case .searchResultSelected(let resultType, let source):
                 ["result_type": resultType, "source": source]
-            case .administrativeAreaSelected(let areaLevel, let candidateCountBucket):
-                ["area_level": areaLevel, "candidate_count_bucket": candidateCountBucket]
             case .practiceFilterOpened(let presentation):
                 ["presentation": presentation]
             case .practiceFilterApplied(let category, let selectedTagCount, let isAll):

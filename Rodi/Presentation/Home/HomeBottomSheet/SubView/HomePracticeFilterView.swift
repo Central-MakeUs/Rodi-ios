@@ -63,7 +63,9 @@ struct HomePracticeFilterView: View {
                 primaryTitle: isApplying ? "적용 중" : "결과보기",
                 isPrimaryEnabled: canApply,
                 secondaryAction: resetAction,
-                primaryAction: applyAction
+                primaryAction: applyAction,
+                secondaryRatio: 0.5,
+                spacing: 5
             )
         }
     }

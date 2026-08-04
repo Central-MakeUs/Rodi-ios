@@ -17,7 +17,8 @@ final class MemberRemoteDataSource {
         try await empty(.updateDrivingGoal(request))
     }
     
-    func updateFilterTags(_ request: MemberPlaceFilterTagsUpdateRequestDTO) async throws(NetworkError) { try await empty(.updatePlaceFilterTags(request))
+    func updateFilterTags(_ request: MemberPlaceFilterTagsUpdateRequestDTO) async throws(NetworkError) {
+        try await empty(.updatePlaceFilterTags(request))
     }
     
     func submitOnboarding(_ request: MemberOnboardingRequestDTO) async throws(NetworkError) {
@@ -35,6 +36,9 @@ final class MemberRemoteDataSource {
     }
     
     private func empty(_ api: MemberAPI) async throws(NetworkError) {
-        _ = try await response(api, as: EmptyResponse.self)
+        let response = try await networkManager.request(api, as: ServerResponse<EmptyResponse>.self)
+        guard response.isSuccess else {
+            throw .apiError(code: response.code, message: response.message)
+        }
     }
 }

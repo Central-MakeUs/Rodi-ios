@@ -7,7 +7,6 @@ import Foundation
 
 struct HomePracticeFilterReducer: Reducer {
     struct State {
-        var isPresented = false
         var appliedSelection: HomePracticeFilterSelection
         var draftSelection: HomePracticeFilterSelection
         var isApplying = false
@@ -38,7 +37,7 @@ struct HomePracticeFilterReducer: Reducer {
     }
 
     enum Delegate {
-        case presentSheet(mediumHeight: CGFloat)
+        case presentFilter(mediumHeight: CGFloat)
         case reloadPlaceList
         case requestAuthentication
         case showSnackbar(String)
@@ -65,12 +64,10 @@ struct HomePracticeFilterReducer: Reducer {
                 return .send(.delegate(.requestAuthentication))
             }
             state.draftSelection = state.appliedSelection
-            state.isPresented = true
             RodiAnalytics.track(.practiceFilterOpened(presentation: "bottom_sheet"))
-            return .send(.delegate(.presentSheet(mediumHeight: mediumHeight)))
+            return .send(.delegate(.presentFilter(mediumHeight: mediumHeight)))
 
         case .dismiss:
-            state.isPresented = false
             state.isApplying = false
             state.draftSelection = state.appliedSelection
 
@@ -100,7 +97,6 @@ struct HomePracticeFilterReducer: Reducer {
             state.appliedSelection = selection
             state.draftSelection = selection
             state.isApplying = false
-            state.isPresented = false
             filterStore.save(selection)
             RodiAnalytics.track(
                 .practiceFilterApplied(
