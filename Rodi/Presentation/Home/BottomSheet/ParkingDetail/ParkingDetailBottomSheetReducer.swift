@@ -43,7 +43,7 @@ struct ParkingDetailBottomSheetReducer: Reducer {
 
 // MARK: - Core Logics
 extension ParkingDetailBottomSheetReducer {
-    
+
     func reduce(_ state: inout State, with action: Action) -> Effect<Action> {
         switch action {
         case .present(let detail, _):

@@ -71,9 +71,9 @@ struct HomeSearchEntryButton: View {
 }
 
 struct Example: ViewModifier {
-    
+
     let selectedSearchResultName: String?
-    
+
     func body(content: Content) -> some View {
         content
             .background(RodiColor.white)

@@ -15,7 +15,7 @@ struct HomeReducer: Reducer {
         var search = HomeSearchReducer.State()
         var presentation = PresentationState()
     }
-    
+
     struct MapState {
         // MARK: Map lifecycle
         var mapLifecycle: MapLifecycle = .inactive
@@ -96,7 +96,7 @@ struct HomeReducer: Reducer {
         case setLocationSettingsAlertPresented(Bool)
         case snackbarRequestHandled
     }
-    
+
     /// NOTE - 확인 필요
     private let mapService: MapService
     private let markerRenderingService: MapMarkerRenderingService
@@ -134,7 +134,7 @@ struct HomeReducer: Reducer {
 // MARK: - Reduce
 
 extension HomeReducer {
-    
+
     func reduce(_ state: inout State, with action: Action) -> Effect<Action> {
         switch action {
         case .map(let action):
@@ -150,7 +150,7 @@ extension HomeReducer {
             return reducePresentation(&state, action: action)
         }
     }
-    
+
     private func reduceMap(_ state: inout State, action: MapAction) -> Effect<Action> {
         var map = state.map
         defer { state.map = map }
@@ -325,7 +325,7 @@ extension HomeReducer {
             return .none
         }
     }
-    
+
     private func reduceBottomSheet(
         _ state: inout State, action: HomeBottomSheetReducer.Action) -> Effect<Action> {
     guard case .delegate(let delegate) = action else {
@@ -408,7 +408,7 @@ extension HomeReducer {
 
         return .none
     }
-    
+
     private func reducePresentation(
         _ state: inout State, action: PresentationAction) -> Effect<Action> {
         switch action {
@@ -420,7 +420,7 @@ extension HomeReducer {
         }
         return .none
     }
-    
+
     private func reduceMapServiceOutput(
         _ output: MapServiceOutAction, map: inout MapState, presentation: inout PresentationState
     ) -> Effect<Action> {
@@ -493,7 +493,7 @@ extension HomeReducer {
 // MARK: - Effect
 
 extension HomeReducer {
-    
+
     private func updateMapVisibility(
         wasMapInteractive: Bool, state: inout MapState) -> Effect<Action> {
         guard wasMapInteractive != state.isMapInteractive else { return .none }

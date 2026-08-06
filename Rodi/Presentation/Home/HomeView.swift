@@ -111,7 +111,7 @@ struct HomeView: View {
 
 // MARK: - Core
 extension HomeView {
-    
+
     private var core: some View {
         ZStack(alignment: .bottom) {
             if store.state.map.mapLifecycle != .inactive {

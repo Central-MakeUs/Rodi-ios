@@ -11,7 +11,7 @@ struct CourseDetailBottomSheetView: View {
     let userLocation: RodiCoordinate?
     let hasLocationPermission: Bool
     let requestLocationPermission: () -> Void
-    
+
     @State private var isGuidanceDialogPresented = false
 
     var body: some View {
@@ -24,7 +24,7 @@ struct CourseDetailBottomSheetView: View {
 
 // MARK: - Layout
 extension CourseDetailBottomSheetView {
-    
+
     private func sheet(detail: PlaceDetail) -> some View {
         VStack(spacing: 0) {
             CourseSelectedDetailPanel(

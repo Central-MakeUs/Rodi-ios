@@ -65,7 +65,7 @@ struct FilterBottomSheetReducer: Reducer {
 
 // MARK: - Core Logics
 extension FilterBottomSheetReducer {
-    
+
     func reduce(_ state: inout State, with action: Action) -> Effect<Action> {
         switch action {
         case .present:

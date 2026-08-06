@@ -49,7 +49,7 @@ struct CourseDetailBottomSheetReducer: Reducer {
 
 // MARK: - Core Logics
 extension CourseDetailBottomSheetReducer {
-    
+
     func reduce(_ state: inout State, with action: Action) -> Effect<Action> {
         switch action {
         case .present(let detail, _):
@@ -111,7 +111,7 @@ extension CourseDetailBottomSheetReducer {
         case .delegate(let delegate):
             onDelegate(delegate)
         }
-        
+
         return .none
     }
 

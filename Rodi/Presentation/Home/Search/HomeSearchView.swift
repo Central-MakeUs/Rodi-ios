@@ -66,7 +66,7 @@ struct HomeSearchView: View {
 
 // MARK: Layout
 extension HomeSearchView {
-    
+
     private var queryBinding: Binding<String> {
         Binding(
             get: { state.query },

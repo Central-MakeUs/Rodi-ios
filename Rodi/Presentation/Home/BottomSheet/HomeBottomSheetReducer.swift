@@ -59,7 +59,7 @@ struct HomeBottomSheetReducer: Reducer {
                 .contains { $0?.isEmpty == false }
         }
         placeRepository = dependencies.placeRepository
-        
+
         recommendListReducer = RecommendListBottomSheetReducer(
             placeRepository: dependencies.placeRepository,
             hasActiveSession: hasActiveSession
@@ -82,7 +82,7 @@ struct HomeBottomSheetReducer: Reducer {
 
 // MARK: - Reduce
 extension HomeBottomSheetReducer {
-    
+
     func reduce(_ state: inout State, with action: Action) -> Effect<Action> {
         switch action {
         case .showRecommendList:
@@ -284,7 +284,7 @@ extension HomeBottomSheetReducer {
 
 // MARK: - Effect
 extension HomeBottomSheetReducer {
-    
+
     private func resolvePlaceEffect(id: Int) -> Effect<Action> {
         let repository = placeRepository
         return .run { send in

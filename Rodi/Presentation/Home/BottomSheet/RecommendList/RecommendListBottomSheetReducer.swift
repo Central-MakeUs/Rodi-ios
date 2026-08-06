@@ -78,7 +78,7 @@ struct RecommendListBottomSheetReducer: Reducer {
 
 // MARK: - Core Logics
 extension RecommendListBottomSheetReducer {
-    
+
     func reduce(_ state: inout State, with action: Action) -> Effect<Action> {
         switch action {
         case .present:

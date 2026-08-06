@@ -7,7 +7,7 @@ import Foundation
 
 @MainActor
 final class MapMarkerRenderingService {
-    
+
     func progressiveSnapshots( for markers: [RodiMapMarker]) -> AsyncStream<[RodiMapMarker]> {
         let batches = batches(for: markers)
 

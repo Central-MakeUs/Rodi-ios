@@ -68,7 +68,7 @@ final class MapLocationService: NSObject {
 }
 
 extension MapLocationService: CLLocationManagerDelegate {
-    
+
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         let status = manager.authorizationStatus
         Task { @MainActor [weak self] in
