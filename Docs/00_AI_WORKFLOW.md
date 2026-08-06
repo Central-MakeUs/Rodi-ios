@@ -38,10 +38,13 @@ This document is the main operating guide for AI agents working in this reposito
 | `AppDependencies` | Creates repositories and stores once for explicit Feature injection. |
 | `AppRouter` | Owns onboarding/main tab root route and login-required presentation. |
 | `MainTabView` / `MainTabReducer` | Keeps Home/My roots alive and owns tab selection. |
-| `HomeView` | Home screen composition; should render state and send actions. |
-| `HomeReducer` | Home state transitions and effect orchestration. |
-| `HomeMapReducer` | Map coordinate loading and map render state. |
-| `HomeMapRuntimeService` | Location, heading, fallback, and marker runtime side effects. |
+| `Home/HomeView` | Active Home shell; owns one `HomeReducer` Store and renders Map, BottomSheet, and Search. |
+| `Home/HomeReducer` | Active Home parent reducer; owns Map, BottomSheet, Search, and presentation state. |
+| `Home/Map` | Kakao adapter, map UI, map values, and map services. |
+| `Home/BottomSheet` | Bottom-sheet route host plus recommendation, filter, course, and parking sections. |
+| `Home/Search` | Full-screen search reducer, Search UI, and its final Delegate contract. |
+| `HomeReducer.MapState` / `HomeReducer.MapAction` | HomeReducer에 포함된 지도 좌표 로딩과 렌더 상태. |
+| `MapService` | Current-location and place-coordinate I/O only; it does not own Home state. |
 | `KakaoMapContainerView` | SwiftUI wrapper around the Kakao UIKit map adapter. |
 | `RodiKakaoMapView` | UIKit Kakao map lifecycle and rendering control. |
 | `KakaoDirectionsService` | Kakao Mobility route API integration for route overlay. |
@@ -125,6 +128,12 @@ Use when changing Home or Onboarding state/action/reducer flow.
 
 Do not duplicate state between Store and services. Do not put business logic in SwiftUI `body`.
 
+## Home File Convention
+
+- Preserve the established `extension` and `MARK` layout in `HomeView` and `HomeReducer` when making scoped changes.
+- Put View layout computed properties and layout helpers in the existing Layout extension; keep reducer state transitions, effects, and helpers in their existing extension boundaries.
+- Do not reorganize those files, rename their existing sections, or introduce alternative reducer/view conventions as incidental cleanup. Propose a separate refactor when the convention itself needs to change.
+
 ## Figma Implementation Playbook
 
 Use when the user provides a Figma link, screenshot, or dev mode context.
@@ -183,10 +192,10 @@ First check:
 - Simulator coordinates may be outside Kakao map service coverage.
 
 Important files:
-- `Presentation/Home/Map/`
-- `Presentation/Home/Services/Runtime/`
-- `Presentation/Home/Services/KakaoDirectionsService.swift`
-- `Presentation/Home/Services/RouteGuidanceService.swift`
+- `Presentation/Home/Map/Adapter/Kakao/`
+- `Presentation/Home/Map/Service/`
+- `Presentation/Home/BottomSheet/CourseDetail/Service/KakaoDirectionsService.swift`
+- `Presentation/Home/BottomSheet/Shared/Service/RouteGuidanceService.swift`
 
 Rules:
 - Do not remove or hide Kakao logo/copyright.
