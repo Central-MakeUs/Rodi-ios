@@ -205,7 +205,9 @@ extension HomeBottomSheetReducer {
 
         case let .displayStateChanged(presentation, showsResearchButton):
             return .send(.delegate(.recommendationPresentationChanged(
-                isBottomTabBarVisible: presentation == .collapsed,
+                isBottomTabBarVisible: state.resolvingPlaceID == nil
+                    && state.route == .recommendList
+                    && presentation == .collapsed,
                 isResearchButtonVisible: showsResearchButton
             )))
         }
