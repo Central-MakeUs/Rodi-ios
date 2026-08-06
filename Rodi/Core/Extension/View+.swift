@@ -6,3 +6,10 @@
 //
 
 import SwiftUI
+
+extension View {
+
+    func rodiSnackbar(message: String?) -> some View {
+        modifier(RodiSnackbarModifier(message: message))
+    }
+}
