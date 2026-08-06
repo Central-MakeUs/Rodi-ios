@@ -6,10 +6,12 @@
 import SwiftUI
 
 struct MainTabView: View {
+    @Environment(\.screenSafeAreaInsets) private var screenSafeAreaInsets
+
     @StateObject private var store: StoreOf<MainTabReducer>
-    @StateObject private var homeRouter = HomeRouter()
     @StateObject private var myRouter = MyRouter()
-    @State private var bottomTabBarHeight: CGFloat = 80
+    @State private var homeListPresentationRequestID = 0
+    @State private var pendingHomePlaceID: Int?
 
     let consumePendingAuthenticationIntent: () -> MainTabIntent?
     let requestLogin: (MainTabIntent?) -> Void
@@ -38,17 +40,22 @@ struct MainTabView: View {
     var body: some View {
         ZStack(alignment: .bottom) {
             HomeView(
-                router: homeRouter,
-                isHomeTabSelected: { store.state.selectedTab == .home },
+                isHomeTabSelected: store.state.selectedTab == .home,
                 onAuthenticationRequired: { requestLogin(nil) },
-                onBottomSheetStateChanged: { store.send(.homeBottomSheetStateChanged($0)) },
-                bottomTabBarHeight: bottomTabBarHeight,
+                onBottomTabBarVisibilityChanged: {
+                    store.send(.homeBottomTabBarVisibilityChanged($0))
+                },
+                listPresentationRequestID: homeListPresentationRequestID,
+                pendingPlaceID: pendingHomePlaceID,
+                onPendingPlaceHandled: { pendingHomePlaceID = nil },
+                bottomTabBarHeight: RodiBottomTabBar.totalHeight(
+                    safeAreaBottom: screenSafeAreaInsets.bottom
+                ),
                 dependencies: dependencies
             )
-            .opacity(store.state.selectedTab == .home ? 1 : 0)
-            .allowsHitTesting(store.state.selectedTab == .home)
-            .accessibilityHidden(store.state.selectedTab != .home)
-
+                .opacity(store.state.selectedTab == .home ? 1 : 0)
+                .allowsHitTesting(store.state.selectedTab == .home)
+                .accessibilityHidden(store.state.selectedTab != .home)
             MyView(
                 router: myRouter,
                 isMyTabSelected: { store.state.selectedTab == .my },
@@ -71,10 +78,6 @@ struct MainTabView: View {
             }
         }
         .animation(.easeOut(duration: 0.1), value: shouldShowBottomTabBar)
-        .onPreferenceChange(RodiBottomTabBarHeightPreferenceKey.self) { height in
-            guard height > 0 else { return }
-            bottomTabBarHeight = height
-        }
         .onAppear(perform: consumePendingAuthenticationIntentIfNeeded)
         .onChange(of: store.state.navigationIntent) { intent in
             guard let intent else { return }
@@ -94,7 +97,7 @@ private extension MainTabView {
     var shouldShowBottomTabBar: Bool {
         switch store.state.selectedTab {
         case .home:
-            store.state.homeBottomSheetState == .collapsed
+            store.state.isHomeBottomTabBarVisible
             
         case .my:
             !myRouter.isDetailPresented
@@ -109,10 +112,10 @@ private extension MainTabView {
     func handleNavigationIntent(_ intent: MainTabIntent) {
         switch intent {
         case .presentHomeList:
-            homeRouter.requestListPresentation()
+            homeListPresentationRequestID += 1
             
         case .openHomePlace(let id):
-            homeRouter.showPlace(id: id)
+            pendingHomePlaceID = id
             
         case .openMyProfile:
             myRouter.popToRoot()

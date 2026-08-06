@@ -18,7 +18,7 @@ struct MainTabReducer: Reducer {
         var selectedTab: RodiTab = .home
         var navigationIntent: MainTabIntent?
         var authenticationIntent: MainTabIntent?
-        var homeBottomSheetState: HomeBottomSheetState = .collapsed
+        var isHomeBottomTabBarVisible = true
     }
 
     enum Action {
@@ -32,7 +32,7 @@ struct MainTabReducer: Reducer {
         
         case authenticationRequestHandled
         
-        case homeBottomSheetStateChanged(HomeBottomSheetState)
+        case homeBottomTabBarVisibilityChanged(Bool)
     }
 
     private let tokenStore: TokenStoring
@@ -72,8 +72,8 @@ extension MainTabReducer {
         case .authenticationRequestHandled:
             state.authenticationIntent = nil
 
-        case .homeBottomSheetStateChanged(let bottomSheetState):
-            state.homeBottomSheetState = bottomSheetState
+        case .homeBottomTabBarVisibilityChanged(let isVisible):
+            state.isHomeBottomTabBarVisible = isVisible
         }
 
         return .none

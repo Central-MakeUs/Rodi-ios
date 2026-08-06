@@ -5,124 +5,595 @@
 
 import Foundation
 
-/// Home feature 간의 명시적인 신호만 연결하는 조정자다.
-/// 지도와 바텀싯의 도메인 로직은 각각의 child reducer가 소유한다.
+@MainActor
 struct HomeReducer: Reducer {
+
+    // MARK: State
     struct State {
-        var map = HomeMapReducer.State()
-        
+        var map = MapState()
         var bottomSheet = HomeBottomSheetReducer.State()
-        
-        var presentation = HomePresentationReducer.State()
+        var search = HomeSearchReducer.State()
+        var presentation = PresentationState()
+    }
+    
+    struct MapState {
+        // MARK: Map lifecycle
+        var mapLifecycle: MapLifecycle = .inactive
+        var isHomeTabSelected = false
+        var isAppActive = true
+        // TODO: 계산 프로퍼티(isMapInteractive) 없어야함(윤수)
+        var isMapInteractive: Bool { isHomeTabSelected && isAppActive }
 
-        var visibleItems: [RodiCourseItem] {
-            map.markerItems
-        }
+        // MARK: Map camera
+        var cameraTarget = RodiCoordinate.southKoreaCenter
+        var cameraRequestID = 0
+        var animatedCameraRequestID: Int?
+        var cameraFocus: RodiMapCameraFocus = .koreaOverview
+        var mapZoomLevel = 6
 
-        var overlayState: HomeOverlayState? {
-            if map.isRetryingAfterNetworkFailure { return .loading }
-            if map.isNetworkUnavailable { return .networkUnavailable }
-            if let mapErrorMessage = map.errorMessage { return .mapUnavailable(message: mapErrorMessage) }
-            if map.isLoading { return .loading }
-            return nil
-        }
+        // MARK: User location
+        var locationState: LocationState = .idle
+        var userLocation: RodiCoordinate?
+        var userHeadingDegrees: Double?
 
-        var displayedMapMarkers: [RodiMapMarker] {
-            if bottomSheet.selectedItem?.type == .course,
-               bottomSheet.selectedRouteOverlay != nil {
-                return []
-            }
+        // MARK: Map markers
+        var markerState: MarkerState = .idle
+        var mapItems: [RodiCourseItem] = []
+        var markers: [RodiMapMarker] = []
+        var hasCompletedInitialMarkerRendering = false
+        var displayedMarkerTier: RodiHomeMarkerClusterIndex.Tier?
+        var forcedMarkerTier: RodiHomeMarkerClusterIndex.Tier?
+        var forcedMarkerTierZoomLevel: Int?
+        var selectedMarkerID: String?
+        var selectedSearchResultName: String?
+        var isResearchButtonVisible = false
 
-            if let selectedItem = bottomSheet.selectedItem {
-                return selectedItem.mapMarker.map {
-                    [RodiMapMarker(
-                        id: $0.id,
-                        kind: $0.kind,
-                        title: $0.title,
-                        coordinate: $0.coordinate,
-                        isSelected: true
-                    )]
-                } ?? []
-            }
-
-            return map.visibleMapMarkers
-        }
+        // MARK: Route
+        var routeOverlay: RodiRouteOverlay?
     }
 
+    struct PresentationState {
+        var pendingSnackbar: ToastStruct?
+        var isLocationSettingsAlertPresented = false
+        var isBottomTabBarVisible = true
+        var isSearchPresented = false
+        var searchOrigin: RodiCoordinate?
+    }
+
+    // MARK: Action
     enum Action {
-        case map(HomeMapReducer.Action)
+        case map(MapAction)
         case bottomSheet(HomeBottomSheetReducer.Action)
-        case presentation(HomePresentationReducer.Action)
+        case search(HomeSearchReducer.Action)
+        case presentation(PresentationAction)
     }
 
-    private let mapReducer: HomeMapReducer
+    enum MapAction {
+        case tabSelectionChanged(Bool)
+        case activityChanged(Bool)
+        case becameReady
+        case viewportChanged(
+            center: RodiCoordinate,
+            zoomLevel: Int,
+            viewport: PlaceViewport,
+            isUserInitiated: Bool
+        )
+        case markerTapped(String)
+        case cameraMoveFinished(Int)
+        case currentLocationRequested
+        case markerRetryRequested
+        case recommendationResearchButtonTapped
+        case searchEntryTapped
+        case searchSelectionClearTapped
+        case initialLocationRequested
+        case initialMarkersLoadRequested
+        case serviceOutput(MapServiceOutAction)
+        case markerRenderBatchUpdated([RodiMapMarker])
+        case initialMarkerRenderingFinished
+    }
+
+    enum PresentationAction {
+        case setLocationSettingsAlertPresented(Bool)
+        case snackbarRequestHandled
+    }
+    
+    /// NOTE - 확인 필요
+    private let mapService: MapService
+    private let markerRenderingService: MapMarkerRenderingService
     private let bottomSheetReducer: HomeBottomSheetReducer
-    private let presentationReducer = HomePresentationReducer()
+    private let searchReducer: HomeSearchReducer
+    /// NOTE - 확인 필요
+    private let authenticationRequired: () -> Void
+    private let markerTierResolver = MapMarkerTierResolver()
+    private let markerInteractionResolver = MapMarkerInteractionResolver()
+
+    private enum CancellationID: Hashable {
+        case progressiveMarkerRendering
+        case userHeadingUpdates
+    }
 
     init(
-        placeRepository: PlaceRepository,
-        memberRepository: MemberRepository,
-        tokenStore: TokenStoring
+        dependencies: AppDependencies,
+        authenticationRequired: @escaping () -> Void = {}
     ) {
-        mapReducer = HomeMapReducer(placeRepository: placeRepository)
-        
-        bottomSheetReducer = HomeBottomSheetReducer(
-            placeRepository: placeRepository,
-            memberRepository: memberRepository,
-            hasActiveSession: {
-                [tokenStore.accessToken, tokenStore.refreshToken].contains { $0?.isEmpty == false }
-            }
+        mapService = MapService(
+            placeRepository: dependencies.placeRepository,
+            locationService: MapLocationService()
         )
+        markerRenderingService = MapMarkerRenderingService()
+        bottomSheetReducer = HomeBottomSheetReducer(dependencies: dependencies)
+        searchReducer = HomeSearchReducer(
+            placeRepository: dependencies.placeRepository,
+            recentSearchRepository: dependencies.recentSearchRepository
+        )
+        self.authenticationRequired = authenticationRequired
     }
 }
 
-// MARK: Core Logics
+
+// MARK: - Reduce
+
 extension HomeReducer {
     
     func reduce(_ state: inout State, with action: Action) -> Effect<Action> {
         switch action {
-        case .map(.delegate(let delegate)):
-            switch delegate {
-            case .prepareInitialPlaceListSearch(origin: let origin):
-                
-                return .send(.bottomSheet(.placeList(.prepareInitialSearch(origin: origin))))
-            }
-            
-        case .bottomSheet(.delegate(let delegate)):
-            return handleBottomSheetDelegate(delegate, state: &state)
-            
-            // MARK: Scope
         case .map(let action):
-            return mapReducer
-                .reduce(&state.map, with: action)
-                .map(Action.map)
-            
+            return reduceMap(&state, action: action)
+
         case .bottomSheet(let action):
-            return bottomSheetReducer
-                .reduce(&state.bottomSheet, with: action)
-                .map(Action.bottomSheet)
-            
+            return reduceBottomSheet(&state, action: action)
+
+        case .search(let action):
+            return reduceSearch(&state, action: action)
+
         case .presentation(let action):
-            return presentationReducer
-                .reduce(&state.presentation, with: action)
-                .map(Action.presentation)
+            return reducePresentation(&state, action: action)
+        }
+    }
+    
+    private func reduceMap(_ state: inout State, action: MapAction) -> Effect<Action> {
+        var map = state.map
+        defer { state.map = map }
+
+        switch action {
+        case .tabSelectionChanged(let isSelected):
+            let wasMapInteractive = map.isMapInteractive
+            map.isHomeTabSelected = isSelected
+            return updateMapVisibility(wasMapInteractive: wasMapInteractive, state: &map)
+
+        case .activityChanged(let isActive):
+            let wasMapInteractive = map.isMapInteractive
+            map.isAppActive = isActive
+            return updateMapVisibility(wasMapInteractive: wasMapInteractive, state: &map)
+
+        case .becameReady:
+            guard map.mapLifecycle == .activating else { return .none }
+            map.mapLifecycle = .ready
+            return map.isMapInteractive ? initialMapDataLoadEffect() : .none
+
+        case let .viewportChanged(center, zoomLevel, viewport, isUserInitiated):
+            map.mapZoomLevel = zoomLevel
+            let tierResolution = markerTierResolver.resolve(
+                zoomLevel: zoomLevel,
+                forcedTier: map.forcedMarkerTier,
+                forcedTierZoomLevel: map.forcedMarkerTierZoomLevel
+            )
+            map.forcedMarkerTier = tierResolution.forcedTier
+            map.forcedMarkerTierZoomLevel = tierResolution.forcedTierZoomLevel
+            let tier = tierResolution.tier
+
+            if map.markerState == .loaded,
+               map.displayedMarkerTier != tier {
+                map.displayedMarkerTier = tier
+                if tier != .individual {
+                    map.selectedMarkerID = nil
+                }
+                map.markers = RodiHomeMarkerClusterIndex.markers(
+                    for: map.mapItems,
+                    tier: tier,
+                    selectedMarkerID: map.selectedMarkerID
+                )
+            }
+
+            return .send(.bottomSheet(.recommendList(.viewportChanged(
+                viewport: viewport,
+                center: center,
+                isUserInitiated: isUserInitiated
+            ))))
+
+        case .markerTapped(let markerID):
+            guard let interaction = markerInteractionResolver.resolve(
+                markerID: markerID,
+                markers: map.markers,
+                items: map.mapItems
+            ) else {
+                return .none
+            }
+
+            switch interaction {
+            case .cluster(let marker, let target):
+                map.selectedMarkerID = nil
+                map.routeOverlay = nil
+                map.forcedMarkerTier = target.nextTier
+                map.forcedMarkerTierZoomLevel = nil
+                map.cameraTarget = marker.coordinate
+                map.cameraFocus = .cluster(coordinates: target.coordinates)
+                map.cameraRequestID += 1
+                map.animatedCameraRequestID = map.cameraRequestID
+                return .cancel(id: CancellationID.progressiveMarkerRendering)
+
+            case .course(let marker, let placeID), .parking(let marker, let placeID):
+                state.presentation.isBottomTabBarVisible = false
+                map.routeOverlay = nil
+                map.selectedMarkerID = markerID
+                map.cameraTarget = marker.coordinate
+                map.cameraFocus = .closeSingleLocation
+                map.cameraRequestID += 1
+                map.animatedCameraRequestID = map.cameraRequestID
+                map.markers = RodiHomeMarkerClusterIndex.markers(
+                    for: map.mapItems,
+                    tier: map.displayedMarkerTier
+                        ?? RodiHomeMarkerClusterIndex.Tier(zoomLevel: map.mapZoomLevel),
+                    selectedMarkerID: markerID
+                )
+                return .send(.bottomSheet(.resolvePlace(id: placeID)))
+            }
+
+        case .cameraMoveFinished(let requestID):
+            guard map.animatedCameraRequestID == requestID else { return .none }
+            map.animatedCameraRequestID = nil
+            return .none
+
+        case .currentLocationRequested:
+            guard map.mapLifecycle == .ready,
+                  map.locationState != .requesting
+            else {
+                return .none
+            }
+            map.locationState = .requesting
+            return mapServiceEffect(.requestCurrentLocation(source: .userInitiated))
+
+        case .recommendationResearchButtonTapped:
+            map.routeOverlay = nil
+            map.selectedMarkerID = nil
+            map.selectedSearchResultName = nil
+            map.isResearchButtonVisible = false
+            map.markers = RodiHomeMarkerClusterIndex.markers(
+                for: map.mapItems,
+                tier: map.displayedMarkerTier
+                    ?? RodiHomeMarkerClusterIndex.Tier(zoomLevel: map.mapZoomLevel)
+            )
+            state.presentation.isBottomTabBarVisible = false
+
+            let origin = map.userLocation
+            return .run { send in
+                await send(.bottomSheet(.showRecommendList))
+                await send(.bottomSheet(.recommendList(.present)))
+                await send(.bottomSheet(.recommendList(.reloadCurrentViewport(origin: origin))))
+            }
+
+        case .searchEntryTapped:
+            state.search = .init()
+            state.presentation.searchOrigin = map.cameraTarget
+            state.presentation.isSearchPresented = true
+            return .none
+
+        case .searchSelectionClearTapped:
+            map.selectedSearchResultName = nil
+            return .none
+
+        case .markerRetryRequested:
+            guard map.markerState == .failed else { return .none }
+            map.hasCompletedInitialMarkerRendering = false
+            map.markerState = .loading
+            return mapServiceEffect(.loadPlaceCoordinates)
+
+        case .initialLocationRequested:
+            guard map.mapLifecycle == .ready,
+                  map.locationState == .idle
+            else {
+                return .none
+            }
+            map.locationState = .requesting
+            return mapServiceEffect(.requestCurrentLocation(source: .initial))
+
+        case .initialMarkersLoadRequested:
+            guard map.mapLifecycle == .ready,
+                  map.markerState == .idle
+            else {
+                return .none
+            }
+            map.hasCompletedInitialMarkerRendering = false
+            map.markerState = .loading
+            return mapServiceEffect(.loadPlaceCoordinates)
+
+        case .serviceOutput(let output):
+            return reduceMapServiceOutput(
+                output,
+                map: &map,
+                presentation: &state.presentation
+            )
+
+        case .markerRenderBatchUpdated(let markers):
+            guard map.markerState == .loaded else { return .none }
+            map.markers = markers
+            return .none
+
+        case .initialMarkerRenderingFinished:
+            guard map.markerState == .loaded else { return .none }
+            map.hasCompletedInitialMarkerRendering = true
+            return .none
+        }
+    }
+    
+    private func reduceBottomSheet(
+        _ state: inout State, action: HomeBottomSheetReducer.Action) -> Effect<Action> {
+    guard case .delegate(let delegate) = action else {
+        return bottomSheetReducer
+            .reduce(&state.bottomSheet, with: action)
+            .map(Action.bottomSheet)
+    }
+
+    switch delegate {
+    case .mapPlaceResolved(let detail):
+        state.presentation.isBottomTabBarVisible = false
+        focusMap(on: detail, state: &state.map)
+
+    case .mapRouteOverlayChanged(let overlay):
+        state.map.routeOverlay = overlay
+
+    case .mapFocusRequested(let coordinate):
+        state.map.cameraTarget = coordinate
+        state.map.cameraFocus = .closeSingleLocation
+        state.map.cameraRequestID += 1
+        state.map.animatedCameraRequestID = state.map.cameraRequestID
+
+    case .mapDetailDismissed:
+        state.map.routeOverlay = nil
+        state.map.selectedMarkerID = nil
+        state.map.selectedSearchResultName = nil
+        state.map.isResearchButtonVisible = false
+        state.map.markers = RodiHomeMarkerClusterIndex.markers(
+            for: state.map.mapItems,
+            tier: state.map.displayedMarkerTier
+                ?? RodiHomeMarkerClusterIndex.Tier(zoomLevel: state.map.mapZoomLevel)
+        )
+        state.presentation.isBottomTabBarVisible = true
+
+    case let .recommendationPresentationChanged(isBottomTabBarVisible, isResearchButtonVisible):
+        state.presentation.isBottomTabBarVisible = isBottomTabBarVisible
+        state.map.isResearchButtonVisible = isResearchButtonVisible
+
+    case .requestAuthentication:
+        authenticationRequired()
+
+    case .showSnackbar(let message):
+        state.presentation.pendingSnackbar = ToastStruct(message: message, state: .error)
+    }
+
+    return .none
+}
+
+    private func reduceSearch(
+        _ state: inout State, action: HomeSearchReducer.Action) -> Effect<Action> {
+        guard case .delegate(let delegate) = action else {
+            return searchReducer
+                .reduce(&state.search, with: action)
+                .map(Action.search)
+        }
+
+        switch delegate {
+        case let .placeSelected(id, name):
+            state.presentation.isSearchPresented = false
+            state.presentation.searchOrigin = nil
+            state.search = .init()
+            state.map.selectedSearchResultName = name
+            state.map.routeOverlay = nil
+            state.map.selectedMarkerID = nil
+            state.map.isResearchButtonVisible = false
+            state.map.markers = RodiHomeMarkerClusterIndex.markers(
+                for: state.map.mapItems,
+                tier: state.map.displayedMarkerTier
+                    ?? RodiHomeMarkerClusterIndex.Tier(zoomLevel: state.map.mapZoomLevel)
+            )
+            return .send(.bottomSheet(.resolvePlace(id: id)))
+
+        case .dismissed:
+            state.presentation.isSearchPresented = false
+            state.presentation.searchOrigin = nil
+
+        case .showSnackbar(let message):
+            state.presentation.pendingSnackbar = ToastStruct(message: message, state: .error)
+        }
+
+        return .none
+    }
+    
+    private func reducePresentation(
+        _ state: inout State, action: PresentationAction) -> Effect<Action> {
+        switch action {
+        case .setLocationSettingsAlertPresented(let isPresented):
+            state.presentation.isLocationSettingsAlertPresented = isPresented
+
+        case .snackbarRequestHandled:
+            state.presentation.pendingSnackbar = nil
+        }
+        return .none
+    }
+    
+    private func reduceMapServiceOutput(
+        _ output: MapServiceOutAction, map: inout MapState, presentation: inout PresentationState
+    ) -> Effect<Action> {
+        switch output {
+        case .currentLocationResolved(let coordinate):
+            guard map.locationState == .requesting else { return .none }
+            map.locationState = .resolved
+            map.userLocation = coordinate
+            map.cameraTarget = coordinate
+            map.cameraFocus = .currentLocation
+            map.cameraRequestID += 1
+            map.animatedCameraRequestID = nil
+            return userHeadingUpdatesEffect(origin: coordinate)
+
+        case .currentLocationUnavailable(let source):
+            guard map.locationState == .requesting else { return .none }
+            map.locationState = .unavailable
+            if source == .userInitiated {
+                presentation.pendingSnackbar = ToastStruct(
+                    message: "현재 위치를 확인할 수 없어요. 다시 시도해주세요.",
+                    state: .error
+                )
+            }
+            return .none
+
+        case .currentLocationPermissionDenied(let source):
+            guard map.locationState == .requesting else { return .none }
+            map.locationState = .unavailable
+            if source == .userInitiated {
+                resetToKoreaOverview(&map)
+                presentation.isLocationSettingsAlertPresented = true
+            }
+            return .none
+
+        case .placeCoordinatesLoaded(let coordinates):
+            guard map.markerState == .loading else { return .none }
+            map.markerState = .loaded
+            map.mapItems = coordinates.map(RodiCourseItem.init(placeCoordinate:))
+
+            let tierResolution = markerTierResolver.resolve(
+                zoomLevel: map.mapZoomLevel,
+                forcedTier: map.forcedMarkerTier,
+                forcedTierZoomLevel: map.forcedMarkerTierZoomLevel
+            )
+            map.forcedMarkerTier = tierResolution.forcedTier
+            map.forcedMarkerTierZoomLevel = tierResolution.forcedTierZoomLevel
+            map.displayedMarkerTier = tierResolution.tier
+
+            return markerRenderingEffect(
+                RodiHomeMarkerClusterIndex.markers(
+                    for: map.mapItems,
+                    tier: tierResolution.tier
+                ),
+                reportsInitialCompletion: true
+            )
+
+        case .placeCoordinatesLoadFailed:
+            guard map.markerState == .loading else { return .none }
+            map.markerState = .failed
+            return .none
+
+        case .userHeadingUpdated(let degrees):
+            map.userHeadingDegrees = degrees
+            return .none
+        }
+    }
+}
+
+
+// MARK: - Effect
+
+extension HomeReducer {
+    
+    private func updateMapVisibility(
+        wasMapInteractive: Bool, state: inout MapState) -> Effect<Action> {
+        guard wasMapInteractive != state.isMapInteractive else { return .none }
+
+        guard state.isMapInteractive else {
+            return .cancel(id: CancellationID.progressiveMarkerRendering)
+        }
+
+        switch state.mapLifecycle {
+        case .inactive:
+            state.mapLifecycle = .activating
+            return .none
+
+        case .activating:
+            return .none
+
+        case .ready:
+            if state.markerState == .idle {
+                return initialMapDataLoadEffect()
+            }
+
+            if state.markerState == .loaded,
+               let tier = state.displayedMarkerTier {
+                state.markers = RodiHomeMarkerClusterIndex.markers(
+                    for: state.mapItems,
+                    tier: tier,
+                    selectedMarkerID: state.selectedMarkerID
+                )
+                state.hasCompletedInitialMarkerRendering = true
+            }
+            return .none
         }
     }
 
-    private func handleBottomSheetDelegate(
-        _ delegate: HomeBottomSheetReducer.Delegate,
-        state: inout State
-    ) -> Effect<Action> {
-        switch delegate {
-        case .focusMapOnParking(let coordinate):
-            return .send(.map(.focusParking(coordinate)))
+    private func focusMap(on detail: PlaceDetail, state: inout MapState) {
+        state.cameraTarget = RodiCoordinate(latitude: detail.latitude, longitude: detail.longitude)
+        state.cameraFocus = .closeSingleLocation
+        state.cameraRequestID += 1
+        state.animatedCameraRequestID = state.cameraRequestID
+    }
 
-        case .showSnackbar(let message):
-            return .send(.presentation(.showSnackbar(message)))
+    private func resetToKoreaOverview(_ state: inout MapState) {
+        state.userLocation = nil
+        state.cameraTarget = .southKoreaCenter
+        state.cameraFocus = .koreaOverview
+        state.cameraRequestID += 1
+        state.animatedCameraRequestID = nil
+    }
 
-        case .requestAuthentication:
-            return .send(.presentation(.requestAuthentication))
+    private func initialMapDataLoadEffect() -> Effect<Action> {
+        .run { send in
+            await send(.map(.initialLocationRequested))
+            await send(.map(.initialMarkersLoadRequested))
         }
+    }
 
+    private func mapServiceEffect(_ input: MapServiceInAction) -> Effect<Action> {
+        let mapService = mapService
+        return .run { send in
+            guard let output = await mapService.perform(input) else { return }
+            await send(.map(.serviceOutput(output)))
+        }
+    }
+
+    private func userHeadingUpdatesEffect(origin: RodiCoordinate) -> Effect<Action> {
+        let mapService = mapService
+        return .run { send in
+            await send(.bottomSheet(.recommendList(.prepareInitialSearch(origin: origin))))
+
+            let updates = await mapService.userHeadingUpdates()
+            for await degrees in updates {
+                guard !Task.isCancelled else { return }
+                await send(.map(.serviceOutput(.userHeadingUpdated(degrees))))
+            }
+        }
+        .cancelTask(id: CancellationID.userHeadingUpdates)
+    }
+
+    private func markerRenderingEffect(
+        _ markers: [RodiMapMarker],
+        reportsInitialCompletion: Bool = false
+    ) -> Effect<Action> {
+        let snapshots = markerRenderingService.progressiveSnapshots(for: markers)
+        return .run { send in
+            for await snapshot in snapshots {
+                guard !Task.isCancelled else { return }
+                await send(.map(.markerRenderBatchUpdated(snapshot)))
+            }
+
+            guard reportsInitialCompletion, !Task.isCancelled else { return }
+
+            do {
+                try await Task.sleep(nanoseconds: 120_000_000)
+            } catch {
+                return
+            }
+
+            guard !Task.isCancelled else { return }
+            await send(.map(.initialMarkerRenderingFinished))
+        }
+        .cancelTask(id: CancellationID.progressiveMarkerRendering)
     }
 }

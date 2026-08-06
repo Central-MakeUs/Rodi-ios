@@ -5,8 +5,6 @@
 
 import Foundation
 
-/// 홈 지도와 바텀싯에서 공통으로 사용하는 장소/코스 항목.
-/// JSON의 `single`, `course`, `parking`을 하나의 리스트로 다루기 위한 도메인 모델이다.
 struct RodiCourseItem: Decodable, Identifiable {
     let id: Int
     let type: RodiCourseType
