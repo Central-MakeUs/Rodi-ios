@@ -47,6 +47,7 @@ private extension OnboardingPermissionView {
     var content: some View {
         switch store.state.screen {
         case .safety: SafetyView(state: store.state, send: store.send)
+
         case .locationPermission: LocationPermissionView(send: store.send)
         }
     }
@@ -54,6 +55,7 @@ private extension OnboardingPermissionView {
     var step: OnboardingStep {
         switch store.state.screen {
         case .safety: .safety
+
         case .locationPermission: .locationPermission
         }
     }

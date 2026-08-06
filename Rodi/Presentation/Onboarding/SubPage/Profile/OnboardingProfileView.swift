@@ -7,6 +7,7 @@ import SwiftUI
 
 struct OnboardingProfileView: View {
     @StateObject private var store: StoreOf<OnboardingProfileReducer>
+
     private let onTransition: (OnboardingTransition) -> Void
 
     init(
@@ -47,16 +48,29 @@ private extension OnboardingProfileView {
     @ViewBuilder
     var content: some View {
         switch store.state.screen {
-        case .nickname: NicknameView(state: store.state, send: store.send)
-        case .drivingExperience: DrivingExperienceView(state: store.state, send: store.send)
-        case .drivingPreference: DrivingPreferenceView(state: store.state, send: store.send)
+        case .nickname: NicknameView(
+            state: store.state,
+            send: store.send
+        )
+
+        case .drivingExperience: DrivingExperienceView(
+            state: store.state,
+            send: store.send
+        )
+
+        case .drivingPreference: DrivingPreferenceView(
+            state: store.state,
+            send: store.send
+        )
         }
     }
 
     var step: OnboardingStep {
         switch store.state.screen {
         case .nickname: .nickname
+
         case .drivingExperience: .drivingExperience
+
         case .drivingPreference: .optionalDrivingPreference
         }
     }
@@ -66,12 +80,14 @@ private extension OnboardingProfileView {
         switch store.state.presentation {
         case .analyzing:
             OnboardingAnalysisDialog()
+
         case .analysisComplete(let presentation):
             OnboardingAnalysisCompletionDialog(
                 analysis: presentation.result,
                 recentFrequency: presentation.recentFrequency,
                 onConfirm: { store.send(.analysisConfirmed) }
             )
+
         case .none, .snackbar:
             EmptyView()
         }

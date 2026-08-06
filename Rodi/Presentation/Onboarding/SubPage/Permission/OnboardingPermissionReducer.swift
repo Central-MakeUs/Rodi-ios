@@ -10,8 +10,11 @@ struct OnboardingPermissionReducer: Reducer {
         enum Screen { case safety, locationPermission }
 
         var screen: Screen
+
         var session: OnboardingSession
+
         var agreedSafetyItems: Set<SafetyAgreement>
+
         var transition: OnboardingTransition?
 
         init(session: OnboardingSession, screen: Screen) {
@@ -20,14 +23,20 @@ struct OnboardingPermissionReducer: Reducer {
             agreedSafetyItems = session.agreedSafetyItems
         }
 
-        var isAllSafetyAgreed: Bool { agreedSafetyItems.count == SafetyAgreement.allCases.count }
+        var isAllSafetyAgreed: Bool {
+            agreedSafetyItems.count == SafetyAgreement.allCases.count
+        }
     }
 
     enum Action {
         case toggleSafety(SafetyAgreement)
+
         case safetyNextTapped
+
         case locationContinueTapped
+
         case backTapped
+
         case transitionConsumed
     }
 
@@ -36,6 +45,9 @@ struct OnboardingPermissionReducer: Reducer {
     init(requester: LocationPermissionRequester = .shared) {
         self.requester = requester
     }
+}
+
+extension OnboardingPermissionReducer {
 
     func reduce(_ state: inout State, with action: Action) -> Effect<Action> {
         switch action {
@@ -47,16 +59,43 @@ struct OnboardingPermissionReducer: Reducer {
             }
 
         case .safetyNextTapped:
-            guard state.isAllSafetyAgreed else { return .none }
+            guard state.isAllSafetyAgreed else {
+                return .none
+            }
+
             state.session.agreedSafetyItems = state.agreedSafetyItems
-            RodiAnalytics.track(.onboardingStepCompleted(step: "safety", entryMode: state.session.entryMode))
-            state.transition = .init(updatedSession: state.session, navigation: .push(.locationPermission))
+
+            RodiAnalytics
+                .track(.onboardingStepCompleted(
+                        step: "safety",
+                        entryMode: state.session.entryMode
+                    )
+                )
+
+            state.transition = .init(
+                updatedSession: state.session,
+                navigation: .push(.locationPermission)
+            )
 
         case .locationContinueTapped:
-            requester.requestPermission()
-            RodiAnalytics.track(.onboardingStepCompleted(step: "location_permission", entryMode: state.session.entryMode))
-            RodiAnalytics.track(.onboardingCompleted(entryMode: state.session.entryMode, memberLevel: "unknown"))
-            state.transition = .init(updatedSession: state.session, navigation: .complete)
+            requester
+                .requestPermission()
+            RodiAnalytics
+                .track(.onboardingStepCompleted(
+                        step: "location_permission",
+                        entryMode: state.session.entryMode
+                    )
+                )
+            RodiAnalytics
+                .track(.onboardingCompleted(
+                        entryMode: state.session.entryMode,
+                        memberLevel: "unknown"
+                    )
+                )
+            state.transition = .init(
+                updatedSession: state.session,
+                navigation: .complete
+            )
 
         case .backTapped:
             state.transition = .init(updatedSession: state.session, navigation: .pop)
@@ -64,6 +103,7 @@ struct OnboardingPermissionReducer: Reducer {
         case .transitionConsumed:
             state.transition = nil
         }
+
         return .none
     }
 }
