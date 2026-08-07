@@ -70,12 +70,6 @@ final class AuthTokenRefreshCoordinator: AccessTokenRefreshing {
                             refreshToken: token.refreshToken
                         )
                 }
-#if DEBUG
-            RodiLogger
-                .debug(
-                    "Swagger Access Token: \(token.accessToken)"
-                )
-#endif
             return TokenRefreshResult(
                 accessToken: token.accessToken,
                 refreshToken: token.refreshToken

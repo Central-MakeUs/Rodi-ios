@@ -119,12 +119,6 @@ final class AuthRepositoryImpl: AuthRepository {
             .save(
                 provider
             )
-#if DEBUG
-        RodiLogger
-            .debug(
-                "Swagger Access Token: \(token.accessToken)"
-            )
-#endif
     }
     
     func refreshToken() async throws(
