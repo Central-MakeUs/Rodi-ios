@@ -13,7 +13,7 @@ enum AuthLoginResult: Equatable {
 
 /// 탈퇴 유예 계정의 복구 및 재가입 안내에 필요한 서버 응답입니다.
 struct AuthWithdrawalRecovery: Equatable {
-    let provider: AuthProvider
+    let provider: SocialLoginProvider
     let withdrawalRequestedAt: Date?
     let recoverableUntil: Date?
 

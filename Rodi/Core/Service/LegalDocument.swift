@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum LegalDocument: String, CaseIterable, Identifiable {
+enum LegalDocument: String, CaseIterable, Identifiable, Hashable {
     case service
     case privacy
     case location

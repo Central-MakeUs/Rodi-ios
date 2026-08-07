@@ -32,12 +32,18 @@ public protocol TargetType {
     var encodingType: EncodingType { get }
 
     var requiresAuthentication: Bool { get }
+
+    var timeoutInterval: TimeInterval? { get }
 }
 
 extension TargetType {
 
     public var requiresAuthentication: Bool {
         false
+    }
+
+    public var timeoutInterval: TimeInterval? {
+        nil
     }
 
     public var baseURL: String {
@@ -67,7 +73,6 @@ extension TargetType {
         case .url:
             do {
                 urlRequest = try URLEncoding.queryString.encode(urlRequest, with: parameters)
-                return urlRequest
             } catch {
                 throw .encodingFail
             }
@@ -82,11 +87,16 @@ extension TargetType {
                     let request = try JSONEncoding.default.encode(urlRequest, withJSONObject: parameters)
                     urlRequest = request
                 }
-                return urlRequest
             } catch {
                 throw .encodingFail
             }
         }
+
+        if let timeoutInterval {
+            urlRequest.timeoutInterval = timeoutInterval
+        }
+
+        return urlRequest
     }
 
     private func baseURLToURL() throws(RouterError) -> URL {

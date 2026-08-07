@@ -1,87 +1,86 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-<dict>
-	<key>CFBundleDevelopmentRegion</key>
-	<string>ko</string>
-	<key>CFBundleDisplayName</key>
-	<string>Rodi</string>
-	<key>CFBundleExecutable</key>
-	<string>$(EXECUTABLE_NAME)</string>
-	<key>CFBundleIdentifier</key>
-	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
-	<key>CFBundleInfoDictionaryVersion</key>
-	<string>6.0</string>
-	<key>CFBundleName</key>
-	<string>$(PRODUCT_NAME)</string>
-	<key>CFBundlePackageType</key>
-	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
-	<key>CFBundleShortVersionString</key>
-	<string>$(MARKETING_VERSION)</string>
-	<key>CFBundleVersion</key>
-	<string>2</string>
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
-	<key>APP_STORE_APP_ID</key>
-	<string>$(APP_STORE_APP_ID)</string>
-	<key>RODI_API_BASE_URL</key>
-	<string>$(RODI_API_BASE_URL)</string>
-	<key>KAKAO_NATIVE_APP_KEY</key>
-	<string>$(KAKAO_NATIVE_APP_KEY)</string>
-	<key>KAKAO_REST_API_KEY</key>
-	<string>$(KAKAO_REST_API_KEY)</string>
-	<key>CFBundleURLTypes</key>
-	<array>
+	<dict>
+		<key>APP_STORE_APP_ID</key>
+		<string>$(APP_STORE_APP_ID)</string>
+		<key>CFBundleDevelopmentRegion</key>
+		<string>ko</string>
+		<key>CFBundleDisplayName</key>
+		<string>$(PRODUCT_DISPLAY_NAME)</string>
+		<key>CFBundleExecutable</key>
+		<string>$(EXECUTABLE_NAME)</string>
+		<key>CFBundleIdentifier</key>
+		<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+		<key>CFBundleInfoDictionaryVersion</key>
+		<string>6.0</string>
+		<key>CFBundleName</key>
+		<string>$(PRODUCT_NAME)</string>
+		<key>CFBundlePackageType</key>
+		<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
+		<key>CFBundleShortVersionString</key>
+		<string>$(MARKETING_VERSION)</string>
+		<key>CFBundleURLTypes</key>
+		<array>
+			<dict>
+				<key>CFBundleTypeRole</key>
+				<string>Editor</string>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<string>kakao$(KAKAO_NATIVE_APP_KEY)</string>
+				</array>
+			</dict>
+		</array>
+		<key>CFBundleVersion</key>
+		<string>$(CURRENT_PROJECT_VERSION)</string>
+		<key>CLARITY_ENABLED</key>
+		<string>$(CLARITY_ENABLED)</string>
+		<key>CLARITY_LOG_LEVEL</key>
+		<string>$(CLARITY_LOG_LEVEL)</string>
+		<key>CLARITY_PROJECT_ID</key>
+		<string>$(CLARITY_PROJECT_ID)</string>
+		<key>ITSAppUsesNonExemptEncryption</key>
+		<false />
+		<key>KAKAO_NATIVE_APP_KEY</key>
+		<string>$(KAKAO_NATIVE_APP_KEY)</string>
+		<key>KAKAO_REST_API_KEY</key>
+		<string>$(KAKAO_REST_API_KEY)</string>
+		<key>LSApplicationQueriesSchemes</key>
+		<array>
+			<string>kakaomap</string>
+			<string>kakaonavi-sdk</string>
+			<string>kakaokompassauth</string>
+			<string>kakaolink</string>
+		</array>
+		<key>NSLocationWhenInUseUsageDescription</key>
+		<string>현재 위치를 기반으로 주변 운전 연습 코스와 주차장을 표시하고, 거리 정렬과 길안내 연동을 제공하기 위해 위치정보를 사용합니다.</string>
+		<key>RODI_API_BASE_URL</key>
+		<string>$(RODI_API_BASE_URL)</string>
+		<key>RODI_ANALYTICS_ENABLED</key>
+		<string>$(RODI_ANALYTICS_ENABLED)</string>
+		<key>RODI_ENVIRONMENT</key>
+		<string>$(RODI_ENVIRONMENT)</string>
+		<key>UIAppFonts</key>
+		<array>
+			<string>Pretendard-Regular.otf</string>
+			<string>Pretendard-Medium.otf</string>
+			<string>Pretendard-SemiBold.otf</string>
+			<string>Pretendard-Bold.otf</string>
+		</array>
+		<key>UIApplicationSceneManifest</key>
 		<dict>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>kakao$(KAKAO_NATIVE_APP_KEY)</string>
-			</array>
+			<key>UIApplicationSupportsMultipleScenes</key>
+			<false />
 		</dict>
-	</array>
-	<key>LSApplicationQueriesSchemes</key>
-	<array>
-		<string>kakaomap</string>
-		<string>kakaonavi-sdk</string>
-		<string>kakaokompassauth</string>
-		<string>kakaolink</string>
-	</array>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>현재 위치 기반 장소 탐색과 길안내를 제공하고, 사용자가 연습 기록을 시작한 경우에만 코스 진행 상황을 안내하기 위해 위치정보를 사용합니다.</string>
-	<key>NSSupportsLiveActivities</key>
-	<true/>
-	<key>NSLocationTemporaryUsageDescriptionDictionary</key>
-	<dict>
-		<key>PracticeTracking</key>
-		<string>연습 코스 진행 상황을 정확하게 확인하기 위해 정밀한 위치가 필요합니다.</string>
+		<key>UIApplicationSupportsIndirectInputEvents</key>
+		<true />
+		<key>UILaunchScreen</key>
+		<dict />
+		<key>UISupportedInterfaceOrientations</key>
+		<array>
+			<string>UIInterfaceOrientationPortrait</string>
+		</array>
+		<key>UIUserInterfaceStyle</key>
+		<string>Light</string>
 	</dict>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>location</string>
-	</array>
-	<key>UIAppFonts</key>
-	<array>
-		<string>Pretendard-Regular.otf</string>
-		<string>Pretendard-Medium.otf</string>
-		<string>Pretendard-SemiBold.otf</string>
-		<string>Pretendard-Bold.otf</string>
-	</array>
-	<key>UIApplicationSceneManifest</key>
-	<dict>
-		<key>UIApplicationSupportsMultipleScenes</key>
-		<false/>
-	</dict>
-	<key>UIApplicationSupportsIndirectInputEvents</key>
-	<true/>
-	<key>UILaunchScreen</key>
-	<dict/>
-	<key>UISupportedInterfaceOrientations</key>
-	<array>
-		<string>UIInterfaceOrientationPortrait</string>
-	</array>
-	<key>UIUserInterfaceStyle</key>
-	<string>Light</string>
-</dict>
 </plist>

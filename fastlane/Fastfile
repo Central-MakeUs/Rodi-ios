@@ -2,18 +2,41 @@
 # You can find the documentation at https://docs.fastlane.tools
 
 require "base64"
+require "open3"
 
 default_platform(:ios)
 
 ROOT_DIRECTORY = File.expand_path("..", __dir__)
 PROJECT_PATH = File.join(ROOT_DIRECTORY, "Rodi.xcodeproj")
-SECRETS_PATH = File.join(ROOT_DIRECTORY, "Config/Secrets.xcconfig")
-LOCAL_SECRETS_PATH = File.join(ROOT_DIRECTORY, "Config/Secrets.local.xcconfig")
+ENVIRONMENTS = {
+  dev: {
+    configuration_path: File.join(ROOT_DIRECTORY, "Config/Dev.xcconfig"),
+    local_secrets_path: File.join(ROOT_DIRECTORY, "Config/Secrets.dev.local.xcconfig"),
+    scheme: "Rodi Dev",
+    configuration: "Debug",
+    bundle_identifier: "com.dororong.rodi.dev",
+    app_store_id: "6796222178"
+  },
+  prod: {
+    configuration_path: File.join(ROOT_DIRECTORY, "Config/Prod.xcconfig"),
+    local_secrets_path: File.join(ROOT_DIRECTORY, "Config/Secrets.prod.local.xcconfig"),
+    scheme: "Rodi",
+    configuration: "Release",
+    bundle_identifier: "com.dororong.rodi"
+  }
+}.freeze
 
-def xcconfig_value(key)
+def environment_settings(environment)
+  ENVIRONMENTS.fetch(environment) do
+    UI.user_error!("Unknown deployment environment: #{environment}")
+  end
+end
+
+def xcconfig_value(key, environment:)
   value = nil
+  settings = environment_settings(environment)
 
-  [SECRETS_PATH, LOCAL_SECRETS_PATH].each do |path|
+  [settings[:configuration_path], settings[:local_secrets_path]].each do |path|
     next unless File.exist?(path)
 
     File.readlines(path).each do |line|
@@ -24,6 +47,30 @@ def xcconfig_value(key)
 
       value = raw_value.to_s.delete_prefix("\"").delete_suffix("\"")
     end
+  end
+
+  value
+end
+
+def resolved_build_setting(key, environment:)
+  settings = environment_settings(environment)
+  output, status = Open3.capture2e(
+    "xcodebuild",
+    "-project", PROJECT_PATH,
+    "-scheme", settings[:scheme],
+    "-configuration", settings[:configuration],
+    "-showBuildSettings"
+  )
+
+  unless status.success?
+    UI.user_error!("Unable to resolve #{environment} build settings")
+  end
+
+  line = output.lines.reverse.find { |item| item.match?(/^\s*#{Regexp.escape(key)}\s*=/) }
+  value = line&.split("=", 2)&.last&.strip.to_s
+
+  if value.empty?
+    UI.user_error!("#{key} is missing from resolved #{environment} build settings")
   end
 
   value
@@ -41,14 +88,15 @@ def resolved_key_path(raw_path)
   path
 end
 
-def app_store_connect_api_key_from_secrets!
-  key_id = xcconfig_value("APP_STORE_CONNECT_KEY_ID").to_s
-  issuer_id = xcconfig_value("APP_STORE_CONNECT_ISSUER_ID").to_s
-  key_path = resolved_key_path(xcconfig_value("APP_STORE_CONNECT_API_KEY_PATH").to_s)
-  key_base64 = xcconfig_value("APP_STORE_CONNECT_API_KEY_BASE64").to_s
+def app_store_connect_api_key_from_secrets!(environment)
+  key_id = xcconfig_value("APP_STORE_CONNECT_KEY_ID", environment: environment).to_s
+  issuer_id = xcconfig_value("APP_STORE_CONNECT_ISSUER_ID", environment: environment).to_s
+  key_path = resolved_key_path(xcconfig_value("APP_STORE_CONNECT_API_KEY_PATH", environment: environment).to_s)
+  key_base64 = xcconfig_value("APP_STORE_CONNECT_API_KEY_BASE64", environment: environment).to_s
 
-  if key_id.empty? || issuer_id.empty? || (key_path.to_s.empty? && key_base64.empty?)
-    UI.user_error!("App Store Connect API key is missing in Config/Secrets.local.xcconfig")
+  if key_id.empty? || (key_path.to_s.empty? && key_base64.empty?)
+    settings = environment_settings(environment)
+    UI.user_error!("App Store Connect API key is missing in #{settings[:local_secrets_path]}")
   end
 
   if key_base64.empty? && !File.exist?(key_path)
@@ -57,10 +105,12 @@ def app_store_connect_api_key_from_secrets!
 
   params = {
     key_id: key_id,
-    issuer_id: issuer_id,
     duration: 1200,
     in_house: false
   }
+
+  # Individual App Store Connect API keys do not have an issuer ID.
+  params[:issuer_id] = issuer_id unless issuer_id.empty?
 
   if key_base64.empty?
     params[:key_filepath] = key_path
@@ -71,42 +121,112 @@ def app_store_connect_api_key_from_secrets!
   app_store_connect_api_key(params)
 end
 
+def app_store_id_from_secrets!(environment)
+  app_store_id = xcconfig_value("APP_STORE_APP_ID", environment: environment).to_s
+  if app_store_id.empty?
+    settings = environment_settings(environment)
+    UI.user_error!("APP_STORE_APP_ID is missing in #{settings[:local_secrets_path]}")
+  end
+
+  app_store_id
+end
+
+def verify_deployment_target!(environment)
+  settings = environment_settings(environment)
+  configured_app_store_id = app_store_id_from_secrets!(environment)
+
+  if settings[:app_store_id] && configured_app_store_id != settings[:app_store_id]
+    UI.user_error!(
+      "#{environment} APP_STORE_APP_ID must be #{settings[:app_store_id]}, got #{configured_app_store_id}"
+    )
+  end
+
+  settings
+end
+
+def next_testflight_build_number(environment, api_key)
+  settings = environment_settings(environment)
+  marketing_version = resolved_build_setting("MARKETING_VERSION", environment: environment)
+
+  latest_build_number = latest_testflight_build_number(
+    api_key: api_key,
+    app_identifier: settings[:bundle_identifier],
+    version: marketing_version,
+    initial_build_number: 0
+  )
+
+  latest_build_number + 1
+end
+
+def archive_xcargs(build_number)
+  "-allowProvisioningUpdates CURRENT_PROJECT_VERSION=#{build_number}"
+end
+
 platform :ios do
   desc "Show the current app version and build number"
   lane :version do
-    version_number = get_version_number(xcodeproj: PROJECT_PATH, target: "Rodi")
-    build_number = get_build_number(xcodeproj: PROJECT_PATH)
+    %i[dev prod].each do |environment|
+      version_number = resolved_build_setting("MARKETING_VERSION", environment: environment)
+      build_number = resolved_build_setting("CURRENT_PROJECT_VERSION", environment: environment)
 
-    UI.message("Rodi version: #{version_number}")
-    UI.message("Rodi build: #{build_number}")
+      UI.message("#{environment} version: #{version_number} (#{build_number})")
+    end
   end
 
-  desc "Build Rodi for the iOS Simulator"
-  lane :build do
-    sh("xcodebuild -project #{PROJECT_PATH.shellescape} -scheme Rodi -destination 'generic/platform=iOS Simulator' build")
+  desc "Build Rodi Dev for the iOS Simulator"
+  lane :build_dev do
+    sh("xcodebuild -project #{PROJECT_PATH.shellescape} -scheme 'Rodi Dev' -configuration Debug -destination 'generic/platform=iOS Simulator' build")
   end
 
-  desc "Create an App Store archive locally"
-  lane :archive do
+  desc "Create a production App Store archive locally"
+  lane :archive_prod do
+    settings = environment_settings(:prod)
     build_app(
       project: PROJECT_PATH,
-      scheme: "Rodi",
+      scheme: settings[:scheme],
+      configuration: settings[:configuration],
       export_method: "app-store",
       xcargs: "-allowProvisioningUpdates"
     )
   end
 
-  desc "Push a new beta build to TestFlight"
-  lane :beta do
-    api_key = app_store_connect_api_key_from_secrets!
+  desc "Push a new development beta build to the Rodi Dev TestFlight app"
+  lane :dev_beta do
+    settings = verify_deployment_target!(:dev)
+    api_key = app_store_connect_api_key_from_secrets!(:dev)
+    build_number = next_testflight_build_number(:dev, api_key)
 
-    increment_build_number(xcodeproj: PROJECT_PATH)
     build_app(
       project: PROJECT_PATH,
-      scheme: "Rodi",
+      scheme: settings[:scheme],
+      configuration: settings[:configuration],
       export_method: "app-store",
-      xcargs: "-allowProvisioningUpdates"
+      xcargs: archive_xcargs(build_number)
     )
-    upload_to_testflight(api_key: api_key)
+    upload_to_testflight(
+      api_key: api_key,
+      app_identifier: settings[:bundle_identifier],
+      apple_id: app_store_id_from_secrets!(:dev)
+    )
+  end
+
+  desc "Push a new production beta build to TestFlight"
+  lane :prod_beta do
+    settings = verify_deployment_target!(:prod)
+    api_key = app_store_connect_api_key_from_secrets!(:prod)
+    build_number = next_testflight_build_number(:prod, api_key)
+
+    build_app(
+      project: PROJECT_PATH,
+      scheme: settings[:scheme],
+      configuration: settings[:configuration],
+      export_method: "app-store",
+      xcargs: archive_xcargs(build_number)
+    )
+    upload_to_testflight(
+      api_key: api_key,
+      app_identifier: settings[:bundle_identifier],
+      apple_id: app_store_id_from_secrets!(:prod)
+    )
   end
 end

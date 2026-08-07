@@ -50,8 +50,7 @@ Rodi는 운전 연습이 막막한 초보 운전자에게 주변 연습 코스�
 
 ```bash
 |-- Rodi
-    |-- App                         # 앱 진입점, RootView, 앱 초기화
-    |   |-- Views                   # 루트 공용 화면 및 바텀 탭
+    |-- App                         # 앱 진입점, RootView, AppRouter, 의존성 조합
     |
     |-- Core                        # 공통 인프라 및 기반 코드
     |   |-- Components              # 공통 UI 컴포넌트
@@ -73,12 +72,33 @@ Rodi는 운전 연습이 막막한 초보 운전자에게 주변 연습 코스�
     |   |-- Place                   # 코스, 주차장, 북마크 도메인
     |
     |-- Presentation                # 화면 및 사용자 인터랙션 레이어
-    |   |-- Home                    # 지도, 클러스터링, 장소 탐색, 바텀싯, 경로 안내
-    |   |-- My                      # 마이페이지, 운전 목표, 저장 목록
-    |   |-- Onboarding              # 약관, 닉네임, 운전 경험, 위치 권한 온보딩
+    |   |-- Home                    # HomeMap, HomeBottomSheet, HomeSearch
+    |   |-- Login                   # 소셜 로그인, 둘러보기, 탈퇴 계정 복구
+    |   |-- MainTab                 # 탭 상태와 Feature 간 이동 intent
+    |   |-- My                      # MyReducer, MyRouter, 운전 목표, 저장 목록
+    |   |-- Onboarding              # RouterView, Terms, Profile, Permission
     |
     |-- Resources                   # 앱 리소스
         |-- Assets.xcassets         # 이미지, 아이콘 에셋
         |-- Fonts                   # Pretendard 폰트
         |-- PrivacyInfo.xcprivacy   # 앱 개인정보 매니페스트
 ```
+
+# 아키텍처
+
+Rodi는 SwiftUI를 기반으로 하되, 지도 SDK가 UIKit 중심이라는 점을 분리해 다룹니다.
+
+- `AppRouter`는 온보딩과 메인 탭의 전역 전환, 로그인 필요 화면을 관리합니다.
+- `MainTabReducer`는 탭 선택과 Feature 간 intent만 소유하며 Home/My 화면은 탭 전환 뒤에도 유지됩니다.
+- Home은 `HomeMap`, `HomeBottomSheet`, `HomeSearch`로 나뉘고, 지도 SDK lifecycle은 runtime service, 화면 상태와 API Effect는 reducer가 담당합니다.
+- Onboarding은 `NavigationStack` 기반 RouterView 위에서 Login, Terms, Profile, Permission Feature가 각자 입력·검증·비동기 처리를 담당합니다.
+- `AppDependencies`에서 Repository를 한 번 만들고 명시적으로 주입해, View나 Reducer가 전역 container를 직접 참조하지 않습니다.
+- Home/My 탭은 숨겨져도 유지하며, 지도 좌표 요청은 취소와 revision으로 늦은 응답이 최신 상태를 덮지 못하게 합니다.
+- access/refresh token은 하나의 Keychain 세션 레코드로 원자적으로 저장하고 기존 분리 저장값은 첫 읽기 때 이전합니다.
+
+# 개발 환경
+
+- `Rodi Dev` / Debug: `com.dororong.rodi.dev`, 내부 개발·디버깅·TestFlight 검증
+- `Rodi` / Release: `com.dororong.rodi`, 운영 배포·App Store 제출
+- 환경별 Firebase, Clarity, 앱 아이콘, 표시명, 버전 값은 `Config/Dev.xcconfig`, `Config/Prod.xcconfig`에서 관리합니다.
+- 실제 키와 Firebase plist는 local config 및 Git ignore로 관리합니다.

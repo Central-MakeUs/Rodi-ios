@@ -7,6 +7,7 @@ import Foundation
 
 /// 서버 온보딩 제출 전까지 사용자의 진행 단계와 선택값을 보관하는 로컬 초안입니다.
 struct OnboardingDraftPayload: Codable, Equatable {
+    let schemaVersion: Int?
     let stepRawValue: Int
     let providerRawValue: String
     let nickname: String
@@ -22,6 +23,40 @@ struct OnboardingDraftPayload: Codable, Equatable {
     let practiceSituationRawValues: [String]
     let vehicleTypeRawValue: String?
     let drivingGoal: String
+
+    init(
+        schemaVersion: Int? = nil,
+        stepRawValue: Int,
+        providerRawValue: String,
+        nickname: String,
+        agreedTermsRawValues: [String],
+        agreedSafetyRawValues: [String],
+        licenseDrivingPeriodRawValue: String?,
+        recentDrivingFrequencyRawValue: String?,
+        roadDrivingExperienceRawValue: String?,
+        roadDrivingExperienceRawValues: [String]?,
+        soloDrivingRangeRawValue: String?,
+        soloParkingLevelRawValue: String?,
+        practiceSituationRawValues: [String],
+        vehicleTypeRawValue: String?,
+        drivingGoal: String
+    ) {
+        self.schemaVersion = schemaVersion
+        self.stepRawValue = stepRawValue
+        self.providerRawValue = providerRawValue
+        self.nickname = nickname
+        self.agreedTermsRawValues = agreedTermsRawValues
+        self.agreedSafetyRawValues = agreedSafetyRawValues
+        self.licenseDrivingPeriodRawValue = licenseDrivingPeriodRawValue
+        self.recentDrivingFrequencyRawValue = recentDrivingFrequencyRawValue
+        self.roadDrivingExperienceRawValue = roadDrivingExperienceRawValue
+        self.roadDrivingExperienceRawValues = roadDrivingExperienceRawValues
+        self.soloDrivingRangeRawValue = soloDrivingRangeRawValue
+        self.soloParkingLevelRawValue = soloParkingLevelRawValue
+        self.practiceSituationRawValues = practiceSituationRawValues
+        self.vehicleTypeRawValue = vehicleTypeRawValue
+        self.drivingGoal = drivingGoal
+    }
 }
 
 /// 로그인한 신규 회원의 온보딩 초안을 기기에 단일 데이터로 저장합니다.

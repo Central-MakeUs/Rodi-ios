@@ -5,6 +5,38 @@
 
 import Foundation
 
+struct PlaceRelatedSearchQuery: Equatable {
+    let keyword: String
+    let size: Int
+    let cursor: String?
+
+    init(keyword: String, size: Int = 20, cursor: String? = nil) {
+        self.keyword = keyword
+        self.size = size
+        self.cursor = cursor
+    }
+}
+
+struct PlaceRelatedSearchResult: Equatable {
+    let regions: [String]
+    let places: PlaceRelatedSearchCursorPage
+}
+
+/// 지역·장소명 자동완성 API가 반환하는 축약 장소 후보입니다.
+/// 상세 조회는 선택 후 placeID로 수행합니다.
+struct PlaceRelatedSearchSuggestion: Equatable, Identifiable {
+    let id: Int
+    let name: String
+    let region: String
+}
+
+struct PlaceRelatedSearchCursorPage: Equatable {
+    let items: [PlaceRelatedSearchSuggestion]
+    let hasNext: Bool
+    let nextCursor: String?
+    let totalCount: Int?
+}
+
 enum PlaceType: String, Equatable {
     case course = "COURSE"
     case parking = "PARKING"
@@ -12,7 +44,7 @@ enum PlaceType: String, Equatable {
 
 /// `/api/v1/places`가 전달하는 코스 연습 유형이다.
 /// 서버에 새 유형이 추가되어도 목록은 원문을 유지해 표시한다.
-enum PlacePracticeType: String, CaseIterable, Equatable, Hashable {
+enum PlacePracticeType: String, CaseIterable, Codable, Equatable, Hashable {
     case uTurn = "U_TURN"
     case leftRightTurn = "LEFT_RIGHT_TURN"
     case parking = "PARKING"
@@ -87,6 +119,34 @@ struct PlaceListQuery: Equatable {
         cursor: String? = nil
     ) {
         self.viewport = viewport
+        self.currentLatitude = currentLatitude
+        self.currentLongitude = currentLongitude
+        self.size = size
+        self.cursor = cursor
+    }
+}
+
+enum PlaceListAccess: Equatable {
+    case `public`
+    case member
+}
+
+/// `/api/v1/places/search`의 전국 키워드 검색 요청입니다.
+struct PlaceSearchQuery: Equatable {
+    let keyword: String
+    let currentLatitude: Double
+    let currentLongitude: Double
+    let size: Int
+    let cursor: String?
+
+    init(
+        keyword: String,
+        currentLatitude: Double,
+        currentLongitude: Double,
+        size: Int = 20,
+        cursor: String? = nil
+    ) {
+        self.keyword = keyword
         self.currentLatitude = currentLatitude
         self.currentLongitude = currentLongitude
         self.size = size

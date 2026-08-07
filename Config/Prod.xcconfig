@@ -1,0 +1,24 @@
+// Production environment. This file is used by the Release configuration.
+// Copy non-versioned SDK and App Store Connect values into Secrets.prod.local.xcconfig.
+
+KAKAO_NATIVE_APP_KEY =
+KAKAO_REST_API_KEY =
+APP_STORE_APP_ID =
+
+RODI_ENVIRONMENT = prod
+RODI_API_BASE_URL = https:/$()/api.stillstar.store
+MARKETING_VERSION = 1.1.1
+CURRENT_PROJECT_VERSION = 0
+FIREBASE_GOOGLE_SERVICE_INFO_PATH = $(SRCROOT)/Config/Firebase/Prod/GoogleService-Info.plist
+RODI_ANALYTICS_ENABLED = YES
+CLARITY_ENABLED = YES
+CLARITY_PROJECT_ID = xuepsqfoyk
+CLARITY_LOG_LEVEL = none
+PRODUCT_BUNDLE_IDENTIFIER = com.dororong.rodi
+PRODUCT_DISPLAY_NAME = Rodi
+ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon
+ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor
+
+// Local values are included last so a developer can explicitly override the
+// shared defaults without changing a tracked configuration file.
+#include? "Secrets.prod.local.xcconfig"
