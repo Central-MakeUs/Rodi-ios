@@ -7,7 +7,7 @@ import Clarity
 import SwiftUI
 
 struct OnboardingRouterView: View {
-    @StateObject private var router: OnboardingRouter
+    @StateObject private var coordinator: Coordinator<OnboardingRoute>
     @State private var session: OnboardingSession
     @State private var automaticLoginCommand: LoginCommand?
     @State private var hasStarted = false
@@ -26,9 +26,12 @@ struct OnboardingRouterView: View {
         dependencies: AppDependencies
     ) {
         let restored = sessionStore.load()
-        _router = StateObject(
-            wrappedValue: OnboardingRouter(
-                initialPath: Self.navigationPath(for: restored.route, session: restored.session)
+        _coordinator = StateObject(
+            wrappedValue: Coordinator(
+                path: Self.navigationPath(for: restored.route, session: restored.session),
+                acceptsSystemPath: { currentPath, proposedPath in
+                    !(currentPath == [.terms] && proposedPath.isEmpty)
+                }
             )
         )
         _session = State(initialValue: restored.session)
@@ -40,7 +43,7 @@ struct OnboardingRouterView: View {
     }
 
     var body: some View {
-        NavigationStack(path: router.pathBinding) {
+        NavigationStack(path: coordinator.pathBinding) {
             LoginView(
                 session: session,
                 command: automaticLoginCommand,
@@ -55,8 +58,8 @@ struct OnboardingRouterView: View {
             }
         }
         .onAppear(perform: startIfNeeded)
-        .onChange(of: router.path) { _ in
-            if let route = router.currentRoute {
+        .onChange(of: coordinator.path) { _ in
+            if let route = coordinator.path.last {
                 sessionStore.save(session, route: route)
             }
         }
@@ -113,11 +116,11 @@ private extension OnboardingRouterView {
         switch transition.navigation {
         case .push(let route):
             sessionStore.save(session, route: route)
-            router.push(route)
+            coordinator.router.push(route)
 
         case .pop:
-            router.pop()
-            if let route = router.currentRoute {
+            coordinator.router.pop()
+            if let route = coordinator.path.last {
                 sessionStore.save(session, route: route)
             }
 
@@ -132,7 +135,7 @@ private extension OnboardingRouterView {
         hasStarted = true
         RodiAnalytics.track(.onboardingStarted(entryMode: session.entryMode))
 
-        guard router.path.isEmpty, let automaticLoginProvider else { return }
+        guard coordinator.path.isEmpty, let automaticLoginProvider else { return }
         automaticLoginRequestConsumed()
         automaticLoginCommand = .init(kind: .login(automaticLoginProvider))
     }

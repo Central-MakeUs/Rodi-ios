@@ -9,23 +9,27 @@ struct MainTabView: View {
     @Environment(\.screenSafeAreaInsets) private var screenSafeAreaInsets
 
     @StateObject private var store: StoreOf<MainTabReducer>
-    @StateObject private var myRouter = MyRouter()
+    @StateObject private var myCoordinator = Coordinator<MyRoute>()
     @State private var homeListPresentationRequestID = 0
+    @State private var consumedHomeTabSelectionRequestID = 0
 
     let consumePendingAuthenticationIntent: () -> MainTabIntent?
     let requestLogin: (MainTabIntent?) -> Void
     let onLogoutCompleted: () -> Void
+    let homeTabSelectionRequestID: Int
     private let dependencies: AppDependencies
 
     init(
         consumePendingAuthenticationIntent: @escaping () -> MainTabIntent?,
         requestLogin: @escaping (MainTabIntent?) -> Void,
         onLogoutCompleted: @escaping () -> Void,
+        homeTabSelectionRequestID: Int,
         dependencies: AppDependencies
     ) {
         self.consumePendingAuthenticationIntent = consumePendingAuthenticationIntent
         self.requestLogin = requestLogin
         self.onLogoutCompleted = onLogoutCompleted
+        self.homeTabSelectionRequestID = homeTabSelectionRequestID
         self.dependencies = dependencies
         
         _store = StateObject(
@@ -58,8 +62,8 @@ struct MainTabView: View {
                 .allowsHitTesting(store.state.selectedTab == .home)
                 .accessibilityHidden(store.state.selectedTab != .home)
             MyView(
-                router: myRouter,
-                isMyTabSelected: { store.state.selectedTab == .my },
+                coordinator: myCoordinator,
+                isMyTabSelected: store.state.selectedTab == .my,
                 navigate: { store.send(.navigationRequested($0)) },
                 onLogoutCompleted: onLogoutCompleted,
                 dependencies: dependencies
@@ -79,7 +83,13 @@ struct MainTabView: View {
             }
         }
         .animation(.easeOut(duration: 0.1), value: shouldShowBottomTabBar)
-        .onAppear(perform: consumePendingAuthenticationIntentIfNeeded)
+        .onAppear {
+            consumePendingAuthenticationIntentIfNeeded()
+            selectHomeAfterAuthenticationIfNeeded()
+        }
+        .onChange(of: homeTabSelectionRequestID) { _ in
+            selectHomeAfterAuthenticationIfNeeded()
+        }
         .onChange(of: store.state.navigationIntent) { intent in
             guard let intent else { return }
             handleNavigationIntent(intent)
@@ -101,13 +111,19 @@ private extension MainTabView {
             store.state.isHomeBottomTabBarVisible
             
         case .my:
-            !myRouter.isDetailPresented
+            myCoordinator.path.isEmpty
         }
     }
 
     func consumePendingAuthenticationIntentIfNeeded() {
         guard let intent = consumePendingAuthenticationIntent() else { return }
         store.send(.navigationRequested(intent))
+    }
+
+    func selectHomeAfterAuthenticationIfNeeded() {
+        guard homeTabSelectionRequestID > consumedHomeTabSelectionRequestID else { return }
+        consumedHomeTabSelectionRequestID = homeTabSelectionRequestID
+        store.send(.homeTabSelected)
     }
 
     func handleNavigationIntent(_ intent: MainTabIntent) {
@@ -119,11 +135,10 @@ private extension MainTabView {
             break
             
         case .openMyProfile:
-            myRouter.popToRoot()
+            myCoordinator.router.popToRoot()
             
         case .openMySavedPlaces:
-            myRouter.popToRoot()
-            myRouter.push(.savedPlaces)
+            myCoordinator.router.replace(with: [.savedPlaces])
         }
 
         store.send(.navigationHandled)

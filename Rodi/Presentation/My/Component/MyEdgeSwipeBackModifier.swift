@@ -7,8 +7,8 @@ import SwiftUI
 
 /// 시스템 interactive-pop이 커스텀 헤더 환경에서 취소될 때를 위한 edge-swipe 보조 처리입니다.
 private struct MyEdgeSwipeBackModifier: ViewModifier {
-    let route: MyRoute
-    @ObservedObject var router: MyRouter
+    let isTopRoute: Bool
+    let router: Router<MyRoute>
 
     func body(content: Content) -> some View {
         content.simultaneousGesture(
@@ -17,7 +17,7 @@ private struct MyEdgeSwipeBackModifier: ViewModifier {
                     guard value.startLocation.x <= 24,
                           value.translation.width >= 80,
                           abs(value.translation.height) <= 80,
-                          router.isTopRoute(route)
+                          isTopRoute
                     else {
                         return
                     }
@@ -29,7 +29,7 @@ private struct MyEdgeSwipeBackModifier: ViewModifier {
 }
 
 extension View {
-    func myEdgeSwipeBack(route: MyRoute, router: MyRouter) -> some View {
-        modifier(MyEdgeSwipeBackModifier(route: route, router: router))
+    func myEdgeSwipeBack(isTopRoute: Bool, router: Router<MyRoute>) -> some View {
+        modifier(MyEdgeSwipeBackModifier(isTopRoute: isTopRoute, router: router))
     }
 }

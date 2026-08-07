@@ -21,19 +21,32 @@ enum OnboardingLaunchContext: Equatable {
 final class AppRouter: ObservableObject {
     @Published private(set) var rootRoute: RootRoute
     @Published private(set) var isLoginRequiredPresented = false
+    @Published private(set) var homeTabSelectionRequestID = 0
 
     private let onboardingProgressStore: OnboardingProgressStore
     private var pendingAuthenticationIntent: MainTabIntent?
 
     init(
-        onboardingProgressStore: OnboardingProgressStore? = nil
+        onboardingProgressStore: OnboardingProgressStore? = nil,
+        tokenStore: TokenStoring
     ) {
         let resolvedProgressStore = onboardingProgressStore ?? OnboardingProgressStore()
         self.onboardingProgressStore = resolvedProgressStore
-        rootRoute = resolvedProgressStore.hasCompleted ? .mainTabs : .onboarding(.normal)
+
+        if resolvedProgressStore.hasInProgressDraft {
+            if Self.hasLocalAuthenticationSession(tokenStore) {
+                rootRoute = .onboarding(.normal)
+            } else {
+                resolvedProgressStore.clearDraft()
+                rootRoute = .onboarding(.normal)
+            }
+        } else {
+            rootRoute = resolvedProgressStore.hasCompleted ? .mainTabs : .onboarding(.normal)
+        }
     }
 
     func completeOnboarding() {
+        homeTabSelectionRequestID += 1
         rootRoute = .mainTabs
     }
 
@@ -69,5 +82,14 @@ final class AppRouter: ObservableObject {
     func consumePendingAuthenticationIntent() -> MainTabIntent? {
         defer { pendingAuthenticationIntent = nil }
         return pendingAuthenticationIntent
+    }
+
+    private static func hasLocalAuthenticationSession(_ tokenStore: TokenStoring) -> Bool {
+        guard let accessToken = tokenStore.accessToken,
+              let refreshToken = tokenStore.refreshToken
+        else {
+            return false
+        }
+        return !accessToken.isEmpty && !refreshToken.isEmpty
     }
 }

@@ -30,6 +30,7 @@ struct MainTabReducer: Reducer {
 
     enum Action {
         case homeTabTapped
+        case homeTabSelected
         
         case myTabTapped
         
@@ -62,6 +63,9 @@ extension MainTabReducer {
             } else {
                 state.selectedTab = .home
             }
+
+        case .homeTabSelected:
+            state.selectedTab = .home
 
         case .myTabTapped:
             guard !hasActiveSession else {
