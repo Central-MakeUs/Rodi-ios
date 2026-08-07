@@ -68,4 +68,13 @@ enum MemberAPI: TargetType {
     var encodingType: EncodingType { .json }
 
     var requiresAuthentication: Bool { true }
+
+    var timeoutInterval: TimeInterval? {
+        switch self {
+        case .myProfile:
+            20
+        case .updateDrivingGoal, .updatePlaceFilterTags, .withdraw, .submitOnboarding:
+            nil
+        }
+    }
 }

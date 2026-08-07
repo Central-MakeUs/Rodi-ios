@@ -26,6 +26,7 @@ This document is the main operating guide for AI agents working in this reposito
 | Onboarding local state | `Rodi/Data/Local/Onboarding/OnboardingDraftStore.swift`, `Rodi/Core/Setting/AppPreferencesStore.swift` | UserDefaults-backed in-progress draft and final completion flag. |
 | Logging | `Rodi/Core/RodiLogger.swift` | Release logs must not expose keys or precise coordinates. |
 | Transient feedback | `Rodi/Core/Feedback/RodiSnackbar.swift` | Use the shared snackbar for transient success, failure, and informational feedback. |
+| Network interruption UI | `Rodi/Core/Service/NetworkUnavailableOverlayPresenter.swift` | Owns the app-window overlay that blocks every presented screen while the network is unavailable. |
 | Networking primitives | `Rodi/Core/Network/` | Generic network layer foundation, not yet full server integration. |
 | Fastlane/release | `fastlane/`, `Docs/03_RELEASE_APPSTORE_LEGAL.md` | Local Mac fastlane only; no GitHub Actions. |
 
@@ -37,6 +38,7 @@ This document is the main operating guide for AI agents working in this reposito
 | `RootView` | App composition root; injects dependencies and renders the root route. |
 | `AppDependencies` | Creates repositories and stores once for explicit Feature injection. |
 | `AppRouter` | Owns onboarding/main tab root route and login-required presentation. |
+| `Core/Coordinator` | iOS 16-compatible typed NavigationStack path, transition plan, and Router facade. |
 | `MainTabView` / `MainTabReducer` | Keeps Home/My roots alive and owns tab selection. |
 | `Home/HomeView` | Active Home shell; owns one `HomeReducer` Store and renders Map, BottomSheet, and Search. |
 | `Home/HomeReducer` | Active Home parent reducer; owns Map, BottomSheet, Search, and presentation state. |
@@ -49,11 +51,12 @@ This document is the main operating guide for AI agents working in this reposito
 | `RodiKakaoMapView` | UIKit Kakao map lifecycle and rendering control. |
 | `KakaoDirectionsService` | Kakao Mobility route API integration for route overlay. |
 | `RouteGuidanceService` | External KakaoMap/KakaoNavi handoff. |
-| `OnboardingRouterView` | NavigationStack host that forwards feature transitions. |
+| `OnboardingRouterView` | Owns the onboarding Coordinator and forwards feature transitions. |
 | `OnboardingSession` | Draft and submission value model shared across onboarding routes. |
 | `LoginReducer` | Social login and browse entry state transitions. |
 | `SocialLoginService` | Apple/Kakao onboarding login side effects. |
 | `MyReducer` | Loads the authenticated profile and handles logout/withdrawal. |
+| `MyRoute` | My NavigationStack destination contract consumed by Coordinator. |
 | `RodiDesignSystem` | Colors, typography, fonts, and design token helpers. |
 
 ## Commands
@@ -90,6 +93,7 @@ rg "KAKAO_NATIVE_APP_KEY|KAKAO_REST_API_KEY|AuthKey_.*\\.p8" .
 - Do not remove or hide Kakao logo/copyright visibility.
 - The app is Korea-focused. Simulator or foreign coordinates may need fallback handling.
 - Keep Bundle ID and Kakao console implications in mind before changing identifiers.
+- `NetworkUnavailableOverlayPresenter` uses a separate non-key UIWindow above system covers and sheets; do not recreate feature-local network-disconnected screens.
 
 ## SwiftUI Refactor Playbook
 

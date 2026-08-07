@@ -76,10 +76,6 @@ final class SocialLoginService: NSObject {
         }
     }
 
-    func cancelPendingKakaoLogin() {
-        finishKakaoLogin(with: .failure(SocialLoginError.kakaoLoginCancelled))
-    }
-
     private func loginWithKakao(
         request: @escaping (@escaping (OAuthToken?, Error?) -> Void) -> Void
     ) async -> Result<String, Error> {
@@ -134,7 +130,7 @@ final class SocialLoginService: NSObject {
         continuation.resume(returning: result)
     }
 
-    func handleOpenURL(_ url: URL) -> Bool {
+    static func handleOpenURL(_ url: URL) -> Bool {
         #if canImport(KakaoSDKAuth)
         guard AuthApi.isKakaoTalkLoginUrl(url) else { return false }
         return AuthController.handleOpenUrl(url: url)

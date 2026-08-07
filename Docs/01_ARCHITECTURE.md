@@ -130,13 +130,13 @@ not construct or look up dependencies directly.
   RootReducer: version check and session restore lifecycle
   MainTabView / MainTabReducer: selected tab and cross-tab intent
     HomeView / HomeReducer: active Home flow
-    MyRouter: typed NavigationStack path
-    OnboardingRouter: typed NavigationStack path
+    Coordinator<MyRoute>: My typed NavigationStack path
+    Coordinator<OnboardingRoute>: onboarding typed NavigationStack path
 ```
 
 Home and My roots stay mounted while the selected tab changes. Only the inactive tab's rendering, hit testing, and accessibility are disabled so map, bottom sheet, filter, and navigation state survive tab changes.
 
-`RootView` owns `NetworkConnectionMonitor`, which observes the system network path. When the path is unavailable, Root replaces the active route with the shared `NetworkUnavailableView`; its retry action restarts path monitoring and the normal route returns automatically after the connection is restored.
+`RootView` owns `NetworkConnectionMonitor`, which observes the system network path. `NetworkUnavailableOverlayPresenter` renders the shared `NetworkUnavailableView` in a separate non-key `UIWindow` above the app's system covers, sheets, alerts, and dialogs while the path is unavailable. Its retry action restarts path monitoring; the overlay hides automatically after recovery.
 
 Home map state and Home-specific map decisions belong to `HomeReducer`. `MapService` is a stateless worker for current-location and place-coordinate requests; it returns typed results but never owns Home state or presentation policy.
 
@@ -215,11 +215,15 @@ Home deliberately uses two public Place APIs for different jobs.
 
 `Presentation/Login` owns social login, browse entry, authentication failures, and withdrawal recovery. `Presentation/Onboarding` owns the authenticated/guest onboarding routes after login.
 
-`OnboardingRouterView` hosts the stack and forwards `OnboardingTransition` values. Individual Terms, Profile, and Permission reducers own their input, validation, presentation, and effects. `OnboardingSession` is the accumulated value model for draft persistence and submission; it does not depend on reducer-owned nested types. Browse users follow `terms -> safety -> location permission` and never create a member draft or submit member onboarding data.
+`OnboardingRouterView` owns `Coordinator<OnboardingRoute>`, hosts the stack, and forwards `OnboardingTransition` values. Individual Terms, Profile, and Permission reducers own their input, validation, presentation, and effects. `OnboardingSession` is the accumulated value model for draft persistence and submission; it does not depend on reducer-owned nested types. Browse users follow `terms -> safety -> location permission` and never create a member draft or submit member onboarding data. The Coordinator rejects only the system edge-swipe that would remove the terms root and reveal the login root; all other system path changes are synchronized normally.
+
+At launch, an authenticated member draft takes priority over the completed-onboarding preference: the app restores the draft's last route instead of entering MainTab. The next route is saved synchronously before every onboarding push, including the initial social-login-to-terms transition, so termination immediately after login can resume safely. A draft without a local auth session is discarded and returns to normal login; successful completion and logout/withdrawal clear the draft.
 
 ## My Structure
 
-`Presentation/My` owns the profile screen and settings navigation. `MyReducer` owns profile loading, logout, withdrawal, and transient feedback. `MyRouter` owns the typed `NavigationStack` path and keeps system edge-swipe state synchronized.
+`Presentation/My` owns the profile screen and settings navigation. `MyReducer` owns profile loading, logout, withdrawal, and transient feedback. `MainTabView` owns `Coordinator<MyRoute>` and injects it into `MyView`, which hosts the typed `NavigationStack`. Child views receive only `Router<MyRoute>` for push/pop requests; they do not inspect or mutate the path. The Coordinator synchronizes system edge-swipe changes and ignores duplicate requests while an animated transition is active.
+
+`MyReducer` assigns each `/members/me` request a revision and ignores stale results. The profile endpoint has a 20-second request timeout; a selected My tab retries one time after a disconnected-to-connected transition, then leaves the explicit retry UI on further failure.
 
 ## MVI Rules
 

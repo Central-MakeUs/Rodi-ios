@@ -7,23 +7,25 @@ import Clarity
 import SwiftUI
 
 struct MyView: View {
-    @ObservedObject var router: MyRouter
+    @EnvironmentObject private var networkConnectionMonitor: NetworkConnectionMonitor
+    @ObservedObject var coordinator: Coordinator<MyRoute>
     @StateObject private var store: StoreOf<MyReducer>
 
-    let isMyTabSelected: () -> Bool
+    let isMyTabSelected: Bool
     let navigate: (MainTabIntent) -> Void
     let onLogoutCompleted: () -> Void
     private let memberRepository: MemberRepository
     private let placeRepository: PlaceRepository
+    private var router: Router<MyRoute> { coordinator.router }
 
     init(
-        router: MyRouter,
-        isMyTabSelected: @escaping () -> Bool,
+        coordinator: Coordinator<MyRoute>,
+        isMyTabSelected: Bool,
         navigate: @escaping (MainTabIntent) -> Void,
         onLogoutCompleted: @escaping () -> Void,
         dependencies: AppDependencies
     ) {
-        self.router = router
+        self.coordinator = coordinator
         self.isMyTabSelected = isMyTabSelected
         self.navigate = navigate
         self.onLogoutCompleted = onLogoutCompleted
@@ -42,7 +44,7 @@ struct MyView: View {
     }
 
     var body: some View {
-        NavigationStack(path: router.pathBinding) {
+        NavigationStack(path: coordinator.pathBinding) {
             MyProfileView(
                 profile: store.state.profile,
                 isLoading: store.state.isLoadingProfile,
@@ -54,19 +56,23 @@ struct MyView: View {
                 retry: { store.send(.retryProfileTapped) }
             )
             .navigationDestination(for: MyRoute.self) { route in
-                destinationView(for: route)
+                    destinationView(for: route)
                     .background(MyInteractivePopGestureEnabler())
-                    .myEdgeSwipeBack(route: route, router: router)
+                    .myEdgeSwipeBack(
+                        isTopRoute: coordinator.path.last == route,
+                        router: router
+                    )
             }
         }
         .rodiSnackbar(message: store.state.snackbarMessage)
-        .onAppear {
-            guard isMyTabSelected() else { return }
+        .task(id: isMyTabSelected) {
+            guard isMyTabSelected else { return }
+            store.send(.networkStatusChanged(networkConnectionMonitor.status))
             store.send(.appeared)
         }
-        .onChange(of: isMyTabSelected()) { isSelected in
-            guard isSelected else { return }
-            store.send(.appeared)
+        .onChange(of: networkConnectionMonitor.status) { status in
+            guard isMyTabSelected else { return }
+            store.send(.networkStatusChanged(status))
         }
         .onChange(of: store.state.didEndSessionRequestID) { requestID in
             guard requestID > 0 else { return }
@@ -85,20 +91,20 @@ private extension MyView {
     private func destinationView(for route: MyRoute) -> some View {
         switch route {
         case .settings:
-            MySettingsView(backAction: router.pop, navigate: router.push)
+            MySettingsView(backAction: { router.pop() }, navigate: router.push)
             
         case .drivingGoal:
             MyDrivingGoalView(
                 initialDrivingGoal: "",
                 memberRepository: memberRepository,
                 onUpdated: { store.send(.drivingGoalUpdated($0)) },
-                backAction: router.pop
+                backAction: { router.pop() }
             )
             
         case .savedPlaces:
             SavedPlacesView(
                 placeRepository: placeRepository,
-                backAction: router.pop,
+                backAction: { router.pop() },
                 selectPlaceAction: { item in
                     RodiAnalytics.track(.savedPlaceSelected)
                     router.popToRoot()
@@ -107,27 +113,27 @@ private extension MyView {
             )
             
         case .permissions:
-            MyPermissionSettingsView(backAction: router.pop)
+            MyPermissionSettingsView(backAction: { router.pop() })
             
         case .terms:
-            MyTermsView(backAction: router.pop, navigate: router.push)
+            MyTermsView(backAction: { router.pop() }, navigate: router.push)
             
         case .licenses:
-            MyOpenSourceLicenseView(backAction: router.pop)
+            MyOpenSourceLicenseView(backAction: { router.pop() })
             
         case .accountManagement:
             MyAccountManagementView(
-                backAction: router.pop,
+                backAction: { router.pop() },
                 navigate: router.push,
                 logoutAction: { store.send(.logoutConfirmed) },
                 withdrawalAction: { store.send(.withdrawalConfirmed) }
             )
             
         case .contact:
-            MyContactView(backAction: router.pop)
+            MyContactView(backAction: { router.pop() })
             
         case .legalDocument(let document):
-            MyLegalDocumentView(document: document, backAction: router.pop)
+            MyLegalDocumentView(document: document, backAction: { router.pop() })
         }
     }
 }
