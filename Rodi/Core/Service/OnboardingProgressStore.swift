@@ -22,6 +22,14 @@ struct OnboardingProgressStore {
         preferencesStore.hasSeenOnboarding()
     }
 
+    var hasInProgressDraft: Bool {
+        draftStore.load() != nil
+    }
+
+    func clearDraft() {
+        draftStore.clear()
+    }
+
     func markCompleted() {
         draftStore.clear()
         preferencesStore.markOnboardingSeen()

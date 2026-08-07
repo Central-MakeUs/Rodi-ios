@@ -8,7 +8,16 @@ final class MemberRemoteDataSource {
     }
 
     func fetchProfile() async throws(NetworkError) -> MemberProfileResponseDTO {
-        try await response(.myProfile, as: MemberProfileResponseDTO.self)
+        let response = try await networkManager.request(
+            MemberAPI.myProfile,
+            as: ServerResponse<MemberProfileResponseDTO>.self
+        )
+        logProfileResponse(response)
+
+        guard response.isSuccess, let data = response.data else {
+            throw .apiError(code: response.code, message: response.message)
+        }
+        return data
     }
     
     func withdraw() async throws(NetworkError) { try await empty(.withdraw) }
@@ -40,5 +49,26 @@ final class MemberRemoteDataSource {
         guard response.isSuccess else {
             throw .apiError(code: response.code, message: response.message)
         }
+    }
+
+    private func logProfileResponse(_ response: ServerResponse<MemberProfileResponseDTO>) {
+        #if DEBUG
+        let dataDescription: String
+        if let data = response.data {
+            dataDescription = """
+            nickname=\(data.nickname), \
+            level=\(data.level), \
+            recommendationTags=\(data.recommendationTags), \
+            drivingGoal=\(data.drivingGoal ?? "nil"), \
+            savedPlaceCount=\(data.savedPlaceCount)
+            """
+        } else {
+            dataDescription = "nil"
+        }
+
+        RodiLogger.debug(
+            "회원 프로필 응답: code=\(response.code), message=\(response.message), isSuccess=\(response.isSuccess), traceId=\(response.traceId ?? "nil"), data={\(dataDescription)}"
+        )
+        #endif
     }
 }

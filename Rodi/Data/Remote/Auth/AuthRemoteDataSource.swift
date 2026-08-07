@@ -15,13 +15,25 @@ final class AuthRemoteDataSource {
     ) async throws(
         NetworkError
     ) -> SocialLoginResponseDTO {
-        try await response(
+        let response = try await networkManager.request(
             AuthAPI.login(
                 provider: provider,
                 request: request
             ),
-            as: SocialLoginResponseDTO.self
+            as: ServerResponse<SocialLoginResponseDTO>.self
         )
+
+        if provider == .kakao {
+            logKakaoLoginResponse(response)
+        }
+
+        guard response.isSuccess, let data = response.data else {
+            throw .apiError(
+                code: response.code,
+                message: response.message
+            )
+        }
+        return data
     }
     
     func restore(
@@ -69,5 +81,29 @@ final class AuthRemoteDataSource {
             )
         }
         return data
+    }
+
+    private func logKakaoLoginResponse(
+        _ response: ServerResponse<SocialLoginResponseDTO>
+    ) {
+        #if DEBUG
+        let dataDescription: String
+        if let data = response.data {
+            dataDescription = """
+            status=\(data.status.rawValue), \
+            accessToken=\(data.accessToken ?? "nil"), \
+            isNewMember=\(data.isNewMember?.description ?? "nil"), \
+            nickname=\(data.nickname ?? "nil"), \
+            withdrawalRequestedAt=\(data.withdrawalRequestedAt ?? "nil"), \
+            recoverableUntil=\(data.recoverableUntil ?? "nil")
+            """
+        } else {
+            dataDescription = "nil"
+        }
+
+        RodiLogger.debug(
+            "윤수 카카오 OAuth 응답: code=\(response.code), message=\(response.message), isSuccess=\(response.isSuccess), data={\(dataDescription)}"
+        )
+        #endif
     }
 }

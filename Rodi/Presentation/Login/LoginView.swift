@@ -6,10 +6,8 @@
 import SwiftUI
 
 struct LoginView: View {
-    @Environment(\.scenePhase) private var scenePhase
     @StateObject private var store: StoreOf<LoginReducer>
     @State private var consumedCommandID: UUID?
-    @State private var didLeaveForKakaoLogin = false
 
     private let command: LoginCommand?
     private let onTransition: (OnboardingTransition) -> Void
@@ -58,10 +56,6 @@ struct LoginView: View {
                     .accessibilityLabel("로그인 중")
             }
         }
-        .onOpenURL { store.send(.openedURL($0)) }
-        .onChange(of: scenePhase) { phase in
-            handleKakaoLoginScenePhase(phase)
-        }
         .onAppear { consumeCommandIfNeeded() }
         .onChange(of: command) { _ in consumeCommandIfNeeded() }
         .onChange(of: store.state.transition) { transition in
@@ -90,26 +84,6 @@ private extension LoginView {
         case .login(.kakao): send(.kakaoLoginTapped)
         case .login(.apple): send(.appleLoginTapped)
         case .restore(let recovery): send(.restoreTapped(recovery))
-        }
-    }
-
-    func handleKakaoLoginScenePhase(_ phase: ScenePhase) {
-        switch phase {
-        case .inactive, .background:
-            guard store.state.isAuthenticating,
-                  store.state.pendingAuthenticationProvider == .kakao
-            else {
-                return
-            }
-            didLeaveForKakaoLogin = true
-
-        case .active:
-            guard didLeaveForKakaoLogin else { return }
-            didLeaveForKakaoLogin = false
-            send(.kakaoLoginReturnDetected)
-
-        @unknown default:
-            break
         }
     }
 

@@ -36,8 +36,6 @@ struct LoginReducer: Reducer {
         case kakaoLoginTapped
         case appleLoginTapped
         case restoreTapped(AuthWithdrawalRecovery)
-        case openedURL(URL)
-        case kakaoLoginReturnDetected
         case authenticationSucceeded(SocialLoginProvider, isNewMember: Bool, nickname: String?)
         case authenticationCancelled
         case authenticationFailed(String)
@@ -87,18 +85,6 @@ struct LoginReducer: Reducer {
             state.presentation = nil
             state.isRestoringWithdrawal = true
             return restore(recovery, state: &state)
-
-        case .openedURL(let url):
-            guard socialLoginService.handleOpenURL(url) else { return .none }
-            return .cancel(id: EffectID.kakaoLoginReturnRecovery)
-
-        case .kakaoLoginReturnDetected:
-            guard state.isAuthenticating,
-                  state.pendingAuthenticationProvider == .kakao
-            else {
-                return .none
-            }
-            return recoverKakaoLoginAfterAppReturn()
 
         case .authenticationSucceeded(let provider, let isNewMember, let nickname):
             state.isAuthenticating = false
@@ -152,10 +138,6 @@ struct LoginReducer: Reducer {
 
 private extension LoginReducer {
 
-    private enum EffectID {
-        case kakaoLoginReturnRecovery
-    }
-    
     func authenticate(provider: SocialLoginProvider, state: inout State) -> Effect<Action> {
         state.isAuthenticating = true
         return .run { send in
@@ -229,17 +211,6 @@ private extension LoginReducer {
         }
     }
 
-    func recoverKakaoLoginAfterAppReturn() -> Effect<Action> {
-        let socialLoginService = socialLoginService
-        return .run { _ in
-            try? await Task.sleep(for: .seconds(2))
-            guard !Task.isCancelled else { return }
-            await MainActor.run {
-                socialLoginService.cancelPendingKakaoLogin()
-            }
-        }
-        .cancelTask(id: EffectID.kakaoLoginReturnRecovery)
-    }
 }
 
 struct LoginCommand: Equatable {
