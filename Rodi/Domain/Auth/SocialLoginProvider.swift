@@ -5,7 +5,7 @@
 
 import Foundation
 
-enum SocialLoginProvider: String {
+enum SocialLoginProvider: String, Codable {
     case apple
     case kakao
 }

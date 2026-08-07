@@ -33,7 +33,7 @@ struct MyDrivingGoalReducer: Reducer {
     private enum EffectID { case save }
     private let memberRepository: MemberRepository
 
-    init(memberRepository: MemberRepository = AuthDependencyContainer.shared.memberRepository) {
+    init(memberRepository: MemberRepository) {
         self.memberRepository = memberRepository
     }
 
@@ -64,6 +64,9 @@ struct MyDrivingGoalReducer: Reducer {
             switch result {
             case .success(let profile):
                 state.updatedProfile = profile
+                RodiAnalytics.track(
+                    .drivingGoalSaved(goalLengthBucket: RodiAnalytics.lengthBucket(for: state.drivingGoal))
+                )
             case .failure(let message):
                 state.errorMessage = message
             }

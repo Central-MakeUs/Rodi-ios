@@ -1,0 +1,24 @@
+// Development environment. This file is used by the Debug configuration.
+// Copy non-versioned SDK values into Secrets.dev.local.xcconfig.
+
+KAKAO_NATIVE_APP_KEY =
+KAKAO_REST_API_KEY =
+APP_STORE_APP_ID =
+
+RODI_ENVIRONMENT = dev
+RODI_API_BASE_URL = https:/$()/api.stillstar.store
+MARKETING_VERSION = 1.0.0
+CURRENT_PROJECT_VERSION = 1
+FIREBASE_GOOGLE_SERVICE_INFO_PATH = $(SRCROOT)/Config/Firebase/Dev/GoogleService-Info.plist
+RODI_ANALYTICS_ENABLED = YES
+CLARITY_ENABLED = YES
+CLARITY_PROJECT_ID = xuel7v1h92
+CLARITY_LOG_LEVEL = verbose
+PRODUCT_BUNDLE_IDENTIFIER = com.dororong.rodi.dev
+PRODUCT_DISPLAY_NAME = Rodi Dev
+ASSETCATALOG_COMPILER_APPICON_NAME = AppIconDev
+ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor
+
+// Local values are included last so a developer can explicitly override the
+// shared defaults without changing a tracked configuration file.
+#include? "Secrets.dev.local.xcconfig"

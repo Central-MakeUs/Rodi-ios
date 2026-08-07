@@ -15,6 +15,9 @@ protocol MemberRepository {
     /// 마이페이지에서 운전 목표를 부분 수정한다.
     func updateDrivingGoal(_ drivingGoal: String) async throws(NetworkError)
 
+    /// 홈 추천 목록의 연습유형 정렬 필터를 전체 교체한다.
+    func updatePlaceFilterTags(_ tags: [PlacePracticeType]) async throws(NetworkError)
+
     /// 온보딩에서 수집한 운전 경험과 선호 정보를 제출한다.
     func submitOnboarding(_ submission: MemberOnboardingSubmission) async throws(NetworkError)
 }

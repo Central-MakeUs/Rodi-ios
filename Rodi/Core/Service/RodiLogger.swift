@@ -35,7 +35,7 @@ enum RodiLogger {
         function: String = #function,
         line: Int = #line
     ) {
-        log.verbose(message(), file: file, function: function, line: line)
+        log.verbose("🔎 \(message())", file: file, function: function, line: line)
     }
 
     static func debug(
@@ -44,7 +44,7 @@ enum RodiLogger {
         function: String = #function,
         line: Int = #line
     ) {
-        log.debug(message(), file: file, function: function, line: line)
+        log.debug("🐛 \(message())", file: file, function: function, line: line)
     }
 
     static func info(
@@ -53,7 +53,7 @@ enum RodiLogger {
         function: String = #function,
         line: Int = #line
     ) {
-        log.info(message(), file: file, function: function, line: line)
+        log.info("ℹ️ \(message())", file: file, function: function, line: line)
     }
 
     static func warning(
@@ -62,7 +62,7 @@ enum RodiLogger {
         function: String = #function,
         line: Int = #line
     ) {
-        log.warning(message(), file: file, function: function, line: line)
+        log.warning("⚠️ \(message())", file: file, function: function, line: line)
     }
 
     static func error(
@@ -71,7 +71,7 @@ enum RodiLogger {
         function: String = #function,
         line: Int = #line
     ) {
-        log.error(message(), file: file, function: function, line: line)
+        log.error("🚨 \(message())", file: file, function: function, line: line)
     }
 
     static func masked(_ value: String) -> String {

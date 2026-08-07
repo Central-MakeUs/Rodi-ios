@@ -16,7 +16,9 @@ This document is the main operating guide for AI agents working in this reposito
 | --- | --- | --- |
 | App startup/root flow | `Rodi/App/` | `RodiApp.swift`, `RootView.swift` own app entry and root routing. |
 | Home feature | `Rodi/Presentation/Home/` | Map, location, bottom sheet, marker, route, and Home MVI live here. |
-| Onboarding | `Rodi/Presentation/Onboarding/` | Onboarding MVI, legal agreements, and permission screen live here. |
+| Login | `Rodi/Presentation/Login/` | Social login, browse entry, and withdrawal recovery. |
+| Onboarding | `Rodi/Presentation/Onboarding/` | RouterView, session, terms, profile, and permission screens. |
+| Main tabs | `Rodi/Presentation/MainTab/` | Tab state and cross-tab intents. |
 | My profile | `Rodi/Presentation/My/` | Profile UI, settings routing, and authenticated member summary rendering live here. |
 | Design tokens | `Rodi/Core/RodiDesignSystem.swift` | Use `RodiColor`, `RodiTypography`, and Pretendard helpers. |
 | Assets/fonts/data | `Rodi/Resources/` | Asset catalog, bundled JSON, fonts, privacy manifest. |
@@ -32,20 +34,26 @@ This document is the main operating guide for AI agents working in this reposito
 | Symbol/File | Role |
 | --- | --- |
 | `RodiApp` | App entry point and global setup. |
-| `RootView` | Chooses onboarding or home based on app preferences. |
-| `HomeView` | Home screen composition; should render state and send actions. |
-| `HomeState` | Single render-state source for Home. |
-| `HomeAction` | User intents, runtime events, route events, and presentation actions. |
-| `HomeReducer` | Home state transitions and effect orchestration. |
-| `HomeRuntimeService` | Location, heading, fallback, and marker runtime side effects. |
+| `RootView` | App composition root; injects dependencies and renders the root route. |
+| `AppDependencies` | Creates repositories and stores once for explicit Feature injection. |
+| `AppRouter` | Owns onboarding/main tab root route and login-required presentation. |
+| `MainTabView` / `MainTabReducer` | Keeps Home/My roots alive and owns tab selection. |
+| `Home/HomeView` | Active Home shell; owns one `HomeReducer` Store and renders Map, BottomSheet, and Search. |
+| `Home/HomeReducer` | Active Home parent reducer; owns Map, BottomSheet, Search, and presentation state. |
+| `Home/Map` | Kakao adapter, map UI, map values, and map services. |
+| `Home/BottomSheet` | Bottom-sheet route host plus recommendation, filter, course, and parking sections. |
+| `Home/Search` | Full-screen search reducer, Search UI, and its final Delegate contract. |
+| `HomeReducer.MapState` / `HomeReducer.MapAction` | HomeReducer에 포함된 지도 좌표 로딩과 렌더 상태. |
+| `MapService` | Current-location and place-coordinate I/O only; it does not own Home state. |
 | `KakaoMapContainerView` | SwiftUI wrapper around the Kakao UIKit map adapter. |
 | `RodiKakaoMapView` | UIKit Kakao map lifecycle and rendering control. |
 | `KakaoDirectionsService` | Kakao Mobility route API integration for route overlay. |
 | `RouteGuidanceService` | External KakaoMap/KakaoNavi handoff. |
-| `OnboardingView` | Onboarding MVI entry view. |
-| `OnboardingReducer` | Onboarding state transitions. |
+| `OnboardingRouterView` | NavigationStack host that forwards feature transitions. |
+| `OnboardingSession` | Draft and submission value model shared across onboarding routes. |
+| `LoginReducer` | Social login and browse entry state transitions. |
 | `SocialLoginService` | Apple/Kakao onboarding login side effects. |
-| `MyProfileViewModel` | Loads and renders the authenticated member's profile summary. |
+| `MyReducer` | Loads the authenticated profile and handles logout/withdrawal. |
 | `RodiDesignSystem` | Colors, typography, fonts, and design token helpers. |
 
 ## Commands
@@ -53,15 +61,16 @@ This document is the main operating guide for AI agents working in this reposito
 Build after code or structure changes:
 
 ```sh
-xcodebuild -project /Users/mac/Documents/iOS_projects/SwiftUI/Rodi/Rodi.xcodeproj -scheme Rodi -destination 'generic/platform=iOS Simulator' build
+xcodebuild -project /Users/mac/Documents/iOS_projects/SwiftUI/Rodi/Rodi.xcodeproj -scheme 'Rodi Dev' -configuration Debug -destination 'generic/platform=iOS Simulator' build
+xcodebuild -project /Users/mac/Documents/iOS_projects/SwiftUI/Rodi/Rodi.xcodeproj -scheme Rodi -configuration Release -destination 'generic/platform=iOS Simulator' build
 ```
 
 Fastlane local commands:
 
 ```sh
-bundle exec fastlane build
-bundle exec fastlane archive
-bundle exec fastlane beta
+bundle exec fastlane build_dev
+bundle exec fastlane archive_prod
+bundle exec fastlane prod_beta
 bundle exec fastlane version
 ```
 
@@ -99,6 +108,8 @@ Do not create abstractions just to reduce line count. Do not move feature-only U
 ## Transient Feedback Rule
 
 - Use `RodiSnackbar` via `.rodiSnackbar(message:)` for every transient snackbar or toast.
+- Expand tappable row and container labels with `.contentShape(Rectangle())`; text, icons, and visual whitespace must behave as one button, except for explicitly separate controls such as a delete button.
+- Text input screens must dismiss the keyboard by clearing `@FocusState` when a user taps non-interactive empty content.
 - The standard presentation is 3 seconds, horizontal inset `16pt`, black background, bottom entry transition, and a bottom position equal to `14%` of the current screen height.
 - Do not create feature-local toast or snackbar views, feature-local placement rules, or a second top-down snackbar.
 - Keep persistent errors with an explicit recovery action, such as `다시 시도`, as an inline error state, banner, or dialog rather than a transient snackbar.
@@ -116,6 +127,12 @@ Use when changing Home or Onboarding state/action/reducer flow.
 7. Build and test the affected user flow.
 
 Do not duplicate state between Store and services. Do not put business logic in SwiftUI `body`.
+
+## Home File Convention
+
+- Preserve the established `extension` and `MARK` layout in `HomeView` and `HomeReducer` when making scoped changes.
+- Put View layout computed properties and layout helpers in the existing Layout extension; keep reducer state transitions, effects, and helpers in their existing extension boundaries.
+- Do not reorganize those files, rename their existing sections, or introduce alternative reducer/view conventions as incidental cleanup. Propose a separate refactor when the convention itself needs to change.
 
 ## Figma Implementation Playbook
 
@@ -175,10 +192,10 @@ First check:
 - Simulator coordinates may be outside Kakao map service coverage.
 
 Important files:
-- `Presentation/Home/Map/`
-- `Presentation/Home/Services/Runtime/`
-- `Presentation/Home/Services/KakaoDirectionsService.swift`
-- `Presentation/Home/Services/RouteGuidanceService.swift`
+- `Presentation/Home/Map/Adapter/Kakao/`
+- `Presentation/Home/Map/Service/`
+- `Presentation/Home/BottomSheet/CourseDetail/Service/KakaoDirectionsService.swift`
+- `Presentation/Home/BottomSheet/Shared/Service/RouteGuidanceService.swift`
 
 Rules:
 - Do not remove or hide Kakao logo/copyright.
@@ -198,7 +215,9 @@ Use when touching async/await, `Task`, actors, location callbacks, network calls
 5. Prefer structured cancellation for long-running or repeatable tasks.
 6. Match a `Task` entry's isolation to its synchronous prefix before the first `await`.
 7. Avoid `@unchecked Sendable`, `nonisolated(unsafe)`, semaphores, and ad hoc locking unless the safety invariant is documented.
-8. Build after the smallest safe change.
+8. Keep `Effect`, `Reducer`, and `Store` on the main actor. Use `.send` for synchronous follow-up actions and reserve `.run` for genuinely asynchronous work.
+9. A tappable row or card must use `.contentShape(Rectangle())` so its whole visual container, not only its label or icon, is interactive. A search screen should dismiss the keyboard when its background is tapped.
+10. Build after the smallest safe change.
 
 If a concurrency warning depends on project settings, inspect the `.pbxproj` settings first:
 - Swift language version

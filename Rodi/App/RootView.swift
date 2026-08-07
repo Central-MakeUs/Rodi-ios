@@ -14,19 +14,27 @@ struct RootView: View {
 
     @StateObject private var store: StoreOf<RootReducer>
     @StateObject private var appRouter: AppRouter
+    @StateObject private var networkConnectionMonitor: NetworkConnectionMonitor
+    private let dependencies: AppDependencies
 
     init() {
         let onboardingProgressStore = OnboardingProgressStore()
+        let dependencies = AppDependencies()
+        self.dependencies = dependencies
 
         _store = StateObject(
             wrappedValue: Store(
                 state: RootReducer.State(),
-                reducer: RootReducer()
+                reducer: RootReducer(
+                    tokenStore: dependencies.tokenStore,
+                    authRepository: dependencies.authRepository
+                )
             )
         )
         _appRouter = StateObject(
             wrappedValue: AppRouter(onboardingProgressStore: onboardingProgressStore)
         )
+        _networkConnectionMonitor = StateObject(wrappedValue: NetworkConnectionMonitor())
     }
 
     var body: some View {
@@ -41,7 +49,13 @@ struct RootView: View {
                 )
                 .transition(.opacity)
             }
+
+            if networkConnectionMonitor.isDisconnected {
+                NetworkUnavailableView(refreshAction: networkConnectionMonitor.refresh)
+                    .transition(.opacity)
+            }
         }
+        .animation(.easeInOut(duration: 0.2), value: networkConnectionMonitor.isDisconnected)
         .onAppear {
             store.send(.launched)
             store.send(.sceneBecameActive)
@@ -73,17 +87,18 @@ extension RootView {
     private var rootContent: some View {
         switch appRouter.rootRoute {
         case .onboarding(let context):
-            OnboardingView(
+            OnboardingRouterView(
                 onComplete: appRouter.completeOnboarding,
                 automaticLoginProvider: automaticLoginProvider(for: context),
-                automaticLoginRequestConsumed: appRouter.consumeAutomaticLogin
+                automaticLoginRequestConsumed: appRouter.consumeAutomaticLogin,
+                dependencies: dependencies
             )
         case .mainTabs:
-            MainTabContainer(
+            MainTabView(
                 consumePendingAuthenticationIntent: appRouter.consumePendingAuthenticationIntent,
-                requestMemberAccess: appRouter.requestMemberAccess,
-                requestLogin: { appRouter.requireLogin() },
-                onLogoutCompleted: appRouter.completeLogout
+                requestLogin: appRouter.requireLogin,
+                onLogoutCompleted: appRouter.completeLogout,
+                dependencies: dependencies
             )
         }
     }

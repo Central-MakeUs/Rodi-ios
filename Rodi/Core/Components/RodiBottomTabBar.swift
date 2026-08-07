@@ -10,6 +10,12 @@ struct RodiBottomTabBar: View {
     let homeAction: () -> Void
     let myAction: () -> Void
 
+    static let contentHeight: CGFloat = 56
+
+    static func totalHeight(safeAreaBottom: CGFloat) -> CGFloat {
+        contentHeight + safeAreaBottom
+    }
+
     var body: some View {
         HStack(spacing: 0) {
             tabButton(
@@ -30,14 +36,18 @@ struct RodiBottomTabBar: View {
         }
         .frame(width: 160)
         .frame(maxWidth: .infinity)
-        .padding(.top, 8)
-        .padding(.bottom, 24)
-        .background(RodiColor.white)
+        .frame(height: Self.contentHeight)
+        .background {
+            RodiColor.white
+                .ignoresSafeArea(edges: .bottom)
+        }
         .shadow(color: Color(hex: 0x222222, alpha: 0.08), radius: 4, x: 0, y: -3)
-        .ignoresSafeArea(edges: .bottom)
         .accessibilityElement(children: .contain)
     }
+}
 
+// MARK: Layout
+extension RodiBottomTabBar {
     private func tabButton(
         title: String,
         iconName: String,
@@ -57,6 +67,9 @@ struct RodiBottomTabBar: View {
                     .foregroundStyle(isSelected ? Color(hex: 0x1A1A1A) : Color(hex: 0xBEBEBE))
             }
             .frame(width: 56)
+            .padding(.top, 8)
+            .padding(.bottom, 4)
+            .frame(height: Self.contentHeight, alignment: .top)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

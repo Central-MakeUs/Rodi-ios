@@ -18,13 +18,19 @@
 		04CA50632FF8E665003FCF19 /* RxRelay in Frameworks */ = {isa = PBXBuildFile; productRef = 04CA50622FF8E665003FCF19 /* RxRelay */; };
 		04CA50652FF8E665003FCF19 /* RxSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 04CA50642FF8E665003FCF19 /* RxSwift */; };
 		04CA50682FF8E67A003FCF19 /* NSObject-Rx in Frameworks */ = {isa = PBXBuildFile; productRef = 04CA50672FF8E67A003FCF19 /* NSObject-Rx */; };
+		C1A000000000000000001001 /* Clarity in Frameworks */ = {isa = PBXBuildFile; productRef = C1A000000000000000003001 /* Clarity */; };
+		F1B000000000000000001001 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = F1B000000000000000003001 /* FirebaseCore */; };
+		F1B000000000000000001002 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = F1B000000000000000003002 /* FirebaseAnalytics */; };
+		F1B000000000000000001003 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = F1B000000000000000003003 /* FirebaseCrashlytics */; };
+		F1B000000000000000001004 /* FirebasePerformance in Frameworks */ = {isa = PBXBuildFile; productRef = F1B000000000000000003004 /* FirebasePerformance */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		042A22C62FEE58B100DB67F4 /* Rodi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Rodi.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		045DE9772FEFA1000060C89A /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		045DE9782FEFA1000060C89A /* Secrets.example.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.example.xcconfig; sourceTree = "<group>"; };
 		045DE9792FEFA1000060C89A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		05E100012F00000100E00001 /* Dev.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Dev.xcconfig; sourceTree = "<group>"; };
+		05E100022F00000100E00001 /* Prod.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Prod.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -40,6 +46,11 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C1A000000000000000001001 /* Clarity in Frameworks */,
+				F1B000000000000000001001 /* FirebaseCore in Frameworks */,
+				F1B000000000000000001002 /* FirebaseAnalytics in Frameworks */,
+				F1B000000000000000001003 /* FirebaseCrashlytics in Frameworks */,
+				F1B000000000000000001004 /* FirebasePerformance in Frameworks */,
 				04CA50652FF8E665003FCF19 /* RxSwift in Frameworks */,
 				04CA505B2FF8E61E003FCF19 /* Then in Frameworks */,
 				041D5860300EFD09008ACB6B /* LicenseList in Frameworks */,
@@ -78,7 +89,8 @@
 			isa = PBXGroup;
 			children = (
 				045DE9792FEFA1000060C89A /* Info.plist */,
-				045DE9772FEFA1000060C89A /* Secrets.xcconfig */,
+				05E100012F00000100E00001 /* Dev.xcconfig */,
+				05E100022F00000100E00001 /* Prod.xcconfig */,
 				045DE9782FEFA1000060C89A /* Secrets.example.xcconfig */,
 			);
 			path = Config;
@@ -94,6 +106,8 @@
 				042A22C22FEE58B100DB67F4 /* Sources */,
 				042A22C32FEE58B100DB67F4 /* Frameworks */,
 				042A22C42FEE58B100DB67F4 /* Resources */,
+				0401458E301B09CA0046D6BF /* Prepare Firebase Configuration */,
+				F1B000000000000000004001 /* Upload Crashlytics Symbols */,
 			);
 			buildRules = (
 			);
@@ -115,6 +129,11 @@
 				04CA50622FF8E665003FCF19 /* RxRelay */,
 				04CA50642FF8E665003FCF19 /* RxSwift */,
 				04CA50672FF8E67A003FCF19 /* NSObject-Rx */,
+				F1B000000000000000003001 /* FirebaseCore */,
+				F1B000000000000000003002 /* FirebaseAnalytics */,
+				F1B000000000000000003003 /* FirebaseCrashlytics */,
+				F1B000000000000000003004 /* FirebasePerformance */,
+				C1A000000000000000003001 /* Clarity */,
 				041D585F300EFD09008ACB6B /* LicenseList */,
 			);
 			productName = Rodi;
@@ -133,6 +152,11 @@
 				TargetAttributes = {
 					042A22C52FEE58B100DB67F4 = {
 						CreatedOnToolsVersion = 26.2;
+						SystemCapabilities = {
+							com.apple.SignInWithApple = {
+								enabled = 1;
+							};
+						};
 					};
 				};
 			};
@@ -154,6 +178,8 @@
 				04CA505C2FF8E63E003FCF19 /* XCRemoteSwiftPackageReference "SnapKit" */,
 				04CA505F2FF8E665003FCF19 /* XCRemoteSwiftPackageReference "RxSwift" */,
 				04CA50662FF8E67A003FCF19 /* XCRemoteSwiftPackageReference "NSObject-Rx" */,
+				F1B000000000000000002001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				C1A000000000000000002001 /* XCRemoteSwiftPackageReference "clarity-apps" */,
 				041D585E300EFD09008ACB6B /* XCRemoteSwiftPackageReference "LicenseList" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -175,6 +201,54 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		0401458E301B09CA0046D6BF /* Prepare Firebase Configuration */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(FIREBASE_GOOGLE_SERVICE_INFO_PATH)",
+			);
+			name = "Prepare Firebase Configuration";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/GoogleService-Info.plist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -euo pipefail\n\nsource=\"${FIREBASE_GOOGLE_SERVICE_INFO_PATH:-}\"\ndestination=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/GoogleService-Info.plist\"\n\nif [ -z \"$source\" ] || [ ! -f \"$source\" ]; then\n  echo \"error: Missing Firebase configuration for ${RODI_ENVIRONMENT:-unknown}. Expected: $source\"\n  exit 1\nfi\n\n/bin/cp -f \"$source\" \"$destination\"\n";
+		};
+		F1B000000000000000004001 /* Upload Crashlytics Symbols */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}",
+				"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Resources/DWARF/${PRODUCT_NAME}",
+				"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Info.plist",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/GoogleService-Info.plist",
+				"$(TARGET_BUILD_DIR)/$(EXECUTABLE_PATH)",
+				"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Resources/DWARF/${PRODUCT_NAME}.debug.dylib",
+			);
+			name = "Upload Crashlytics Symbols";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${BUILD_DIR%/Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/run\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		042A22C22FEE58B100DB67F4 /* Sources */ = {
@@ -310,26 +384,28 @@
 		};
 		042A22D22FEE58B200DB67F4 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 045DE9772FEFA1000060C89A /* Secrets.xcconfig */;
+			baseConfigurationReference = 05E100012F00000100E00001 /* Dev.xcconfig */;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Rodi/Rodi.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = YRPYBFPPCT;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Config/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.navigation";
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.dororong.rodi;
+				MARKETING_VERSION = 1.0.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.dororong.rodi.dev;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_DEVICE_FAMILIES = 1;
@@ -348,25 +424,26 @@
 		};
 		042A22D32FEE58B200DB67F4 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 045DE9772FEFA1000060C89A /* Secrets.xcconfig */;
+			baseConfigurationReference = 05E100022F00000100E00001 /* Prod.xcconfig */;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Rodi/Rodi.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 0;
 				DEVELOPMENT_TEAM = YRPYBFPPCT;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Config/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.navigation";
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.dororong.rodi;
+				MARKETING_VERSION = 1.1.1;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_DEVICE_FAMILIES = 1;
@@ -471,6 +548,22 @@
 				minimumVersion = 5.2.2;
 			};
 		};
+		C1A000000000000000002001 /* XCRemoteSwiftPackageReference "clarity-apps" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/microsoft/clarity-apps";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.5.4;
+			};
+		};
+		F1B000000000000000002001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -528,6 +621,31 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 04CA50662FF8E67A003FCF19 /* XCRemoteSwiftPackageReference "NSObject-Rx" */;
 			productName = "NSObject-Rx";
+		};
+		C1A000000000000000003001 /* Clarity */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C1A000000000000000002001 /* XCRemoteSwiftPackageReference "clarity-apps" */;
+			productName = Clarity;
+		};
+		F1B000000000000000003001 /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F1B000000000000000002001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		F1B000000000000000003002 /* FirebaseAnalytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F1B000000000000000002001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalytics;
+		};
+		F1B000000000000000003003 /* FirebaseCrashlytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F1B000000000000000002001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCrashlytics;
+		};
+		F1B000000000000000003004 /* FirebasePerformance */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F1B000000000000000002001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebasePerformance;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

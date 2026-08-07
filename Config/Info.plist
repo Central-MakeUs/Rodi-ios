@@ -2,10 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>APP_STORE_APP_ID</key>
+	<string>$(APP_STORE_APP_ID)</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>ko</string>
 	<key>CFBundleDisplayName</key>
-	<string>Rodi</string>
+	<string>$(PRODUCT_DISPLAY_NAME)</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -18,18 +20,6 @@
 	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
 	<key>CFBundleShortVersionString</key>
 	<string>$(MARKETING_VERSION)</string>
-	<key>CFBundleVersion</key>
-	<string>2</string>
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
-	<key>APP_STORE_APP_ID</key>
-	<string>$(APP_STORE_APP_ID)</string>
-	<key>RODI_API_BASE_URL</key>
-	<string>$(RODI_API_BASE_URL)</string>
-	<key>KAKAO_NATIVE_APP_KEY</key>
-	<string>$(KAKAO_NATIVE_APP_KEY)</string>
-	<key>KAKAO_REST_API_KEY</key>
-	<string>$(KAKAO_REST_API_KEY)</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -41,6 +31,20 @@
 			</array>
 		</dict>
 	</array>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>CLARITY_ENABLED</key>
+	<string>$(CLARITY_ENABLED)</string>
+	<key>CLARITY_LOG_LEVEL</key>
+	<string>$(CLARITY_LOG_LEVEL)</string>
+	<key>CLARITY_PROJECT_ID</key>
+	<string>$(CLARITY_PROJECT_ID)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>KAKAO_NATIVE_APP_KEY</key>
+	<string>$(KAKAO_NATIVE_APP_KEY)</string>
+	<key>KAKAO_REST_API_KEY</key>
+	<string>$(KAKAO_REST_API_KEY)</string>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>kakaomap</string>
@@ -50,6 +54,12 @@
 	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>현재 위치를 기반으로 주변 운전 연습 코스와 주차장을 표시하고, 거리 정렬과 길안내 연동을 제공하기 위해 위치정보를 사용합니다.</string>
+	<key>RODI_API_BASE_URL</key>
+	<string>$(RODI_API_BASE_URL)</string>
+	<key>RODI_ANALYTICS_ENABLED</key>
+	<string>$(RODI_ANALYTICS_ENABLED)</string>
+	<key>RODI_ENVIRONMENT</key>
+	<string>$(RODI_ENVIRONMENT)</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Pretendard-Regular.otf</string>
