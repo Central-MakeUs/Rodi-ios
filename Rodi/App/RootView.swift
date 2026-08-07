@@ -14,6 +14,7 @@ struct RootView: View {
 
     @StateObject private var store: StoreOf<RootReducer>
     @StateObject private var appRouter: AppRouter
+    @StateObject private var networkConnectionMonitor: NetworkConnectionMonitor
     private let dependencies: AppDependencies
 
     init() {
@@ -33,6 +34,7 @@ struct RootView: View {
         _appRouter = StateObject(
             wrappedValue: AppRouter(onboardingProgressStore: onboardingProgressStore)
         )
+        _networkConnectionMonitor = StateObject(wrappedValue: NetworkConnectionMonitor())
     }
 
     var body: some View {
@@ -47,7 +49,13 @@ struct RootView: View {
                 )
                 .transition(.opacity)
             }
+
+            if networkConnectionMonitor.isDisconnected {
+                NetworkUnavailableView(refreshAction: networkConnectionMonitor.refresh)
+                    .transition(.opacity)
+            }
         }
+        .animation(.easeInOut(duration: 0.2), value: networkConnectionMonitor.isDisconnected)
         .onAppear {
             store.send(.launched)
             store.send(.sceneBecameActive)

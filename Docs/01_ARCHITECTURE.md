@@ -49,6 +49,7 @@ Examples:
 - app preferences store
 - haptic manager
 - shared transient feedback (`RodiSnackbar`)
+- app-wide network connection monitoring and unavailable-state UI
 - extensions
 - MVI core primitives
 
@@ -134,6 +135,8 @@ not construct or look up dependencies directly.
 ```
 
 Home and My roots stay mounted while the selected tab changes. Only the inactive tab's rendering, hit testing, and accessibility are disabled so map, bottom sheet, filter, and navigation state survive tab changes.
+
+`RootView` owns `NetworkConnectionMonitor`, which observes the system network path. When the path is unavailable, Root replaces the active route with the shared `NetworkUnavailableView`; its retry action restarts path monitoring and the normal route returns automatically after the connection is restored.
 
 Home map state and Home-specific map decisions belong to `HomeReducer`. `MapService` is a stateless worker for current-location and place-coordinate requests; it returns typed results but never owns Home state or presentation policy.
 
