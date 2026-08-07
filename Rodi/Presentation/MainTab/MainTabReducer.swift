@@ -7,9 +7,14 @@ import Foundation
 
 enum MainTabIntent: Equatable {
     case presentHomeList
-    case openHomePlace(id: Int)
+    case openHomePlace(PlaceListItem)
     case openMyProfile
     case openMySavedPlaces
+}
+
+struct HomePlaceSelectionRequest: Equatable {
+    let id: Int
+    let place: PlaceListItem
 }
 
 @MainActor
@@ -19,6 +24,8 @@ struct MainTabReducer: Reducer {
         var navigationIntent: MainTabIntent?
         var authenticationIntent: MainTabIntent?
         var isHomeBottomTabBarVisible = true
+        var homePlaceSelectionRequest: HomePlaceSelectionRequest?
+        fileprivate var nextHomePlaceSelectionRequestID = 0
     }
 
     enum Action {
@@ -31,6 +38,8 @@ struct MainTabReducer: Reducer {
         case navigationHandled
         
         case authenticationRequestHandled
+
+        case homePlaceSelectionHandled(Int)
         
         case homeBottomTabBarVisibilityChanged(Bool)
     }
@@ -65,12 +74,23 @@ extension MainTabReducer {
         case .navigationRequested(let intent):
             state.selectedTab = tab(for: intent)
             state.navigationIntent = intent
+            if case .openHomePlace(let place) = intent {
+                state.nextHomePlaceSelectionRequestID += 1
+                state.homePlaceSelectionRequest = HomePlaceSelectionRequest(
+                    id: state.nextHomePlaceSelectionRequestID,
+                    place: place
+                )
+            }
 
         case .navigationHandled:
             state.navigationIntent = nil
 
         case .authenticationRequestHandled:
             state.authenticationIntent = nil
+
+        case .homePlaceSelectionHandled(let id):
+            guard state.homePlaceSelectionRequest?.id == id else { return .none }
+            state.homePlaceSelectionRequest = nil
 
         case .homeBottomTabBarVisibilityChanged(let isVisible):
             state.isHomeBottomTabBarVisible = isVisible

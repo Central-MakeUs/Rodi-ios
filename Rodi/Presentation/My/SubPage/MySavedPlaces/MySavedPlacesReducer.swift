@@ -45,7 +45,7 @@ struct MySavedPlacesReducer: Reducer {
                 state.hasTrackedSavedPlacesOpen = true
                 RodiAnalytics.track(.savedPlacesOpened)
             }
-            guard state.items.isEmpty, !state.isInitialLoading else { return .none }
+            guard !state.isInitialLoading else { return .none }
             return loadFirstPage(state: &state)
 
         case .retryTapped:
@@ -92,7 +92,12 @@ struct MySavedPlacesReducer: Reducer {
 
 private extension MySavedPlacesReducer {
     func loadFirstPage(state: inout State) -> Effect<Action> {
+        state.items = []
+        state.totalCount = nil
+        state.nextCursor = nil
+        state.hasNextPage = false
         state.isInitialLoading = true
+        state.isNextPageLoading = false
         state.errorMessage = nil
         return .run { send in
             do {

@@ -45,7 +45,13 @@ final class PlaceRemoteDataSource {
     }
 
     private func empty(_ api: PlaceAPI) async throws(NetworkError) {
-        _ = try await request(api, manager: authenticatedNetworkManager, as: EmptyResponse.self)
+        let response = try await authenticatedNetworkManager.request(
+            api,
+            as: ServerResponse<EmptyResponse>.self
+        )
+        guard response.isSuccess else {
+            throw .apiError(code: response.code, message: response.message)
+        }
     }
 
     private func request<T: Decodable>(

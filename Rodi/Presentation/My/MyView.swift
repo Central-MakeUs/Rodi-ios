@@ -102,7 +102,7 @@ private extension MyView {
                 selectPlaceAction: { item in
                     RodiAnalytics.track(.savedPlaceSelected)
                     router.popToRoot()
-                    navigate(.openHomePlace(id: item.id))
+                    navigate(.openHomePlace(item))
                 }
             )
             

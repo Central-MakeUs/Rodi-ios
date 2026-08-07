@@ -70,7 +70,7 @@ extension MyReducer {
                 state.hasTrackedMyOpen = true
                 RodiAnalytics.track(.myOpened)
             }
-            guard state.profile == nil, !state.isLoadingProfile else { return .none }
+            guard !state.isLoadingProfile else { return .none }
             return loadProfile(state: &state)
 
         case .retryProfileTapped:

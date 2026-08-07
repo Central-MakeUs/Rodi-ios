@@ -11,7 +11,6 @@ struct MainTabView: View {
     @StateObject private var store: StoreOf<MainTabReducer>
     @StateObject private var myRouter = MyRouter()
     @State private var homeListPresentationRequestID = 0
-    @State private var pendingHomePlaceID: Int?
 
     let consumePendingAuthenticationIntent: () -> MainTabIntent?
     let requestLogin: (MainTabIntent?) -> Void
@@ -46,8 +45,10 @@ struct MainTabView: View {
                     store.send(.homeBottomTabBarVisibilityChanged($0))
                 },
                 listPresentationRequestID: homeListPresentationRequestID,
-                pendingPlaceID: pendingHomePlaceID,
-                onPendingPlaceHandled: { pendingHomePlaceID = nil },
+                placeSelectionRequest: store.state.homePlaceSelectionRequest,
+                onPlaceSelectionHandled: {
+                    store.send(.homePlaceSelectionHandled($0))
+                },
                 bottomTabBarHeight: RodiBottomTabBar.totalHeight(
                     safeAreaBottom: screenSafeAreaInsets.bottom
                 ),
@@ -114,8 +115,8 @@ private extension MainTabView {
         case .presentHomeList:
             homeListPresentationRequestID += 1
             
-        case .openHomePlace(let id):
-            pendingHomePlaceID = id
+        case .openHomePlace:
+            break
             
         case .openMyProfile:
             myRouter.popToRoot()

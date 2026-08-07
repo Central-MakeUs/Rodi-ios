@@ -17,13 +17,14 @@ struct HomeView: View {
     @State private var courseBottomSheetHeight: CGFloat = 180
     @State private var transientBottomSheetHeight: CGFloat?
     @State private var handledListPresentationRequestID = 0
+    @State private var handledPlaceSelectionRequestID = 0
 
     private let isHomeTabSelected: Bool
     private let onAuthenticationRequired: () -> Void
     private let onBottomTabBarVisibilityChanged: (Bool) -> Void
     private let listPresentationRequestID: Int
-    private let pendingPlaceID: Int?
-    private let onPendingPlaceHandled: () -> Void
+    private let placeSelectionRequest: HomePlaceSelectionRequest?
+    private let onPlaceSelectionHandled: (Int) -> Void
     private let bottomTabBarHeight: CGFloat
     private let dependencies: AppDependencies
 
@@ -32,8 +33,8 @@ struct HomeView: View {
         onAuthenticationRequired: @escaping () -> Void = {},
         onBottomTabBarVisibilityChanged: @escaping (Bool) -> Void = { _ in },
         listPresentationRequestID: Int = 0,
-        pendingPlaceID: Int? = nil,
-        onPendingPlaceHandled: @escaping () -> Void = {},
+        placeSelectionRequest: HomePlaceSelectionRequest? = nil,
+        onPlaceSelectionHandled: @escaping (Int) -> Void = { _ in },
         bottomTabBarHeight: CGFloat,
         dependencies: AppDependencies
     ) {
@@ -41,8 +42,8 @@ struct HomeView: View {
         self.onAuthenticationRequired = onAuthenticationRequired
         self.onBottomTabBarVisibilityChanged = onBottomTabBarVisibilityChanged
         self.listPresentationRequestID = listPresentationRequestID
-        self.pendingPlaceID = pendingPlaceID
-        self.onPendingPlaceHandled = onPendingPlaceHandled
+        self.placeSelectionRequest = placeSelectionRequest
+        self.onPlaceSelectionHandled = onPlaceSelectionHandled
         self.bottomTabBarHeight = bottomTabBarHeight
         self.dependencies = dependencies
 
@@ -62,7 +63,8 @@ struct HomeView: View {
                 store.send(.map(.tabSelectionChanged(isHomeTabSelected)))
                 store.send(.map(.activityChanged(scenePhase == .active)))
                 onBottomTabBarVisibilityChanged(store.state.presentation.isBottomTabBarVisible)
-                handleHomeNavigationRequest()
+                handleListPresentationRequest(listPresentationRequestID)
+                handlePlaceSelection(placeSelectionRequest)
             }
             .alert("위치 접근 권한이 필요해요", isPresented: locationSettingsAlertBinding) {
                 Button("취소", role: .cancel) {}
@@ -99,12 +101,37 @@ struct HomeView: View {
             .onChange(of: scenePhase) { phase in
                 store.send(.map(.activityChanged(phase == .active)))
             }
-            .onChange(of: listPresentationRequestID) { _ in
-                handleHomeNavigationRequest()
+            .onChange(of: listPresentationRequestID) { requestID in
+                handleListPresentationRequest(requestID)
             }
-            .onChange(of: pendingPlaceID) { _ in
-                handleHomeNavigationRequest()
+            .onChange(of: placeSelectionRequest) { request in
+                handlePlaceSelection(request)
             }
+    }
+}
+
+private struct HomePlaceLoadingIndicator: View {
+    @State private var activeIndex = 0
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach(0..<3, id: \.self) { index in
+                Circle()
+                    .fill(RodiColor.primary)
+                    .frame(width: 8, height: 8)
+                    .opacity(index == activeIndex ? 1 : 0.28)
+                    .scaleEffect(index == activeIndex ? 1 : 0.72)
+            }
+        }
+        .animation(.easeInOut(duration: 0.18), value: activeIndex)
+        .task {
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 260_000_000)
+                guard !Task.isCancelled else { return }
+                activeIndex = (activeIndex + 1) % 3
+            }
+        }
+        .accessibilityLabel("장소 정보 로딩 중")
     }
 }
 
@@ -152,20 +179,30 @@ extension HomeView {
             } else {
                 initialMapLoadingView
             }
+
+            if isSavedPlaceLoading {
+                savedPlaceLoadingOverlay
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private func handleHomeNavigationRequest() {
-        if listPresentationRequestID > handledListPresentationRequestID {
-            handledListPresentationRequestID = listPresentationRequestID
-            store.send(.bottomSheet(.showRecommendList))
-            store.send(.bottomSheet(.recommendList(.present)))
-        }
+    private func handleListPresentationRequest(_ requestID: Int) {
+        guard requestID > handledListPresentationRequestID else { return }
+        handledListPresentationRequestID = requestID
+        store.send(.bottomSheet(.showRecommendList))
+        store.send(.bottomSheet(.recommendList(.present)))
+    }
 
-        guard let pendingPlaceID else { return }
-        store.send(.bottomSheet(.resolvePlace(id: pendingPlaceID)))
-        onPendingPlaceHandled()
+    private func handlePlaceSelection(_ request: HomePlaceSelectionRequest?) {
+        guard let request,
+              request.id > handledPlaceSelectionRequestID
+        else {
+            return
+        }
+        handledPlaceSelectionRequestID = request.id
+        store.send(.map(.savedPlaceSelected(request.place)))
+        onPlaceSelectionHandled(request.id)
     }
 }
 
@@ -190,6 +227,37 @@ extension HomeView {
 
     private var isFilterPresented: Bool {
         store.state.bottomSheet.route == .filter
+    }
+
+    private var isSavedPlaceLoading: Bool {
+        let bottomSheet = store.state.bottomSheet
+        return bottomSheet.isSavedPlaceResolution && bottomSheet.resolvingPlaceID != nil
+    }
+
+    private var savedPlaceLoadingOverlay: some View {
+        ZStack {
+            RodiColor.black.opacity(0.16)
+                .ignoresSafeArea()
+
+            VStack(spacing: 14) {
+                HomePlaceLoadingIndicator()
+
+                Text("장소 정보를 불러오고 있어요")
+                    .rodiTypography(.body1Medium)
+                    .foregroundStyle(RodiColor.black)
+
+                Text("잠시만 기다려 주세요.")
+                    .rodiTypography(.caption1Medium)
+                    .foregroundStyle(RodiColor.gray700)
+            }
+            .padding(.horizontal, 28)
+            .padding(.vertical, 24)
+            .background(RodiColor.white)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .shadow(color: RodiColor.black.opacity(0.12), radius: 12, y: 4)
+        }
+        .transition(.opacity)
+        .zIndex(2)
     }
 
     private var initialMapLoadingView: some View {

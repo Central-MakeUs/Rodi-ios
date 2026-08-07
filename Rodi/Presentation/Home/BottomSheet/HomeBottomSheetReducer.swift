@@ -12,6 +12,9 @@ struct HomeBottomSheetReducer: Reducer {
         var route: Route = .recommendList
         var resolvingPlaceID: Int?
         var isRecommendationPlaceResolution = false
+        var isSavedPlaceResolution = false
+        var isDetailPresentationPending = false
+        var isCurrentLocationRequestPending = false
         var recommendList = RecommendListBottomSheetReducer.State()
         var filter = FilterBottomSheetReducer.State()
         var courseDetail = CourseDetailBottomSheetReducer.State()
@@ -23,6 +26,9 @@ struct HomeBottomSheetReducer: Reducer {
         case showFilter
         case resolvePlace(id: Int)
         case resolveRecommendedPlace(id: Int)
+        case resolveSavedPlace(PlaceListItem)
+        case clearSearchSelection
+        case prepareForCurrentLocation
         case placeResolved(PlaceDetail)
         case placeDetailPresentationFinished(id: Int)
         case placeResolutionAuthenticationRequired(id: Int)
@@ -39,6 +45,7 @@ struct HomeBottomSheetReducer: Reducer {
         case mapRouteOverlayChanged(RodiRouteOverlay?)
         case mapFocusRequested(RodiCoordinate)
         case mapDetailDismissed
+        case currentLocationReady
         case recommendationPresentationChanged(
             isBottomTabBarVisible: Bool,
             isResearchButtonVisible: Bool
@@ -95,18 +102,59 @@ extension HomeBottomSheetReducer {
             guard state.resolvingPlaceID == nil else { return .none }
             state.resolvingPlaceID = id
             state.isRecommendationPlaceResolution = false
+            state.isSavedPlaceResolution = false
             return resolvePlaceEffect(id: id)
 
         case .resolveRecommendedPlace(let id):
             guard state.resolvingPlaceID == nil else { return .none }
             state.resolvingPlaceID = id
             state.isRecommendationPlaceResolution = true
+            state.isSavedPlaceResolution = false
             return resolvePlaceEffect(id: id)
 
-        case .placeResolved(let detail):
-            guard state.resolvingPlaceID != nil else { return .none }
+        case .resolveSavedPlace(let place):
+            state.resolvingPlaceID = place.id
+            state.isRecommendationPlaceResolution = false
+            state.isSavedPlaceResolution = true
+            state.isDetailPresentationPending = false
+            state.route = .recommendList
+            state.recommendList.presentation = .collapsed
+            state.courseDetail = .init()
+            state.parkingDetail = .init()
+            return resolvePlaceEffect(id: place.id)
+
+        case .clearSearchSelection:
             state.resolvingPlaceID = nil
             state.isRecommendationPlaceResolution = false
+            state.isSavedPlaceResolution = false
+            state.isDetailPresentationPending = false
+            state.isCurrentLocationRequestPending = false
+            state.route = .recommendList
+            state.recommendList.presentation = .collapsed
+            state.courseDetail = .init()
+            state.parkingDetail = .init()
+            return .cancel(id: BottomSheetEffectID.placeDetailLoading)
+
+        case .prepareForCurrentLocation:
+            switch state.route {
+            case .courseDetail:
+                state.isCurrentLocationRequestPending = true
+                return .send(.courseDetail(.dismiss))
+
+            case .parkingDetail:
+                state.isCurrentLocationRequestPending = true
+                return .send(.parkingDetail(.dismiss))
+
+            case .recommendList, .filter:
+                return .send(.delegate(.currentLocationReady))
+            }
+
+        case .placeResolved(let detail):
+            guard state.resolvingPlaceID == detail.id else { return .none }
+            state.resolvingPlaceID = nil
+            state.isRecommendationPlaceResolution = false
+            state.isSavedPlaceResolution = false
+            state.isDetailPresentationPending = true
             state.route = detail.type == .course ? .courseDetail : .parkingDetail
             let detailAction: Action = detail.type == .course
                 ? .courseDetail(.present(detail, source: "home"))
@@ -118,11 +166,14 @@ extension HomeBottomSheetReducer {
             ])
 
         case .placeDetailPresentationFinished:
+            state.isDetailPresentationPending = false
             return .none
 
         case .placeResolutionAuthenticationRequired(let id):
             guard state.resolvingPlaceID == id else { return .none }
             state.resolvingPlaceID = nil
+            state.isSavedPlaceResolution = false
+            state.isDetailPresentationPending = false
             if state.isRecommendationPlaceResolution {
                 state.isRecommendationPlaceResolution = false
                 return .send(.delegate(.requestAuthentication))
@@ -136,6 +187,8 @@ extension HomeBottomSheetReducer {
         case .placeResolutionFailed(let id, let message):
             guard state.resolvingPlaceID == id else { return .none }
             state.resolvingPlaceID = nil
+            state.isSavedPlaceResolution = false
+            state.isDetailPresentationPending = false
             if state.isRecommendationPlaceResolution {
                 state.isRecommendationPlaceResolution = false
                 return .send(.delegate(.showSnackbar(message)))
@@ -277,9 +330,15 @@ extension HomeBottomSheetReducer {
     }
 
     private func dismissDetail(state: inout State) -> Effect<Action> {
+        let shouldRequestCurrentLocation = state.isCurrentLocationRequestPending
+        state.isCurrentLocationRequestPending = false
         state.route = .recommendList
         state.recommendList.presentation = .collapsed
-        return .send(.delegate(.mapDetailDismissed))
+        var followUpActions: [Action] = [.delegate(.mapDetailDismissed)]
+        if shouldRequestCurrentLocation {
+            followUpActions.append(.delegate(.currentLocationReady))
+        }
+        return actions(followUpActions)
     }
 }
 

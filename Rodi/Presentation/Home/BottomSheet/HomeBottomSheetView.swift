@@ -170,17 +170,29 @@ extension HomeBottomSheetView {
             }
 
         case .courseDetail:
-            courseDetailSheet
+            if state.courseDetail.detail != nil {
+                courseDetailSheet
+            } else if state.resolvingPlaceID != nil || state.isDetailPresentationPending {
+                recommendationSheet
+            } else {
+                EmptyView()
+            }
 
         case .parkingDetail:
-            fixedSheet(height: mediumHeight, dismissThreshold: 48) {
-                ParkingDetailBottomSheetView(
-                    state: state.parkingDetail,
-                    send: handleParkingDetailAction,
-                    userLocation: userLocation,
-                    hasLocationPermission: hasLocationPermission,
-                    requestLocationPermission: requestLocationPermission
-                )
+            if state.parkingDetail.detail != nil {
+                fixedSheet(height: mediumHeight, dismissThreshold: 48) {
+                    ParkingDetailBottomSheetView(
+                        state: state.parkingDetail,
+                        send: handleParkingDetailAction,
+                        userLocation: userLocation,
+                        hasLocationPermission: hasLocationPermission,
+                        requestLocationPermission: requestLocationPermission
+                    )
+                }
+            } else if state.resolvingPlaceID != nil || state.isDetailPresentationPending {
+                recommendationSheet
+            } else {
+                EmptyView()
             }
         }
     }
@@ -405,7 +417,7 @@ extension HomeBottomSheetView {
         let duration: TimeInterval
         switch destination {
         case .collapsed:
-            duration = 0.25
+            duration = 0.1
         case .medium:
             duration = 0.20
         case .expanded:
@@ -469,7 +481,8 @@ extension HomeBottomSheetView {
     }
 
     private func dismissCurrentDetail() {
-        settleDetail(translation: 0, dismissThreshold: 0, forceDismiss: true)
+        guard let action = detailDismissAction else { return }
+        send(action)
     }
 
     private func handleFilterAction(_ action: FilterBottomSheetReducer.Action) {

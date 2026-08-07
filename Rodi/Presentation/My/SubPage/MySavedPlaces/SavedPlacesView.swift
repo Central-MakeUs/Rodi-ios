@@ -33,7 +33,7 @@ struct SavedPlacesView: View {
         }
         .background(RodiColor.white)
         .toolbar(.hidden, for: .navigationBar)
-        .task {
+        .onAppear {
             store.send(.appeared)
         }
     }
