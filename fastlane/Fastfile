@@ -2,6 +2,7 @@
 # You can find the documentation at https://docs.fastlane.tools
 
 require "base64"
+require "open3"
 
 default_platform(:ios)
 
@@ -51,6 +52,30 @@ def xcconfig_value(key, environment:)
   value
 end
 
+def resolved_build_setting(key, environment:)
+  settings = environment_settings(environment)
+  output, status = Open3.capture2e(
+    "xcodebuild",
+    "-project", PROJECT_PATH,
+    "-scheme", settings[:scheme],
+    "-configuration", settings[:configuration],
+    "-showBuildSettings"
+  )
+
+  unless status.success?
+    UI.user_error!("Unable to resolve #{environment} build settings")
+  end
+
+  line = output.lines.reverse.find { |item| item.match?(/^\s*#{Regexp.escape(key)}\s*=/) }
+  value = line&.split("=", 2)&.last&.strip.to_s
+
+  if value.empty?
+    UI.user_error!("#{key} is missing from resolved #{environment} build settings")
+  end
+
+  value
+end
+
 def resolved_key_path(raw_path)
   return nil if raw_path.to_s.strip.empty?
 
@@ -69,7 +94,7 @@ def app_store_connect_api_key_from_secrets!(environment)
   key_path = resolved_key_path(xcconfig_value("APP_STORE_CONNECT_API_KEY_PATH", environment: environment).to_s)
   key_base64 = xcconfig_value("APP_STORE_CONNECT_API_KEY_BASE64", environment: environment).to_s
 
-  if key_id.empty? || issuer_id.empty? || (key_path.to_s.empty? && key_base64.empty?)
+  if key_id.empty? || (key_path.to_s.empty? && key_base64.empty?)
     settings = environment_settings(environment)
     UI.user_error!("App Store Connect API key is missing in #{settings[:local_secrets_path]}")
   end
@@ -80,10 +105,12 @@ def app_store_connect_api_key_from_secrets!(environment)
 
   params = {
     key_id: key_id,
-    issuer_id: issuer_id,
     duration: 1200,
     in_house: false
   }
+
+  # Individual App Store Connect API keys do not have an issuer ID.
+  params[:issuer_id] = issuer_id unless issuer_id.empty?
 
   if key_base64.empty?
     params[:key_filepath] = key_path
@@ -119,11 +146,7 @@ end
 
 def next_testflight_build_number(environment, api_key)
   settings = environment_settings(environment)
-  marketing_version = xcconfig_value("MARKETING_VERSION", environment: environment).to_s
-
-  if marketing_version.empty?
-    UI.user_error!("MARKETING_VERSION is missing in #{settings[:configuration_path]}")
-  end
+  marketing_version = resolved_build_setting("MARKETING_VERSION", environment: environment)
 
   latest_build_number = latest_testflight_build_number(
     api_key: api_key,
@@ -142,11 +165,12 @@ end
 platform :ios do
   desc "Show the current app version and build number"
   lane :version do
-    version_number = get_version_number(xcodeproj: PROJECT_PATH, target: "Rodi")
-    build_number = get_build_number(xcodeproj: PROJECT_PATH)
+    %i[dev prod].each do |environment|
+      version_number = resolved_build_setting("MARKETING_VERSION", environment: environment)
+      build_number = resolved_build_setting("CURRENT_PROJECT_VERSION", environment: environment)
 
-    UI.message("Rodi version: #{version_number}")
-    UI.message("Rodi build: #{build_number}")
+      UI.message("#{environment} version: #{version_number} (#{build_number})")
+    end
   end
 
   desc "Build Rodi Dev for the iOS Simulator"
