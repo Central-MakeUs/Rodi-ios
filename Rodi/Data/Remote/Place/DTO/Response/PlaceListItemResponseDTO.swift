@@ -13,4 +13,5 @@ struct PlaceListItemDTO: Decodable {
     let distanceMeters: Int?
     let capacity: Int?
     let openTime: String?
+    let isDeleted: Bool?
 }

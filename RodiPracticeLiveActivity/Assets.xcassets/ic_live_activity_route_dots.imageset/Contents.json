@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "live_activity_route_dots.svg",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

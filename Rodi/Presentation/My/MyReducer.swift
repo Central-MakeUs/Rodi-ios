@@ -13,19 +13,29 @@ struct MyReducer: Reducer {
         var hasCompletedInitialLoad = false
         var profileErrorMessage: String?
         var profileRequestID = 0
+        var pendingLevelUp: MemberProfile.Level?
         var networkStatus: NetworkConnectionMonitor.Status = .checking
         var shouldRetryProfileAfterRecovery = false
         var hasAutomaticallyRetriedAfterRecovery = false
         var snackbarMessage: String?
         var didEndSessionRequestID = 0
         var hasTrackedMyOpen = false
+        var practiceRecordPreview: [MyPracticeItem] = []
+        var isLoadingPracticeRecords = false
+        var hasCompletedPracticeRecordLoad = false
+        var practiceRecordErrorMessage: String?
+        var practiceRecordRequestID = 0
     }
 
     enum Action {
         case appeared
+        case practiceRecordsAppeared
+        case retryPracticeRecordsTapped
+        case practiceRecordsLoaded(MyPracticeLoadResult, requestID: Int)
         case retryProfileTapped
         case networkStatusChanged(NetworkConnectionMonitor.Status)
         case profileLoaded(ProfileLoadResult, requestID: Int)
+        case levelUpDialogConfirmed
         case drivingGoalUpdated(MemberProfile)
         case logoutConfirmed
         case withdrawalConfirmed
@@ -38,6 +48,11 @@ struct MyReducer: Reducer {
         case failure(String)
     }
 
+    enum MyPracticeLoadResult {
+        case success(MyPracticePage)
+        case failure(String)
+    }
+
     enum SessionEndReason {
         case logout
         case withdrawal
@@ -45,22 +60,29 @@ struct MyReducer: Reducer {
 
     private enum EffectID {
         case profile
+        case practiceRecords
         case session
         case snackbar
     }
 
     private let authRepository: AuthRepository
     private let memberRepository: MemberRepository
+    private let practiceRepository: PracticeRepository
     private let recentLoginProviderStore: RecentLoginProviderStore
+    private let levelUpPresentationStore: LevelUpPresentationStoring
 
     init(
         authRepository: AuthRepository,
         memberRepository: MemberRepository,
-        recentLoginProviderStore: RecentLoginProviderStore
+        practiceRepository: PracticeRepository,
+        recentLoginProviderStore: RecentLoginProviderStore,
+        levelUpPresentationStore: LevelUpPresentationStoring
     ) {
         self.authRepository = authRepository
         self.memberRepository = memberRepository
+        self.practiceRepository = practiceRepository
         self.recentLoginProviderStore = recentLoginProviderStore
+        self.levelUpPresentationStore = levelUpPresentationStore
     }
 
 }
@@ -81,6 +103,29 @@ extension MyReducer {
                 return .none
             }
             return loadProfile(state: &state)
+
+        case .practiceRecordsAppeared:
+            guard !state.isLoadingPracticeRecords else {
+                return .none
+            }
+            return loadPracticeRecords(state: &state)
+
+        case .retryPracticeRecordsTapped:
+            guard !state.isLoadingPracticeRecords else { return .none }
+            return loadPracticeRecords(state: &state)
+
+        case let .practiceRecordsLoaded(result, requestID):
+            guard requestID == state.practiceRecordRequestID else { return .none }
+            state.isLoadingPracticeRecords = false
+            state.hasCompletedPracticeRecordLoad = true
+
+            switch result {
+            case .success(let page):
+                state.practiceRecordPreview = Array(page.items.filter { $0.status == .visited }.prefix(5))
+                state.practiceRecordErrorMessage = nil
+            case .failure(let message):
+                state.practiceRecordErrorMessage = message
+            }
 
         case .retryProfileTapped:
             guard !state.isLoadingProfile else { return .none }
@@ -112,6 +157,7 @@ extension MyReducer {
             case .success(let profile):
                 state.profile = profile
                 state.profileErrorMessage = nil
+                updatePendingLevelUp(profile: profile, state: &state)
                 RodiAnalytics.setUserContext(
                     userMode: "member",
                     loginProvider: nil,
@@ -123,6 +169,9 @@ extension MyReducer {
                 state.profileErrorMessage = message
                 return retryProfileAfterRecoveryIfNeeded(state: &state)
             }
+
+        case .levelUpDialogConfirmed:
+            state.pendingLevelUp = nil
 
         case .drivingGoalUpdated(let profile):
             state.profile = profile
@@ -191,6 +240,31 @@ extension MyReducer {
         return loadProfile(state: &state)
     }
 
+    func loadPracticeRecords(state: inout State) -> Effect<Action> {
+        state.isLoadingPracticeRecords = true
+        state.practiceRecordErrorMessage = nil
+        state.practiceRecordRequestID += 1
+        let requestID = state.practiceRecordRequestID
+        let practiceRepository = practiceRepository
+
+        return .run { send in
+            do {
+                let page = try await practiceRepository.fetchMyPractices(query: .init(size: 20))
+                await send(.practiceRecordsLoaded(.success(page), requestID: requestID))
+            } catch {
+                await send(.practiceRecordsLoaded(.failure(practiceRecordMessage(for: error)), requestID: requestID))
+            }
+        }
+        .cancelTask(id: EffectID.practiceRecords)
+    }
+
+    func practiceRecordMessage(for error: Error) -> String {
+        if case NetworkError.networkUnavailable = error {
+            return "인터넷 연결을 확인한 뒤 다시 시도해 주세요."
+        }
+        return "연습기록을 불러오지 못했어요."
+    }
+
     func logout(state: inout State) -> Effect<Action> {
         .run { send in
             do {
@@ -249,4 +323,23 @@ extension MyReducer {
         #endif
     }
 
+}
+
+// MARK: - Level Up
+private extension MyReducer {
+    func updatePendingLevelUp(profile: MemberProfile, state: inout State) {
+        let result = levelUpPresentationStore.check(level: profile.level)
+
+        if state.pendingLevelUp == nil {
+            state.pendingLevelUp = result.levelToPresent
+        }
+
+        #if DEBUG
+        let previousLevel = result.previousLevel?.rawValue ?? "baseline"
+        let dialogLevel = result.levelToPresent?.rawValue ?? "none"
+        RodiLogger.info(
+            "레벨업 확인: previousLevel=\(previousLevel), fetchedLevel=\(profile.level.rawValue), dialogLevel=\(dialogLevel)"
+        )
+        #endif
+    }
 }

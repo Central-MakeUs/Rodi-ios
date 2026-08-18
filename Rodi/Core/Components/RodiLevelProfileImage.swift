@@ -50,6 +50,24 @@ struct RodiLevelProfileImage: View {
         )
     }
 
+    init(
+        level: ReviewLevel,
+        size: CGFloat,
+        containerHeight: CGFloat? = nil,
+        backgroundColor: Color? = nil,
+        cornerRadius: CGFloat = 0,
+        imageOffsetY: CGFloat = 10
+    ) {
+        self.init(
+            assetName: level.profileImageAssetName,
+            size: size,
+            containerHeight: containerHeight ?? size,
+            backgroundColor: backgroundColor,
+            cornerRadius: cornerRadius,
+            imageOffsetY: imageOffsetY
+        )
+    }
+
     var body: some View {
         ZStack {
             if let backgroundColor {
@@ -97,6 +115,18 @@ private extension MemberProfile.Level {
 }
 
 private extension MemberOnboardingSubmission.DrivingLevel {
+    var profileImageAssetName: String {
+        switch self {
+        case .seed: "img_rabbit_seed"
+        case .rookie: "img_rabbit_rookie"
+        case .owner: "img_rabbit_owner"
+        case .explorer: "img_rabbit_explorer"
+        case .navigator: "img_rabbit_navigation"
+        }
+    }
+}
+
+private extension ReviewLevel {
     var profileImageAssetName: String {
         switch self {
         case .seed: "img_rabbit_seed"

@@ -24,6 +24,9 @@ struct RecommendListBottomSheetReducer: Reducer {
         var isInitialLoading = false
         var isNextPageLoading = false
         var isManualResearchLoading = false
+        /// 지역 검색으로 카메라가 새 viewport에 도달하기 전의 일시 상태입니다.
+        /// 이전 viewport 결과를 빈 결과로 잘못 보여주지 않기 위해 별도로 관리합니다.
+        var isAwaitingRegionViewport = false
         var errorMessage: String?
         var needsResearch = false
         var requestRevision = 0
@@ -34,9 +37,11 @@ struct RecommendListBottomSheetReducer: Reducer {
         case present
         case collapse
         case expand
+        case regionViewportReloadStarted
         case viewportChanged(viewport: PlaceViewport, center: RodiCoordinate, isUserInitiated: Bool)
         case prepareInitialSearch(origin: RodiCoordinate)
         case reloadCurrentViewport(origin: RodiCoordinate?)
+        case reloadAfterRegionViewport(origin: RodiCoordinate)
         case reloadAfterFilter
         case loadNextPage
         case pageLoaded(
@@ -57,6 +62,7 @@ struct RecommendListBottomSheetReducer: Reducer {
         case presentFilter
         case requestAuthentication
         case showSnackbar(String)
+        case collapsedByUser
         case displayStateChanged(presentation: Presentation, showsResearchButton: Bool)
     }
 
@@ -87,10 +93,25 @@ extension RecommendListBottomSheetReducer {
 
         case .collapse:
             state.presentation = .collapsed
-            return displayStateEffect(state)
+            return .send(.delegate(.collapsedByUser))
 
         case .expand:
+            guard !state.items.isEmpty else { return .none }
             state.presentation = .expanded
+            return displayStateEffect(state)
+
+        case .regionViewportReloadStarted:
+            state.requestRevision += 1
+            state.items = []
+            state.activeViewport = nil
+            state.nextCursor = nil
+            state.hasNext = false
+            state.isInitialLoading = false
+            state.isNextPageLoading = false
+            state.isManualResearchLoading = false
+            state.isAwaitingRegionViewport = true
+            state.errorMessage = nil
+            state.needsResearch = false
             return displayStateEffect(state)
 
         case let .viewportChanged(viewport, center, isUserInitiated):
@@ -143,6 +164,12 @@ extension RecommendListBottomSheetReducer {
                   !state.isNextPageLoading else { return .none }
             return loadFirstPage(viewport: viewport, origin: origin ?? center, state: &state, isManualResearch: true)
 
+        case .reloadAfterRegionViewport(let origin):
+            guard let viewport = state.latestViewport,
+                  !state.isInitialLoading,
+                  !state.isNextPageLoading else { return .none }
+            return loadFirstPage(viewport: viewport, origin: origin, state: &state, isManualResearch: false)
+
         case .reloadAfterFilter:
             guard let viewport = state.latestViewport,
                   let origin = state.requestOrigin ?? state.latestViewportCenter,
@@ -181,6 +208,11 @@ extension RecommendListBottomSheetReducer {
             state.isManualResearchLoading = false
             state.errorMessage = nil
             if !isAppending,
+               state.items.isEmpty,
+               state.presentation == .expanded {
+                state.presentation = .medium
+            }
+            if !isAppending,
                isManualResearch,
                state.presentation == .collapsed {
                 state.presentation = .medium
@@ -213,6 +245,7 @@ extension RecommendListBottomSheetReducer {
 
     private func loadFirstPage(viewport: PlaceViewport, origin: RodiCoordinate, state: inout State, isManualResearch: Bool) -> Effect<Action> {
         state.requestRevision += 1
+        state.isAwaitingRegionViewport = false
         state.isInitialLoading = true
         state.isNextPageLoading = false
         state.isManualResearchLoading = isManualResearch

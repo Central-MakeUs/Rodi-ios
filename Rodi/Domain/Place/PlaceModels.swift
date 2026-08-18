@@ -178,6 +178,7 @@ struct PlaceListItem: Equatable, Identifiable {
     let distanceMeters: Int?
     let capacity: Int?
     let openTime: String?
+    let isDeleted: Bool
 }
 
 struct PlaceCursorPage: Equatable {

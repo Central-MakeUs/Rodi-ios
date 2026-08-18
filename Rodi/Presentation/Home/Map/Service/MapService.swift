@@ -11,9 +11,12 @@ enum MapServiceInAction {
 }
 
 enum MapServiceOutAction {
-    case currentLocationResolved(RodiCoordinate)
+    case currentLocationResolved(RodiCoordinate, source: LocationRequestSource)
     case currentLocationUnavailable(source: LocationRequestSource)
-    case currentLocationPermissionDenied(source: LocationRequestSource)
+    case currentLocationPermissionDenied(
+        source: LocationRequestSource,
+        authorizationState: LocationAuthorizationState
+    )
     case userHeadingUpdated(Double)
     case placeCoordinatesLoaded([PlaceCoordinate])
     case placeCoordinatesLoadFailed
@@ -33,18 +36,25 @@ final class MapService {
         self.locationService = locationService
     }
 
+    var locationAuthorizationState: LocationAuthorizationState {
+        locationService.authorizationState
+    }
+
     func perform(_ action: MapServiceInAction) async -> MapServiceOutAction? {
         switch action {
         case .requestCurrentLocation(let source):
             switch await locationService.requestLocation() {
             case .resolved(let coordinate):
-                return .currentLocationResolved(coordinate)
+                return .currentLocationResolved(coordinate, source: source)
 
             case .unavailable:
                 return .currentLocationUnavailable(source: source)
 
-            case .permissionDenied:
-                return .currentLocationPermissionDenied(source: source)
+            case .permissionDenied(let authorizationState):
+                return .currentLocationPermissionDenied(
+                    source: source,
+                    authorizationState: authorizationState
+                )
             }
 
         case .loadPlaceCoordinates:

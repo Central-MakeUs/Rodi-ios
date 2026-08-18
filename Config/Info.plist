@@ -53,7 +53,14 @@
 		<string>kakaolink</string>
 	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>현재 위치를 기반으로 주변 운전 연습 코스와 주차장을 표시하고, 거리 정렬과 길안내 연동을 제공하기 위해 위치정보를 사용합니다.</string>
+	<string>현재 위치로 주변 운전 연습 장소를 보여드리고, 사용자가 시작한 연습의 방문 인증과 실시간 진행 현황을 제공하기 위해 위치 정보를 사용합니다.</string>
+	<key>NSLocationTemporaryUsageDescriptionDictionary</key>
+	<dict>
+		<key>PracticeTracking</key>
+		<string>사용자가 시작한 연습의 방문 인증과 실시간 진행 현황을 정확하게 확인하기 위해 정밀한 위치가 필요합니다.</string>
+	</dict>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>RODI_API_BASE_URL</key>
 	<string>$(RODI_API_BASE_URL)</string>
 	<key>RODI_ANALYTICS_ENABLED</key>
@@ -66,6 +73,10 @@
 		<string>Pretendard-Medium.otf</string>
 		<string>Pretendard-SemiBold.otf</string>
 		<string>Pretendard-Bold.otf</string>
+	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
 	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>

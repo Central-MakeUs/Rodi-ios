@@ -8,6 +8,7 @@ import Foundation
 enum RodiMapEvent {
     case ready
     case markerTap(String)
+    case routePointTap(Int)
     case viewportChanged(
         center: RodiCoordinate,
         zoomLevel: Int,

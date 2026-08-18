@@ -10,6 +10,7 @@ final class Coordinator<Destination: Route>: ObservableObject {
     private var isTransitioning = false
     private var transitionIdentifier = 0
     private let acceptsSystemPath: ([Destination], [Destination]) -> Bool
+    private let animatedTransitionFallbackNanoseconds: UInt64 = 750_000_000
 
     /// 지정한 초기 route 경로로 Coordinator를 생성합니다.
     /// `acceptsSystemPath`는 시스템 뒤로가기 등 NavigationStack이 제안한 path를 수용할지 결정합니다.
@@ -79,6 +80,8 @@ final class Coordinator<Destination: Route>: ObservableObject {
             withTransaction(transaction) {
                 path = nextPath
             }
+
+            scheduleAnimatedTransitionFallback(identifier: identifier)
         } else {
             withAnimation(.default) {
                 path = nextPath
@@ -88,6 +91,15 @@ final class Coordinator<Destination: Route>: ObservableObject {
                 await Task.yield()
                 self?.finishTransition(identifier: identifier)
             }
+        }
+    }
+
+    private func scheduleAnimatedTransitionFallback(identifier: Int) {
+        let fallbackDelay = animatedTransitionFallbackNanoseconds
+
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: fallbackDelay)
+            self?.finishTransition(identifier: identifier)
         }
     }
 

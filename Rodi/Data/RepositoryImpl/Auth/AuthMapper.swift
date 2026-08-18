@@ -19,6 +19,8 @@ extension SocialLoginResponseDTO {
                     accessToken: accessToken,
                     refreshToken: refreshToken,
                     isNewMember: isNewMember ?? false,
+                    isOnboarded: isOnboarded ?? false,
+                    isCourseTutorialCompleted: isCourseTutorialCompleted ?? false,
                     nickname: nickname?.trimmingCharacters(
                         in: .whitespacesAndNewlines
                     )
@@ -35,6 +37,10 @@ extension SocialLoginResponseDTO {
                         recoverableUntil
                     )
                 )
+            )
+        case .withdrawalLocked:
+            return .withdrawalLocked(
+                rejoinAvailableAt: date(reRegisterableAt)
             )
         }
     }

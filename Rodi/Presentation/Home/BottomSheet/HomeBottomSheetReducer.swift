@@ -28,6 +28,7 @@ struct HomeBottomSheetReducer: Reducer {
         case resolveRecommendedPlace(id: Int)
         case resolveSavedPlace(PlaceListItem)
         case clearSearchSelection
+        case reviewFlowFinished
         case prepareForCurrentLocation
         case placeResolved(PlaceDetail)
         case placeDetailPresentationFinished(id: Int)
@@ -50,8 +51,11 @@ struct HomeBottomSheetReducer: Reducer {
             isBottomTabBarVisible: Bool,
             isResearchButtonVisible: Bool
         )
+        case recommendationCollapsed
         case requestAuthentication
         case showSnackbar(String)
+        case reviewWritingRequested(ReviewWriteRequest)
+        case reviewEditingRequested(Int)
     }
 
     private let placeRepository: PlaceRepository
@@ -77,10 +81,15 @@ struct HomeBottomSheetReducer: Reducer {
         )
         courseDetailReducer = CourseDetailBottomSheetReducer(
             placeRepository: dependencies.placeRepository,
+            memberRepository: dependencies.memberRepository,
+            practiceRepository: dependencies.practiceRepository,
+            reviewRepository: dependencies.reviewRepository,
+            practiceMeasurementStore: dependencies.practiceMeasurementStore,
             hasActiveSession: hasActiveSession
         )
         parkingDetailReducer = ParkingDetailBottomSheetReducer(
             placeRepository: dependencies.placeRepository,
+            practiceMeasurementStore: dependencies.practiceMeasurementStore,
             hasActiveSession: hasActiveSession
         )
     }
@@ -134,6 +143,14 @@ extension HomeBottomSheetReducer {
             state.courseDetail = .init()
             state.parkingDetail = .init()
             return .cancel(id: BottomSheetEffectID.placeDetailLoading)
+
+        case .reviewFlowFinished:
+            guard state.route == .courseDetail,
+                  state.courseDetail.detail != nil
+            else {
+                return .none
+            }
+            return .send(.courseDetail(.reviews(.reviewSubmissionRefreshRequested)))
 
         case .prepareForCurrentLocation:
             switch state.route {
@@ -256,6 +273,16 @@ extension HomeBottomSheetReducer {
         case .showSnackbar(let message):
             return .send(.delegate(.showSnackbar(message)))
 
+        case .collapsedByUser:
+            return actions([
+                .delegate(.recommendationCollapsed),
+                .delegate(.recommendationPresentationChanged(
+                    isBottomTabBarVisible: state.resolvingPlaceID == nil
+                        && state.route == .recommendList,
+                    isResearchButtonVisible: state.recommendList.needsResearch
+                ))
+            ])
+
         case let .displayStateChanged(presentation, showsResearchButton):
             return .send(.delegate(.recommendationPresentationChanged(
                 isBottomTabBarVisible: state.resolvingPlaceID == nil
@@ -290,6 +317,7 @@ extension HomeBottomSheetReducer {
 
         case .showSnackbar(let message):
             return .send(.delegate(.showSnackbar(message)))
+
         }
     }
 
@@ -308,6 +336,12 @@ extension HomeBottomSheetReducer {
 
         case .showSnackbar(let message):
             return .send(.delegate(.showSnackbar(message)))
+
+        case .reviewWritingRequested(let request):
+            return .send(.delegate(.reviewWritingRequested(request)))
+
+        case .reviewEditingRequested(let reviewID):
+            return .send(.delegate(.reviewEditingRequested(reviewID)))
         }
     }
 

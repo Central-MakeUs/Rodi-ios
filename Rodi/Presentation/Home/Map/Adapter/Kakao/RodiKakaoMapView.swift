@@ -32,6 +32,8 @@ final class RodiKakaoMapView: UIView {
         static let viewName = "rodi_home_map"
         static let mapLevel = 14
         static let koreaOverviewLevel = 6
+        static let regionFocusLevel = 11
+        static let regionFocusVerticalOffsetRatio: CGFloat = 0.05
         static let oneKilometerFocusLevel = 14
         static let closeSingleLocationLevel = 15
         static let focusAnimationDurationMillis: UInt = 700
@@ -100,6 +102,7 @@ final class RodiKakaoMapView: UIView {
     var renderedHomeMarkerCoordinatesByPoiID: [String: RodiCoordinate] = [:]
     var registeredHomeMarkerStyleIDs: Set<String> = []
     var routeMarkerPoiIDs: [String] = []
+    var routePointIDsByPoiID: [String: Int] = [:]
     var mapEventHandlers: [DisposableEventHandler] = []
     var viewportChangeGeneration = 0
     /// SDK가 시뮬레이터 제스처를 notUserAction으로 보고하는 경우를 피하기 위해,

@@ -29,7 +29,7 @@ enum AppVersionUpdateChecker {
         let trackViewUrl: URL?
     }
 
-    static func checkForOptionalUpdate() async -> AppVersionUpdate? {
+    static func checkForRequiredUpdate() async -> AppVersionUpdate? {
         guard
             let bundleIdentifier = Bundle.main.bundleIdentifier,
             let currentVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
@@ -58,7 +58,7 @@ enum AppVersionUpdateChecker {
                 return nil
             }
 
-            RodiLogger.info("App version update available: current=\(currentVersion), latest=\(result.version)")
+            RodiLogger.info("Mandatory app version update required: current=\(currentVersion), latest=\(result.version)")
             return AppVersionUpdate(
                 currentVersion: currentVersion,
                 latestVersion: result.version,

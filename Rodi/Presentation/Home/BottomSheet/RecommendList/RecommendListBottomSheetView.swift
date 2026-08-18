@@ -8,6 +8,8 @@ import SwiftUI
 struct RecommendListBottomSheetView: View {
     let state: RecommendListBottomSheetReducer.State
     let send: (RecommendListBottomSheetReducer.Action) -> Void
+    let debugReviewTestAction: () -> Void
+    let debugHardWithdrawAction: @MainActor () async throws -> Void
 
     var body: some View {
         VStack(spacing: 0) {
@@ -20,13 +22,16 @@ struct RecommendListBottomSheetView: View {
             PlaceListView(
                 items: state.items,
                 isInitialLoading: state.isInitialLoading,
+                isAwaitingRegionViewport: state.isAwaitingRegionViewport,
                 isNextPageLoading: state.isNextPageLoading,
                 errorMessage: state.errorMessage,
                 hasNextPage: state.hasNext,
                 isExpanded: state.presentation == .expanded,
                 selectAction: { send(.select($0)) },
                 reloadAction: { send(.reloadCurrentViewport(origin: nil)) },
-                loadNextPageAction: { send(.loadNextPage) }
+                loadNextPageAction: { send(.loadNextPage) },
+                debugReviewTestAction: debugReviewTestAction,
+                debugHardWithdrawAction: debugHardWithdrawAction
             )
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)

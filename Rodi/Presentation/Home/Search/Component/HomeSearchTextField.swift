@@ -8,6 +8,7 @@ import SwiftUI
 struct HomeSearchTextField: View {
     @Binding var text: String
     @FocusState.Binding var isFocused: Bool
+    var placeholder = "시/군/구/코스명으로 검색하기"
     let backAction: () -> Void
     let submitAction: () -> Void
 
@@ -22,7 +23,7 @@ struct HomeSearchTextField: View {
             .buttonStyle(.plain)
             .accessibilityLabel("검색 닫기")
 
-            TextField("시/군/구/코스명으로 검색하기", text: $text)
+            TextField(placeholder, text: $text)
                 .focused($isFocused)
                 .submitLabel(.search)
                 .onSubmit(submitAction)

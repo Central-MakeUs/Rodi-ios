@@ -13,13 +13,13 @@ struct OnboardingRouterView: View {
     @State private var hasStarted = false
 
     private let sessionStore: OnboardingSessionStore
-    private let onComplete: () -> Void
+    private let onComplete: (Bool) -> Void
     private let automaticLoginProvider: SocialLoginProvider?
     private let automaticLoginRequestConsumed: () -> Void
     private let dependencies: AppDependencies
 
     init(
-        onComplete: @escaping () -> Void,
+        onComplete: @escaping (Bool) -> Void,
         automaticLoginProvider: SocialLoginProvider? = nil,
         automaticLoginRequestConsumed: @escaping () -> Void = {},
         sessionStore: OnboardingSessionStore = .init(),
@@ -124,9 +124,9 @@ private extension OnboardingRouterView {
                 sessionStore.save(session, route: route)
             }
 
-        case .complete:
+        case .complete(let isCourseTutorialCompleted):
             sessionStore.markCompleted()
-            onComplete()
+            onComplete(isCourseTutorialCompleted)
         }
     }
 

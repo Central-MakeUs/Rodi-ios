@@ -17,6 +17,14 @@ struct ParkingDetailBottomSheetReducer: Reducer {
         case toggleBookmark
         case bookmarkUpdated(placeID: Int, isBookmarked: Bool, source: String)
         case bookmarkFailed(previousDetail: PlaceDetail, message: String)
+        case externalRouteGuidanceWillOpen(
+            placeID: Int,
+            mode: PracticeMeasurementMode,
+            measurementID: UUID,
+            externalHandoffAt: Date
+        )
+        case externalRouteGuidanceFailed(measurementID: UUID)
+        case activeMeasurementEnded
         case delegate(Delegate)
     }
 
@@ -28,13 +36,16 @@ struct ParkingDetailBottomSheetReducer: Reducer {
     }
 
     private let placeRepository: PlaceRepository
+    private let practiceMeasurementStore: PracticeMeasurementStoring
     private let hasActiveSession: () -> Bool
     private let onDelegate: (Delegate) -> Void
 
     init(placeRepository: PlaceRepository,
+         practiceMeasurementStore: PracticeMeasurementStoring,
          hasActiveSession: @escaping () -> Bool,
          onDelegate: @escaping (Delegate) -> Void = { _ in }) {
         self.placeRepository = placeRepository
+        self.practiceMeasurementStore = practiceMeasurementStore
         self.hasActiveSession = hasActiveSession
         self.onDelegate = onDelegate
     }
@@ -72,13 +83,33 @@ extension ParkingDetailBottomSheetReducer {
             state.detail = state.detail?.updatingBookmark(isBookmarked: isBookmarked)
             state.isBookmarkUpdating = false
             RodiAnalytics.track(.bookmarkUpdated(isBookmarked: isBookmarked, source: source, placeType: PlaceType.parking.rawValue))
-            return .send(.delegate(.showSnackbar(isBookmarked ? "북마크를 저장했어요." : "북마크를 해제했어요.")))
+            return .none
 
         case .bookmarkFailed(let previousDetail, let message):
             guard state.detail?.id == previousDetail.id else { return .none }
             state.detail = previousDetail
             state.isBookmarkUpdating = false
             return .send(.delegate(.showSnackbar(message)))
+
+        case let .externalRouteGuidanceWillOpen(placeID, mode, measurementID, externalHandoffAt):
+            guard state.detail?.id == placeID, let name = state.detail?.name else { return .none }
+            practiceMeasurementStore.save(.init(
+                id: measurementID,
+                placeID: placeID,
+                placeName: name,
+                placeType: .parking,
+                mode: mode,
+                externalHandoffAt: externalHandoffAt,
+                status: mode == .gpsTracking ? .tracking : .awaitingReturn
+            ))
+            PracticeTrackingService.shared.synchronizeCompletedSessionCertificationIfNeeded()
+
+        case let .externalRouteGuidanceFailed(measurementID):
+            guard practiceMeasurementStore.load()?.id == measurementID else { return .none }
+            practiceMeasurementStore.clear()
+
+        case .activeMeasurementEnded:
+            practiceMeasurementStore.clear()
 
         case .delegate(let delegate):
             onDelegate(delegate)

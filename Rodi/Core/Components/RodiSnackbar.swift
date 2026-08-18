@@ -30,7 +30,7 @@ struct RodiSnackbarModifier: ViewModifier {
                         RodiSnackbar(message: message)
                             .padding(.horizontal, 16)
                             .padding(.bottom, 96)
-                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                            .transition(.opacity)
                             .allowsHitTesting(false)
                 }
             }

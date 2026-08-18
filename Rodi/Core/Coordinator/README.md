@@ -1,6 +1,6 @@
 # Coordinator Core
 
-`Coordinator Core`는 iOS 16 이상 SwiftUI `NavigationStack`의 typed path를 관리하기 위한 작은 공통 계층입니다.
+`Coordinator Core`는 SwiftUI `NavigationStack`의 typed path를 관리하기 위한 작은 공통 계층입니다.
 
 이 모듈은 화면의 destination을 만들지 않고, 비즈니스 state를 갖지도 않으며, MVI Reducer도 아닙니다. route path 변경과 전환 중 입력 정책만 일관되게 관리합니다.
 
@@ -72,7 +72,7 @@ struct AppNavigationView: View {
 }
 ```
 
-`NavigationStack`을 실제로 호스팅하는 View만 주입된 `Coordinator`의 `pathBinding`을 사용합니다. 그 하위 View는 `Router`만 받고 `[Route]`나 `Coordinator`를 새로 만들지 않습니다.
+View는 `Router`만 받고 `[Route]`나 `Coordinator`를 새로 만들지 않습니다.
 
 ```swift
 struct HomeView: View {
@@ -158,7 +158,11 @@ Coordinator는 `@MainActor`로 path를 직렬화합니다. Coordinator가 시작
 
 이 정책은 두 번 탭했을 때 화면이 두 번 push되는 문제를 막기 위한 것입니다. 요청을 큐잉하거나 마지막 요청으로 바꾸지 않습니다. 의도적인 여러 경로 변경은 `NavigationPlan`으로 명시해야 합니다.
 
-잠금 해제는 iOS 17 이상에서 `Transaction.addAnimationCompletion(criteria: .logicallyComplete)`를 사용합니다. iOS 16에서는 다음 run loop까지 잠금을 유지해 같은 turn의 중복 요청을 막습니다. Coordinator는 `ObservableObject`/`@Published`로 상태를 공개하므로 앱의 iOS 16.1 배포 기준과 호환됩니다.
+RODI의 최소 지원 버전은 iOS 16.1입니다. iOS 17 이상에서는
+`Transaction.addAnimationCompletion(criteria: .logicallyComplete)`로 전환 완료를 감지하고,
+iOS 16.1~16.x에서는 다음 run loop에서 잠금을 해제하는 fallback을 사용합니다. iOS 17의
+completion callback이 호출되지 않는 경우에는 전환 식별자를 확인하는 제한된 fallback으로
+잠금을 해제합니다.
 
 ## 시스템 뒤로가기
 
@@ -166,7 +170,9 @@ Coordinator는 `@MainActor`로 path를 직렬화합니다. Coordinator가 시작
 
 사용자 스와이프나 시스템 뒤로가기 버튼이 path를 바꾸면 Coordinator는 자동 전환보다 그 결과를 우선합니다. 진행 중인 전환 완료 콜백은 전환 식별자로 무효화되고, 이후 Router 요청은 새 path를 기준으로 처리됩니다.
 
-특정 feature가 시스템 path를 제한해야 하면 생성 시 `acceptsSystemPath` closure를 제공합니다. 이 closure는 system binding 변경에만 적용되며, `Router`가 요청한 정상적인 전환을 차단하지 않습니다.
+특정 feature가 시스템 path를 제한해야 하면 생성 시 `acceptsSystemPath` closure를 제공합니다.
+이 closure는 `NavigationStack`이 제안한 system path 변경에만 적용되며, `Router`가 요청한
+정상 전환을 차단하지 않습니다.
 
 `LockIsolated`, `NSLock` 등은 이 정책에 사용하지 않습니다. Coordinator path는 MainActor가 이미 직렬화하며, lock은 SwiftUI의 화면 전환 수명 전체를 보장하지 못합니다.
 

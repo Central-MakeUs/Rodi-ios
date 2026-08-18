@@ -52,6 +52,7 @@ enum RodiMapCameraFocus: Equatable {
     case normal
     case currentLocation
     case koreaOverview
+    case region
     case closeSingleLocation
     case cluster(coordinates: [RodiCoordinate])
 }

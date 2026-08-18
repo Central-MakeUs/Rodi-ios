@@ -10,6 +10,8 @@ import Foundation
 struct TokenRefreshResult {
     let accessToken: String
     let refreshToken: String
+    let isOnboarded: Bool
+    let isCourseTutorialCompleted: Bool
 }
 
 protocol TokenStoring: AnyObject {

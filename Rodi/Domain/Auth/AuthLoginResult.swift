@@ -9,6 +9,7 @@ import Foundation
 enum AuthLoginResult: Equatable {
     case authenticated(AuthToken)
     case withdrawalPending(AuthWithdrawalRecovery)
+    case withdrawalLocked(rejoinAvailableAt: Date?)
 }
 
 /// 탈퇴 유예 계정의 복구 및 재가입 안내에 필요한 서버 응답입니다.

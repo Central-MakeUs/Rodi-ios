@@ -34,6 +34,7 @@ final class AuthRepositoryImpl: AuthRepository {
         let trimmedCredential = credential.trimmingCharacters(
             in: .whitespacesAndNewlines
         )
+
         guard !trimmedCredential.isEmpty else {
             throw .apiError(
                 code: "COMMON_400",
@@ -103,6 +104,11 @@ final class AuthRepositoryImpl: AuthRepository {
                 code: "AUTH_RESTORE_PENDING",
                 message: "계정 복구 상태를 확인하지 못했어요."
             )
+        case .withdrawalLocked:
+            throw .apiError(
+                code: "AUTH_REJOIN_LOCKED",
+                message: "재가입 가능 시점을 확인해주세요."
+            )
         }
     }
     
@@ -132,6 +138,8 @@ final class AuthRepositoryImpl: AuthRepository {
             accessToken: refreshed.accessToken,
             refreshToken: refreshed.refreshToken,
             isNewMember: false,
+            isOnboarded: refreshed.isOnboarded,
+            isCourseTutorialCompleted: refreshed.isCourseTutorialCompleted,
             nickname: nil
         )
     }

@@ -10,6 +10,7 @@ enum MainTabIntent: Equatable {
     case openHomePlace(PlaceListItem)
     case openMyProfile
     case openMySavedPlaces
+    case openCourseRegistration
 }
 
 struct HomePlaceSelectionRequest: Equatable {
@@ -25,6 +26,7 @@ struct MainTabReducer: Reducer {
         var authenticationIntent: MainTabIntent?
         var isHomeBottomTabBarVisible = true
         var homePlaceSelectionRequest: HomePlaceSelectionRequest?
+        var myDataRefreshRequestID = 0
         fileprivate var nextHomePlaceSelectionRequestID = 0
     }
 
@@ -33,6 +35,8 @@ struct MainTabReducer: Reducer {
         case homeTabSelected
         
         case myTabTapped
+        case registerTabTapped
+        case courseRegistrationExited
         
         case navigationRequested(MainTabIntent)
         
@@ -70,13 +74,28 @@ extension MainTabReducer {
         case .myTabTapped:
             guard !hasActiveSession else {
                 state.selectedTab = .my
+                requestMyDataRefresh(state: &state)
                 return .none
             }
 
             state.authenticationIntent = .openMyProfile
 
+        case .registerTabTapped:
+            guard hasActiveSession else {
+                state.authenticationIntent = .openCourseRegistration
+                return .none
+            }
+            state.selectedTab = .register
+
+        case .courseRegistrationExited:
+            state.selectedTab = .home
+
         case .navigationRequested(let intent):
-            state.selectedTab = tab(for: intent)
+            let selectedTab = tab(for: intent)
+            state.selectedTab = selectedTab
+            if selectedTab == .my {
+                requestMyDataRefresh(state: &state)
+            }
             state.navigationIntent = intent
             if case .openHomePlace(let place) = intent {
                 state.nextHomePlaceSelectionRequestID += 1
@@ -113,6 +132,12 @@ extension MainTabReducer {
             .home
         case .openMyProfile, .openMySavedPlaces:
             .my
+        case .openCourseRegistration:
+            .register
         }
+    }
+
+    private func requestMyDataRefresh(state: inout State) {
+        state.myDataRefreshRequestID += 1
     }
 }

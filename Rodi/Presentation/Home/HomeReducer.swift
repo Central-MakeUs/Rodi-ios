@@ -29,10 +29,15 @@ struct HomeReducer: Reducer {
         var cameraRequestID = 0
         var animatedCameraRequestID: Int?
         var cameraFocus: RodiMapCameraFocus = .koreaOverview
+        var pendingRegionViewportReloadOrigin: RodiCoordinate?
+        var pendingRegionCameraRequestID: Int?
         var mapZoomLevel = 6
+        var isCurrentLocationButtonActive = false
 
         // MARK: User location
         var locationState: LocationState = .idle
+        var locationAuthorizationState: LocationAuthorizationState = .notDetermined
+        var hasCompletedInitialLocationResolution = false
         var userLocation: RodiCoordinate?
         var userHeadingDegrees: Double?
 
@@ -72,6 +77,7 @@ struct HomeReducer: Reducer {
     enum MapAction {
         case tabSelectionChanged(Bool)
         case activityChanged(Bool)
+        case locationAuthorizationRefreshRequested
         case becameReady
         case viewportChanged(
             center: RodiCoordinate,
@@ -107,6 +113,8 @@ struct HomeReducer: Reducer {
     private let hasActiveSession: () -> Bool
     /// NOTE - 확인 필요
     private let authenticationRequired: () -> Void
+    private let reviewWritingRequested: (ReviewWriteRequest) -> Void
+    private let reviewEditingRequested: (Int) -> Void
     private let markerTierResolver = MapMarkerTierResolver()
     private let markerInteractionResolver = MapMarkerInteractionResolver()
 
@@ -117,7 +125,9 @@ struct HomeReducer: Reducer {
 
     init(
         dependencies: AppDependencies,
-        authenticationRequired: @escaping () -> Void = {}
+        authenticationRequired: @escaping () -> Void = {},
+        reviewWritingRequested: @escaping (ReviewWriteRequest) -> Void = { _ in },
+        reviewEditingRequested: @escaping (Int) -> Void = { _ in }
     ) {
         mapService = MapService(
             placeRepository: dependencies.placeRepository,
@@ -134,6 +144,8 @@ struct HomeReducer: Reducer {
                 .contains { $0?.isEmpty == false }
         }
         self.authenticationRequired = authenticationRequired
+        self.reviewWritingRequested = reviewWritingRequested
+        self.reviewEditingRequested = reviewEditingRequested
     }
 }
 
@@ -166,12 +178,51 @@ extension HomeReducer {
         case .tabSelectionChanged(let isSelected):
             let wasMapInteractive = map.isMapInteractive
             map.isHomeTabSelected = isSelected
+            if !isSelected {
+                map.isCurrentLocationButtonActive = false
+            }
             return updateMapVisibility(wasMapInteractive: wasMapInteractive, state: &map)
 
         case .activityChanged(let isActive):
             let wasMapInteractive = map.isMapInteractive
             map.isAppActive = isActive
+            if !isActive {
+                map.isCurrentLocationButtonActive = false
+            }
             return updateMapVisibility(wasMapInteractive: wasMapInteractive, state: &map)
+
+        case .locationAuthorizationRefreshRequested:
+            let authorizationState = mapService.locationAuthorizationState
+            map.locationAuthorizationState = authorizationState
+
+            switch authorizationState {
+            case .authorized:
+                state.presentation.isLocationSettingsAlertPresented = false
+                guard map.mapLifecycle == .ready,
+                      map.userLocation == nil,
+                      map.locationState != .requesting
+                else {
+                    return .none
+                }
+                map.locationState = .requesting
+                let source: LocationRequestSource = map.hasCompletedInitialLocationResolution
+                    ? .foregroundRefresh
+                    : .initial
+                return mapServiceEffect(.requestCurrentLocation(source: source))
+
+            case .denied, .restricted:
+                map.locationState = .unavailable
+                map.hasCompletedInitialLocationResolution = true
+                map.userLocation = nil
+                map.userHeadingDegrees = nil
+                return .cancel(id: CancellationID.userHeadingUpdates)
+
+            case .notDetermined:
+                if map.userLocation == nil, map.locationState == .unavailable {
+                    map.locationState = .idle
+                }
+                return .none
+            }
 
         case .becameReady:
             guard map.mapLifecycle == .activating else { return .none }
@@ -180,6 +231,9 @@ extension HomeReducer {
 
         case let .viewportChanged(center, zoomLevel, viewport, isUserInitiated):
             map.mapZoomLevel = zoomLevel
+            if isUserInitiated {
+                map.isCurrentLocationButtonActive = false
+            }
             let tierResolution = markerTierResolver.resolve(
                 zoomLevel: zoomLevel,
                 forcedTier: map.forcedMarkerTier,
@@ -202,11 +256,23 @@ extension HomeReducer {
                 )
             }
 
-            return .send(.bottomSheet(.recommendList(.viewportChanged(
-                viewport: viewport,
-                center: center,
-                isUserInitiated: isUserInitiated
-            ))))
+            var followUpActions: [Action] = [
+                .bottomSheet(.recommendList(.viewportChanged(
+                    viewport: viewport,
+                    center: center,
+                    isUserInitiated: isUserInitiated
+                )))
+            ]
+
+            if !isUserInitiated,
+               map.pendingRegionCameraRequestID != nil,
+               let origin = map.pendingRegionViewportReloadOrigin {
+                map.pendingRegionCameraRequestID = nil
+                map.pendingRegionViewportReloadOrigin = nil
+                followUpActions.append(.bottomSheet(.recommendList(.reloadAfterRegionViewport(origin: origin))))
+            }
+
+            return actions(followUpActions)
 
         case .markerTapped(let markerID):
             guard let interaction = markerInteractionResolver.resolve(
@@ -216,6 +282,7 @@ extension HomeReducer {
             ) else {
                 return .none
             }
+            map.isCurrentLocationButtonActive = false
 
             switch interaction {
             case .cluster(let marker, let target):
@@ -254,6 +321,7 @@ extension HomeReducer {
                 : "parking-\(place.id)"
 
             state.presentation.isBottomTabBarVisible = false
+            map.isCurrentLocationButtonActive = false
             map.routeOverlay = nil
             map.selectedSearchResultName = nil
             map.selectedMarkerID = markerID
@@ -281,6 +349,8 @@ extension HomeReducer {
         case .cameraMoveFinished(let requestID):
             guard map.animatedCameraRequestID == requestID else { return .none }
             map.animatedCameraRequestID = nil
+            // Kakao의 camera completion은 viewport 갱신보다 먼저 올 수 있습니다.
+            // 지역 검색 목록은 새 viewport 이벤트에서만 다시 조회합니다.
             return .none
 
         case .currentLocationRequested:
@@ -289,6 +359,7 @@ extension HomeReducer {
             else {
                 return .none
             }
+            map.isCurrentLocationButtonActive = true
             return .send(.bottomSheet(.prepareForCurrentLocation))
 
         case .recommendationResearchButtonTapped:
@@ -309,6 +380,7 @@ extension HomeReducer {
                 authenticationRequired()
                 return .none
             }
+            map.isCurrentLocationButtonActive = false
             state.search = .init()
             state.presentation.searchOrigin = map.cameraTarget
             state.presentation.isSearchPresented = true
@@ -340,6 +412,7 @@ extension HomeReducer {
             else {
                 return .none
             }
+            map.locationAuthorizationState = mapService.locationAuthorizationState
             map.locationState = .requesting
             return mapServiceEffect(.requestCurrentLocation(source: .initial))
 
@@ -435,11 +508,20 @@ extension HomeReducer {
         state.presentation.isBottomTabBarVisible = isBottomTabBarVisible
         state.map.isResearchButtonVisible = isResearchButtonVisible
 
+    case .recommendationCollapsed:
+        state.map.selectedSearchResultName = nil
+
     case .requestAuthentication:
         authenticationRequired()
 
     case .showSnackbar(let message):
         state.presentation.pendingSnackbar = ToastStruct(message: message, state: .error)
+
+    case .reviewWritingRequested(let request):
+        reviewWritingRequested(request)
+
+    case .reviewEditingRequested(let reviewID):
+        reviewEditingRequested(reviewID)
     }
 
     return .none
@@ -469,6 +551,31 @@ extension HomeReducer {
             )
             return .send(.bottomSheet(.resolvePlace(id: id)))
 
+        case let .regionSelected(name, center):
+            state.presentation.isSearchPresented = false
+            state.presentation.searchOrigin = nil
+            state.presentation.isBottomTabBarVisible = true
+            state.search = .init()
+            state.map.selectedSearchResultName = name
+            state.map.routeOverlay = nil
+            state.map.selectedMarkerID = nil
+            state.map.isResearchButtonVisible = false
+            state.map.markers = RodiHomeMarkerClusterIndex.markers(
+                for: state.map.mapItems,
+                tier: state.map.displayedMarkerTier
+                    ?? RodiHomeMarkerClusterIndex.Tier(zoomLevel: state.map.mapZoomLevel)
+            )
+            state.map.cameraTarget = center
+            state.map.cameraFocus = .region
+            state.map.cameraRequestID += 1
+            state.map.animatedCameraRequestID = state.map.cameraRequestID
+            state.map.pendingRegionViewportReloadOrigin = center
+            state.map.pendingRegionCameraRequestID = state.map.cameraRequestID
+            return actions([
+                .bottomSheet(.recommendList(.regionViewportReloadStarted)),
+                .bottomSheet(.recommendList(.present))
+            ])
+
         case .dismissed:
             state.presentation.isSearchPresented = false
             state.presentation.searchOrigin = nil
@@ -496,19 +603,26 @@ extension HomeReducer {
         _ output: MapServiceOutAction, map: inout MapState, presentation: inout PresentationState
     ) -> Effect<Action> {
         switch output {
-        case .currentLocationResolved(let coordinate):
+        case let .currentLocationResolved(coordinate, source):
             guard map.locationState == .requesting else { return .none }
+            map.locationAuthorizationState = .authorized
             map.locationState = .resolved
+            map.hasCompletedInitialLocationResolution = true
             map.userLocation = coordinate
-            map.cameraTarget = coordinate
-            map.cameraFocus = .currentLocation
-            map.cameraRequestID += 1
-            map.animatedCameraRequestID = nil
+
+            if source != .foregroundRefresh {
+                map.cameraTarget = coordinate
+                map.cameraFocus = .currentLocation
+                map.cameraRequestID += 1
+                map.animatedCameraRequestID = nil
+            }
             return userHeadingUpdatesEffect(origin: coordinate)
 
         case .currentLocationUnavailable(let source):
             guard map.locationState == .requesting else { return .none }
+            map.locationAuthorizationState = mapService.locationAuthorizationState
             map.locationState = .unavailable
+            map.hasCompletedInitialLocationResolution = true
             if source == .userInitiated {
                 presentation.pendingSnackbar = ToastStruct(
                     message: "현재 위치를 확인할 수 없어요. 다시 시도해주세요.",
@@ -517,9 +631,13 @@ extension HomeReducer {
             }
             return .none
 
-        case .currentLocationPermissionDenied(let source):
+        case let .currentLocationPermissionDenied(source, authorizationState):
             guard map.locationState == .requesting else { return .none }
+            map.locationAuthorizationState = authorizationState
             map.locationState = .unavailable
+            map.hasCompletedInitialLocationResolution = true
+            map.userLocation = nil
+            map.userHeadingDegrees = nil
             if source == .userInitiated {
                 resetToKoreaOverview(&map)
                 presentation.isLocationSettingsAlertPresented = true
@@ -567,6 +685,14 @@ extension HomeReducer {
 // MARK: - Effect
 
 extension HomeReducer {
+
+    private func actions(_ actions: [Action]) -> Effect<Action> {
+        .run { send in
+            for action in actions {
+                await send(action)
+            }
+        }
+    }
 
     private func updateMapVisibility(
         wasMapInteractive: Bool, state: inout MapState) -> Effect<Action> {

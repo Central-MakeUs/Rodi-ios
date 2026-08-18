@@ -127,6 +127,16 @@ extension RodiKakaoMapView {
     }
 
     func adjustedCameraTarget(for coordinate: RodiCoordinate, level: Int) -> RodiCoordinate {
+        if latestCameraFocus == .region {
+            let markerYOffset = bounds.height * Constants.regionFocusVerticalOffsetRatio
+            let metersPerPixel = metersPerPixel(latitude: coordinate.latitude, zoomLevel: level)
+            let latitudeOffset = metersToLatitudeDegrees(markerYOffset * metersPerPixel)
+            return RodiCoordinate(
+                latitude: coordinate.latitude - latitudeOffset,
+                longitude: coordinate.longitude
+            )
+        }
+
         guard (latestCameraFocus == .closeSingleLocation || latestCameraFocus == .currentLocation),
               latestCameraBottomInset > 0,
               bounds.height > latestCameraBottomInset
@@ -167,6 +177,10 @@ extension RodiKakaoMapView {
     func cameraLevel(for map: KakaoMap, animated: Bool, focus: RodiMapCameraFocus) -> Int {
         if focus == .koreaOverview {
             return min(max(Constants.koreaOverviewLevel, map.minLevel), map.maxLevel)
+        }
+
+        if focus == .region {
+            return min(max(Constants.regionFocusLevel, map.minLevel), map.maxLevel)
         }
 
         if focus == .closeSingleLocation {

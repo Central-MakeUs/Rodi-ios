@@ -39,10 +39,13 @@ Rodi는 운전 연습이 막막한 초보 운전자에게 주변 연습 코스�
 - 현재 위치 또는 지도 화면 범위 기반 코스·주차장 탐색과 재검색
 - 줌 단계별 마커 클러스터링, 코스·주차장 상세 정보 및 경로 미리보기
 - 출발지, 경유지, 도착지를 포함한 코스 경로와 카카오맵·카카오내비 길안내 연동
-- 회원 북마크, 저장 목록, 운전 목표를 관리하는 마이페이지
+- 직접 찾은 장소를 기반으로 한 사용자 코스 등록
+- 연습기록, 후기 작성·수정, 북마크·저장 목록·운전 목표를 관리하는 마이페이지
 
 > Rodi는 운전 연습에 참고할 수 있는 코스 정보를 제공하는 서비스이며, 실제 도로 상황과 안전을 보장하지 않습니다. 사용자는 항상 교통 법규와 현장 상황을 우선해야 합니다.
 > 
+
+> 이 README는 공개 서비스 소개와 개발 진입점 안내를 위한 문서입니다. 구현 구조·API 계약·배포 정책의 원본은 각각 `Docs/ARCHITECTURE.md`, `Docs/API_SWAGGER.md`, `Docs/RELEASE.md`와 현재 코드에서 확인합니다.
 
 <br/>
 
@@ -53,30 +56,32 @@ Rodi는 운전 연습이 막막한 초보 운전자에게 주변 연습 코스�
     |-- App                         # 앱 진입점, RootView, AppRouter, 의존성 조합
     |
     |-- Core                        # 공통 인프라 및 기반 코드
+    |   |-- Analytics               # Firebase Analytics 이벤트 경계
+    |   |-- Architecture            # AppDependencies, MVICore
     |   |-- Components              # 공통 UI 컴포넌트
-    |   |-- DesignSystem            # 색상, 타이포그래피, 폰트 등록
+    |   |-- Coordinator             # typed NavigationStack 경로 관리
     |   |-- Extension               # Swift / SwiftUI 공통 Extension
-    |   |-- Feedback                # 앱 업데이트 체크, 햅틱 등 사용자 피드백
-    |   |-- MVICore                 # Store, Reducer, Effect 등 MVI 기반 코드
     |   |-- Network                 # 네트워크 매니저, 인터셉터, Keychain 토큰 저장
-    |   |-- Service                 # Logger, LegalDocument 등 공통 서비스
-    |   |-- Setting                 # 앱 환경설정, 외부 SDK 설정
+    |   |-- Service                 # Logger, 위치·네트워크·버전 확인 등 공통 서비스
     |
     |-- Data                        # 외부/로컬 데이터 구현 레이어
     |   |-- Local                   # UserDefaults 기반 온보딩 초안, 최근 로그인 제공자 저장
-    |   |-- Remote                  # Auth, Member, Place 서버 API 연동 구현
+    |   |-- Remote                  # Auth, Course, Member, Place, Practice, RecentSearch, Review 서버 API 연동 구현
     |
     |-- Domain                      # 앱 핵심 도메인 계약 및 모델
-    |   |-- Auth                    # 인증 도메인
-    |   |-- Member                  # 회원 프로필 및 온보딩 도메인
-    |   |-- Place                   # 코스, 주차장, 북마크 도메인
+    |   |-- Auth, Member            # 인증, 회원 프로필 및 온보딩 도메인
+    |   |-- Place, Practice, Review # 장소·연습기록·후기 도메인
+    |   |-- Course                  # 사용자 코스 등록·관리 도메인
     |
     |-- Presentation                # 화면 및 사용자 인터랙션 레이어
-    |   |-- Home                    # HomeMap, HomeBottomSheet, HomeSearch
+    |   |-- Home                    # 지도, BottomSheet, Search, 장소 상세
+    |   |-- CourseRegistration      # 사용자 코스 등록, 장소 선택, 핀 수정
+    |   |-- PracticeTracking        # 위치 기반 연습 측정과 Live Activity
+    |   |-- Review                  # 후기 작성·수정, 미방문 사유
     |   |-- Login                   # 소셜 로그인, 둘러보기, 탈퇴 계정 복구
+    |   |-- Onboarding              # 약관, 프로필, 권한 단계
     |   |-- MainTab                 # 탭 상태와 Feature 간 이동 intent
-    |   |-- My                      # MyReducer, MyRouter, 운전 목표, 저장 목록
-    |   |-- Onboarding              # RouterView, Terms, Profile, Permission
+    |   |-- My                      # 프로필, 연습기록, 내 게시글, 저장·차단 목록
     |
     |-- Resources                   # 앱 리소스
         |-- Assets.xcassets         # 이미지, 아이콘 에셋
@@ -90,7 +95,7 @@ Rodi는 SwiftUI를 기반으로 하되, 지도 SDK가 UIKit 중심이라는 점�
 
 - `AppRouter`는 온보딩과 메인 탭의 전역 전환, 로그인 필요 화면을 관리합니다.
 - `MainTabReducer`는 탭 선택과 Feature 간 intent만 소유하며 Home/My 화면은 탭 전환 뒤에도 유지됩니다.
-- Home은 `HomeMap`, `HomeBottomSheet`, `HomeSearch`로 나뉘고, 지도 SDK lifecycle은 runtime service, 화면 상태와 API Effect는 reducer가 담당합니다.
+- Home은 Map, BottomSheet, Search 영역을 합성하며, 지도 SDK adapter와 화면 상태·API Effect의 책임을 분리합니다.
 - Onboarding은 `NavigationStack` 기반 RouterView 위에서 Login, Terms, Profile, Permission Feature가 각자 입력·검증·비동기 처리를 담당합니다.
 - `AppDependencies`에서 Repository를 한 번 만들고 명시적으로 주입해, View나 Reducer가 전역 container를 직접 참조하지 않습니다.
 - Home/My 탭은 숨겨져도 유지하며, 지도 좌표 요청은 취소와 revision으로 늦은 응답이 최신 상태를 덮지 못하게 합니다.

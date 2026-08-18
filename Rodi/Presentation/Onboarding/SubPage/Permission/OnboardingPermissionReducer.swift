@@ -94,7 +94,7 @@ extension OnboardingPermissionReducer {
                 )
             state.transition = .init(
                 updatedSession: state.session,
-                navigation: .complete
+                navigation: .complete(isCourseTutorialCompleted: false)
             )
 
         case .backTapped:

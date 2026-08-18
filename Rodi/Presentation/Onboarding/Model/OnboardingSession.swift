@@ -132,7 +132,7 @@ struct OnboardingTransition: Equatable {
     enum Navigation: Equatable {
         case push(OnboardingRoute)
         case pop
-        case complete
+        case complete(isCourseTutorialCompleted: Bool)
     }
 
     let updatedSession: OnboardingSession

@@ -51,7 +51,7 @@ struct CourseRouteTimelineRow: View {
 
                 if !isLast {
                     Rectangle()
-                        .fill(RodiColor.gray300)
+                        .fill(Color(hex: 0xBEBEBE))
                         .frame(width: 1, height: 12)
                         .padding(.top, 5)
                 }
@@ -67,7 +67,7 @@ struct CourseRouteTimelineRow: View {
 
             Text(point.name)
                 .rodiTypography(.caption1Medium)
-                .foregroundStyle(RodiColor.gray900)
+                .foregroundStyle(RodiColor.gray800)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -79,9 +79,9 @@ struct CourseRouteTimelineRow: View {
         case .start:
             Color(hex: 0x347BFF)
         case .waypoint:
-            RodiColor.gray400
+            RodiColor.gray600
         case .end:
-            Color(hex: 0xFF5B5B)
+            Color(hex: 0xF3493C)
         }
     }
 
@@ -90,9 +90,9 @@ struct CourseRouteTimelineRow: View {
         case .start:
             Color(hex: 0x347BFF)
         case .waypoint:
-            RodiColor.gray600
+            RodiColor.gray800
         case .end:
-            Color(hex: 0xFF5B5B)
+            Color(hex: 0xF3493C)
         }
     }
 }

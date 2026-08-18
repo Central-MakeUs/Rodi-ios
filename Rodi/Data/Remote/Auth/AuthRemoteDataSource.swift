@@ -15,6 +15,8 @@ final class AuthRemoteDataSource {
     ) async throws(
         NetworkError
     ) -> SocialLoginResponseDTO {
+        logSocialLoginRequest(request: request)
+
         let response = try await networkManager.request(
             AuthAPI.login(
                 provider: provider,
@@ -23,9 +25,7 @@ final class AuthRemoteDataSource {
             as: ServerResponse<SocialLoginResponseDTO>.self
         )
 
-        if provider == .kakao {
-            logKakaoLoginResponse(response)
-        }
+        logSocialLoginResponse(response: response)
 
         guard response.isSuccess, let data = response.data else {
             throw .apiError(
@@ -83,26 +83,22 @@ final class AuthRemoteDataSource {
         return data
     }
 
-    private func logKakaoLoginResponse(
-        _ response: ServerResponse<SocialLoginResponseDTO>
+    private func logSocialLoginRequest(
+        request: SocialLoginRequestDTO
     ) {
         #if DEBUG
-        let dataDescription: String
-        if let data = response.data {
-            dataDescription = """
-            status=\(data.status.rawValue), \
-            accessToken=\(data.accessToken ?? "nil"), \
-            isNewMember=\(data.isNewMember?.description ?? "nil"), \
-            nickname=\(data.nickname ?? "nil"), \
-            withdrawalRequestedAt=\(data.withdrawalRequestedAt ?? "nil"), \
-            recoverableUntil=\(data.recoverableUntil ?? "nil")
-            """
-        } else {
-            dataDescription = "nil"
-        }
-
         RodiLogger.debug(
-            "윤수 카카오 OAuth 응답: code=\(response.code), message=\(response.message), isSuccess=\(response.isSuccess), data={\(dataDescription)}"
+            "소셜 로그인 POST 요청 credential=\(RodiLogger.masked(request.credential))"
+        )
+        #endif
+    }
+
+    private func logSocialLoginResponse(
+        response: ServerResponse<SocialLoginResponseDTO>
+    ) {
+        #if DEBUG
+        RodiLogger.debug(
+            "소셜 로그인 POST 응답 accessToken=\(response.data?.accessToken.map(RodiLogger.masked) ?? "nil")"
         )
         #endif
     }

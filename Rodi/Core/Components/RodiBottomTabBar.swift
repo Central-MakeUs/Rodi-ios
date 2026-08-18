@@ -8,6 +8,7 @@ import SwiftUI
 struct RodiBottomTabBar: View {
     let selectedTab: RodiTab
     let homeAction: () -> Void
+    let registerAction: () -> Void
     let myAction: () -> Void
 
     static let contentHeight: CGFloat = 56
@@ -18,6 +19,7 @@ struct RodiBottomTabBar: View {
 
     var body: some View {
         HStack(spacing: 0) {
+            Spacer(minLength: 0)
             tabButton(
                 title: "홈",
                 iconName: selectedTab == .home ? "ic_tab_home_active" : "ic_tab_home_inactive",
@@ -28,13 +30,24 @@ struct RodiBottomTabBar: View {
             Spacer(minLength: 0)
 
             tabButton(
+                title: "등록",
+                iconName: "ic_tab_register",
+                isSelected: selectedTab == .register,
+                usesTemplateRendering: true,
+                action: registerAction
+            )
+
+            Spacer(minLength: 0)
+
+            tabButton(
                 title: "마이",
                 iconName: selectedTab == .my ? "ic_tab_my_active" : "ic_tab_my_inactive",
                 isSelected: selectedTab == .my,
                 action: myAction
             )
+
+            Spacer(minLength: 0)
         }
-        .frame(width: 160)
         .frame(maxWidth: .infinity)
         .frame(height: Self.contentHeight)
         .background {
@@ -52,14 +65,19 @@ extension RodiBottomTabBar {
         title: String,
         iconName: String,
         isSelected: Bool,
+        usesTemplateRendering: Bool = false,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
             VStack(spacing: 3) {
-                Image(iconName)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 24, height: 24)
+                if usesTemplateRendering {
+                    RegisterTabIcon(color: isSelected ? RodiColor.black : RodiColor.gray500)
+                } else {
+                    Image(iconName)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 24, height: 24)
+                }
 
                 Text(title)
                     .font(.pretendard(size: 13, weight: .semibold))
@@ -74,5 +92,22 @@ extension RodiBottomTabBar {
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
+private struct RegisterTabIcon: View {
+    let color: Color
+
+    var body: some View {
+        ZStack {
+            Image("ic_tab_register")
+                .renderingMode(.template)
+            Image("ic_tab_register_plus_horizontal")
+                .renderingMode(.template)
+            Image("ic_tab_register_plus_vertical")
+                .renderingMode(.template)
+        }
+        .foregroundStyle(color)
+        .frame(width: 24, height: 24)
     }
 }

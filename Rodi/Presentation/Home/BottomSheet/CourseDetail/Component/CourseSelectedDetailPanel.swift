@@ -124,7 +124,6 @@ struct CourseSelectedDetailPanel: View {
                         .lineLimit(1)
                 }
                 .foregroundStyle(RodiColor.secondary400)
-                .padding(.top, 8)
                 .padding(.bottom, 4)
             }
 

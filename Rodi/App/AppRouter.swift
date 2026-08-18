@@ -8,6 +8,7 @@
 import Combine
 
 enum RootRoute: Equatable {
+    case launching
     case onboarding(OnboardingLaunchContext)
     case mainTabs
 }
@@ -22,6 +23,7 @@ final class AppRouter: ObservableObject {
     @Published private(set) var rootRoute: RootRoute
     @Published private(set) var isLoginRequiredPresented = false
     @Published private(set) var homeTabSelectionRequestID = 0
+    @Published private(set) var isCourseTutorialCompleted = false
 
     private let onboardingProgressStore: OnboardingProgressStore
     private var pendingAuthenticationIntent: MainTabIntent?
@@ -33,21 +35,28 @@ final class AppRouter: ObservableObject {
         let resolvedProgressStore = onboardingProgressStore ?? OnboardingProgressStore()
         self.onboardingProgressStore = resolvedProgressStore
 
-        if resolvedProgressStore.hasInProgressDraft {
-            if Self.hasLocalAuthenticationSession(tokenStore) {
-                rootRoute = .onboarding(.normal)
-            } else {
-                resolvedProgressStore.clearDraft()
-                rootRoute = .onboarding(.normal)
-            }
-        } else {
-            rootRoute = resolvedProgressStore.hasCompleted ? .mainTabs : .onboarding(.normal)
-        }
+        // 로컬 완료 플래그는 앱 삭제·재설치 또는 서버 상태와 어긋날 수 있다.
+        // 최초 세션 검증 전에는 홈을 열지 않고, RootReducer가 서버 isOnboarded를
+        // 확인한 뒤에만 mainTabs로 전환한다.
+        rootRoute = .launching
     }
 
-    func completeOnboarding() {
+    func completeOnboarding(isCourseTutorialCompleted: Bool = false) {
+        self.isCourseTutorialCompleted = isCourseTutorialCompleted
         homeTabSelectionRequestID += 1
         rootRoute = .mainTabs
+    }
+
+    func resolveInitialSession(isOnboarded: Bool, isCourseTutorialCompleted: Bool) {
+        guard !isLoginRequiredPresented else { return }
+        self.isCourseTutorialCompleted = isCourseTutorialCompleted
+        rootRoute = isOnboarded ? .mainTabs : .onboarding(.normal)
+    }
+
+    func resolveInitialUnauthenticatedSession() {
+        guard !isLoginRequiredPresented else { return }
+        isCourseTutorialCompleted = false
+        rootRoute = .onboarding(.normal)
     }
 
     func completeLogout() {
@@ -55,6 +64,7 @@ final class AppRouter: ObservableObject {
         rootRoute = .onboarding(.normal)
         isLoginRequiredPresented = false
         pendingAuthenticationIntent = nil
+        isCourseTutorialCompleted = false
     }
 
     func requireLogin(for intent: MainTabIntent? = nil) {
@@ -84,12 +94,7 @@ final class AppRouter: ObservableObject {
         return pendingAuthenticationIntent
     }
 
-    private static func hasLocalAuthenticationSession(_ tokenStore: TokenStoring) -> Bool {
-        guard let accessToken = tokenStore.accessToken,
-              let refreshToken = tokenStore.refreshToken
-        else {
-            return false
-        }
-        return !accessToken.isEmpty && !refreshToken.isEmpty
+    func markCourseTutorialCompleted() {
+        isCourseTutorialCompleted = true
     }
 }

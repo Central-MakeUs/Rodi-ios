@@ -83,6 +83,10 @@ extension KakaoMapContainerView {
             eventRelay.accept(.markerTap(markerID))
         }
 
+        func reportRoutePointTap(_ pointID: Int) {
+            eventRelay.accept(.routePointTap(pointID))
+        }
+
         func reportViewportChange(
             center: RodiCoordinate,
             zoomLevel: Int,
@@ -102,7 +106,7 @@ extension KakaoMapContainerView {
         }
 
         func poiDidTapped(kakaoMap: KakaoMap, layerID: String, poiID: String, position: MapPoint) {
-            mapView?.handleHomeMarkerTap(layerID: layerID, poiID: poiID)
+            mapView?.handlePoiTap(layerID: layerID, poiID: poiID)
         }
     }
 }

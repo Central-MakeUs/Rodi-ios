@@ -21,6 +21,22 @@ final class MemberRemoteDataSource {
     }
     
     func withdraw() async throws(NetworkError) { try await empty(.withdraw) }
+
+    func hardWithdraw() async throws(NetworkError) { try await empty(.hardWithdraw) }
+
+    func block(memberID: Int) async throws(NetworkError) {
+        try await empty(.block(memberID: memberID))
+    }
+
+    func fetchBlockedMembers(
+        query: BlockedMemberQuery
+    ) async throws(NetworkError) -> BlockedMemberCursorPageResponseDTO {
+        try await response(.blockedMembers(query: query), as: BlockedMemberCursorPageResponseDTO.self)
+    }
+
+    func unblock(memberID: Int) async throws(NetworkError) {
+        try await empty(.unblock(memberID: memberID))
+    }
     
     func updateDrivingGoal(_ request: MemberDrivingGoalUpdateRequestDTO) async throws(NetworkError) {
         try await empty(.updateDrivingGoal(request))
@@ -32,6 +48,10 @@ final class MemberRemoteDataSource {
     
     func submitOnboarding(_ request: MemberOnboardingRequestDTO) async throws(NetworkError) {
         try await empty(.submitOnboarding(request))
+    }
+
+    func completeCourseTutorial() async throws(NetworkError) -> CourseTutorialCompletionResponseDTO {
+        try await response(.completeCourseTutorial, as: CourseTutorialCompletionResponseDTO.self)
     }
 
     private func response<T: Decodable>(_ api: MemberAPI, as type: T.Type) async throws(NetworkError) -> T {
@@ -55,12 +75,21 @@ final class MemberRemoteDataSource {
         #if DEBUG
         let dataDescription: String
         if let data = response.data {
+            let levelProgressDescription: String
+            if let levelProgress = data.levelProgress {
+                let nextLevelKm = levelProgress.nextLevelKm.map { String($0) } ?? "nil"
+                levelProgressDescription = "levelProgress={totalDistanceKm=\(levelProgress.totalDistanceKm), currentLevelStartKm=\(levelProgress.currentLevelStartKm), nextLevelKm=\(nextLevelKm), progressPercent=\(levelProgress.progressPercent)}"
+            } else {
+                levelProgressDescription = "levelProgress=nil"
+            }
+
             dataDescription = """
             nickname=\(data.nickname), \
             level=\(data.level), \
             recommendationTags=\(data.recommendationTags), \
             drivingGoal=\(data.drivingGoal ?? "nil"), \
-            savedPlaceCount=\(data.savedPlaceCount)
+            savedPlaceCount=\(data.savedPlaceCount), \
+            \(levelProgressDescription)
             """
         } else {
             dataDescription = "nil"

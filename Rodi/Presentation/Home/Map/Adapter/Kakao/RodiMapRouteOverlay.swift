@@ -29,6 +29,7 @@ extension RodiKakaoMapView {
                 zOrder: 9_000
             )
             routeMarkerLayer = labelManager.addLabelLayer(option: options)
+            routeMarkerLayer?.setClickable(true)
         }
 
         if routeShapeLayer == nil {
@@ -46,8 +47,10 @@ extension RodiKakaoMapView {
             )
 
             if let poi = routeMarkerLayer?.addPoi(option: options, at: mapPoint) {
+                poi.clickable = true
                 poi.show()
                 routeMarkerPoiIDs.append(poiID)
+                routePointIDsByPoiID[poiID] = point.id
             }
         }
 
@@ -75,7 +78,17 @@ extension RodiKakaoMapView {
             routeMarkerLayer?.removePoi(poiID: $0)
         }
         routeMarkerPoiIDs.removeAll()
+        routePointIDsByPoiID.removeAll()
         routeShapeLayer?.removeMapPolylineShape(shapeID: Constants.routePolylineShapeID)
+    }
+
+    func handlePoiTap(layerID: String, poiID: String) {
+        if layerID == Constants.routeMarkerLayerID,
+           let pointID = routePointIDsByPoiID[poiID] {
+            coordinator?.reportRoutePointTap(pointID)
+            return
+        }
+        handleHomeMarkerTap(layerID: layerID, poiID: poiID)
     }
 
     func focusRouteArea(_ coordinates: [RodiCoordinate]) {

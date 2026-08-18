@@ -36,7 +36,13 @@ struct LoginReducer: Reducer {
         case kakaoLoginTapped
         case appleLoginTapped
         case restoreTapped(AuthWithdrawalRecovery)
-        case authenticationSucceeded(SocialLoginProvider, isNewMember: Bool, nickname: String?)
+        case authenticationSucceeded(
+            SocialLoginProvider,
+            isNewMember: Bool,
+            isOnboarded: Bool,
+            isCourseTutorialCompleted: Bool,
+            nickname: String?
+        )
         case authenticationCancelled
         case authenticationFailed(String)
         case withdrawalRecoveryRequired(AuthWithdrawalRecovery)
@@ -86,7 +92,7 @@ struct LoginReducer: Reducer {
             state.isRestoringWithdrawal = true
             return restore(recovery, state: &state)
 
-        case .authenticationSucceeded(let provider, let isNewMember, let nickname):
+        case .authenticationSucceeded(let provider, let isNewMember, let isOnboarded, let isCourseTutorialCompleted, let nickname):
             state.isAuthenticating = false
             state.session.mode = .member(provider)
             state.session.nickname = nickname?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -96,10 +102,17 @@ struct LoginReducer: Reducer {
             state.isRestoringWithdrawal = false
             RodiAnalytics.track(.loginSucceeded(provider: provider.rawValue, isNewMember: isNewMember))
             RodiAnalytics.setUserContext(userMode: "member", loginProvider: provider.rawValue, memberLevel: nil, hasDrivingGoal: nil)
-            if !isNewMember {
+            if isOnboarded {
                 RodiAnalytics.track(.onboardingCompleted(entryMode: state.session.entryMode, memberLevel: "existing_member"))
             }
-            state.transition = .init(updatedSession: state.session, navigation: isNewMember ? .push(.terms) : .complete)
+            // 가입 여부가 아니라 서버가 보낸 완료 상태가 홈 진입 기준이다.
+            // 온보딩 중 앱을 삭제·재설치한 회원도 다시 온보딩으로 보낸다.
+            state.transition = .init(
+                updatedSession: state.session,
+                navigation: isOnboarded
+                    ? .complete(isCourseTutorialCompleted: isCourseTutorialCompleted)
+                    : .push(.terms)
+            )
 
         case .authenticationCancelled:
             state.isAuthenticating = false
@@ -148,9 +161,19 @@ private extension LoginReducer {
                     let result = try await authRepository.login(provider: provider, credential: credential)
                     switch result {
                     case .authenticated(let token):
-                        await send(.authenticationSucceeded(provider, isNewMember: token.isNewMember, nickname: token.nickname))
+                        await send(
+                            .authenticationSucceeded(
+                                provider,
+                                isNewMember: token.isNewMember,
+                                isOnboarded: token.isOnboarded,
+                                isCourseTutorialCompleted: token.isCourseTutorialCompleted,
+                                nickname: token.nickname
+                            )
+                        )
                     case .withdrawalPending(let recovery):
                         await send(.withdrawalRecoveryRequired(recovery))
+                    case .withdrawalLocked(let rejoinAvailableAt):
+                        await send(.withdrawalRestoreLocked(rejoinAvailableAt: rejoinAvailableAt))
                     }
                 } catch {
                     await send(.authenticationFailed(authenticationFailureMessage(for: provider, error: error)))
@@ -173,7 +196,15 @@ private extension LoginReducer {
             case .success(let credential):
                 do {
                     let token = try await authRepository.restore(provider: recovery.provider, credential: credential)
-                    await send(.authenticationSucceeded(recovery.provider, isNewMember: token.isNewMember, nickname: token.nickname))
+                    await send(
+                        .authenticationSucceeded(
+                            recovery.provider,
+                            isNewMember: token.isNewMember,
+                            isOnboarded: token.isOnboarded,
+                            isCourseTutorialCompleted: token.isCourseTutorialCompleted,
+                            nickname: token.nickname
+                        )
+                    )
                 } catch let error as NetworkError {
                     if case let .apiError(code, _, _) = error, code == "MEMBER_409_1" {
                         await send(.withdrawalRestoreLocked(rejoinAvailableAt: recovery.rejoinAvailableAt))

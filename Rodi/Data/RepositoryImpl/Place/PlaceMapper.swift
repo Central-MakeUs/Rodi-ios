@@ -23,7 +23,9 @@ struct PlaceMapper {
         from dto: PlaceCursorPageDTO
     ) throws(NetworkError) -> PlaceCursorPage {
         PlaceCursorPage(
-            items: try dto.items.map(listItem(from:)),
+            items: try dto.items
+                .map(listItem(from:))
+                .filter { !$0.isDeleted },
             hasNext: dto.hasNext,
             nextCursor: dto.nextCursor,
             totalCount: dto.totalCount
@@ -89,7 +91,8 @@ private extension PlaceMapper {
             summary: dto.description,
             distanceMeters: dto.distanceMeters,
             capacity: dto.capacity,
-            openTime: dto.openTime
+            openTime: dto.openTime,
+            isDeleted: dto.isDeleted ?? false
         )
     }
 

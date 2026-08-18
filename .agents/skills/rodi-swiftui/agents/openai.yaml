@@ -1,0 +1,7 @@
+interface:
+  display_name: "Rodi SwiftUI"
+  short_description: "Rodi iOS 16.1 SwiftUI implementation and review"
+  default_prompt: "Use $rodi-swiftui to implement or review this Rodi SwiftUI view for iOS 16.1."
+
+policy:
+  allow_implicit_invocation: true

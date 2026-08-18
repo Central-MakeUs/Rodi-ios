@@ -79,7 +79,7 @@ extension RodiKakaoMapView {
 
     func makeCourseLabelMarkerImage(title: String) -> UIImage {
         let displayTitle = String(title.prefix(12))
-        let font = UIFont.pretendard(size: 12, weight: .medium)
+        let font = UIFont.pretendard(size: 10, weight: .medium)
         let textAttributes: [NSAttributedString.Key: Any] = [
             .font: font,
             .foregroundColor: UIColor.white

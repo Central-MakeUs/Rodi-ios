@@ -115,7 +115,7 @@ final class SocialLoginService: NSObject {
     private func startKakaoLoginTimeout() {
         kakaoLoginTimeoutTask?.cancel()
         kakaoLoginTimeoutTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(20))
+            try? await Task.sleep(for: .seconds(60))
             guard !Task.isCancelled else { return }
             self?.finishKakaoLogin(with: .failure(SocialLoginError.kakaoLoginTimedOut))
         }

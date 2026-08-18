@@ -41,10 +41,10 @@ struct HomeSearchView: View {
                     .padding(.top, state.query.trimmingCharacters(
                         in: .whitespacesAndNewlines
                     ).isEmpty ? 24 : 0)
-                    .padding(.bottom, shouldCenterRegionEmptyState ? 0 : 32)
+                    .padding(.bottom, shouldCenterEmptyState ? 0 : 32)
                 }
 
-                if shouldCenterRegionEmptyState {
+                if shouldCenterEmptyState {
                     HomeSearchRegionEmptyState()
                 }
             }
@@ -101,9 +101,7 @@ extension HomeSearchView {
         if !hasRegions,
            !hasPlaces,
            state.viewState == .emptyResults {
-            if !isSelectedRegionSearch {
-                HomeSearchEmptyState(query: state.query)
-            }
+            EmptyView()
         } else {
             if hasRegions {
                 HomeSearchRegionList(
@@ -141,10 +139,11 @@ extension HomeSearchView {
         }
     }
 
-    private var shouldCenterRegionEmptyState: Bool {
-        state.isSelectedRegionSearch &&
+    private var shouldCenterEmptyState: Bool {
+        !state.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
             state.viewState == .emptyResults &&
             state.regions.isEmpty &&
+            state.relatedPlaceSuggestions.isEmpty &&
             state.results.isEmpty
     }
 

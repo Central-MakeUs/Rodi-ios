@@ -70,6 +70,7 @@ struct HomeSearchReducer: Reducer {
 
     enum Delegate {
         case placeSelected(id: Int, name: String)
+        case regionSelected(name: String, center: RodiCoordinate)
         case dismissed
         case showSnackbar(String)
     }
@@ -139,7 +140,10 @@ struct HomeSearchReducer: Reducer {
             state.query = recentSearch.keyword
             switch recentSearch.kind {
             case .region:
-                return beginPlaceSearch(keyword: recentSearch.keyword, state: &state)
+                return selectRegion(
+                    named: recentSearch.keyword,
+                    state: &state
+                )
 
             case .place:
                 guard let placeID = recentSearch.placeID else {
@@ -148,13 +152,17 @@ struct HomeSearchReducer: Reducer {
                 return selectPlaceEffect(
                     id: placeID,
                     name: recentSearch.keyword,
-                    registration: nil
+                    registration: .init(
+                        kind: .place,
+                        keyword: recentSearch.keyword,
+                        placeID: placeID
+                    )
                 )
             }
 
         case .regionTapped(let region):
             state.query = region
-            return beginPlaceSearch(keyword: region, state: &state, registration: .init(kind: .region, keyword: region))
+            return selectRegion(named: region, state: &state)
 
         case .loadNextPage:
             guard state.hasNextPage,
@@ -347,6 +355,49 @@ struct HomeSearchReducer: Reducer {
             registration: registration,
             origin: state.origin
         )
+    }
+
+    private func selectRegion(
+        named region: String,
+        state: inout State
+    ) -> Effect<Action> {
+        guard let center = HomeSearchRegionCenter.coordinate(for: region) else {
+            showRegionEmptyState(named: region, state: &state)
+            return .cancel(id: EffectID.search)
+        }
+
+        resetSearch(state: &state)
+        let recentSearchRepository = recentSearchRepository
+        return .run { send in
+            await send(.delegate(.regionSelected(name: region, center: center)))
+
+            do {
+                try await recentSearchRepository.registerRecentSearch(
+                    .init(kind: .region, keyword: region)
+                )
+            } catch {
+                RodiLogger.warning(
+                    "Recent region search registration failed. error=\(error.localizedDescription)"
+                )
+            }
+        }
+        .cancelTask(id: EffectID.search)
+    }
+
+    private func showRegionEmptyState(
+        named region: String,
+        state: inout State
+    ) {
+        state.searchRequestID += 1
+        state.activeSearchContext = .selectedRegion(keyword: region)
+        state.loadedSuggestionKeyword = nil
+        state.regions = []
+        state.relatedPlaceSuggestions = []
+        state.results = []
+        state.hasNextPage = false
+        state.nextCursor = nil
+        state.isLoadingNextPage = false
+        state.viewState = .emptyResults
     }
 
     private func resetSearch(state: inout State) {

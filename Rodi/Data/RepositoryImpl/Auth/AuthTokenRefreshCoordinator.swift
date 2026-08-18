@@ -51,7 +51,7 @@ final class AuthTokenRefreshCoordinator: AccessTokenRefreshing {
                     .refresh(
                         request: request
                     ),
-                as: ServerResponse<AuthTokenDTO>.self
+                as: ServerResponse<TokenRefreshResponseDTO>.self
             )
             
             guard response.isSuccess, let token = response.data else {
@@ -72,7 +72,9 @@ final class AuthTokenRefreshCoordinator: AccessTokenRefreshing {
                 }
             return TokenRefreshResult(
                 accessToken: token.accessToken,
-                refreshToken: token.refreshToken
+                refreshToken: token.refreshToken,
+                isOnboarded: token.isOnboarded,
+                isCourseTutorialCompleted: token.isCourseTutorialCompleted
             )
         }
         
