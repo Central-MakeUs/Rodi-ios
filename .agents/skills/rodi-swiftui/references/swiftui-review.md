@@ -8,7 +8,7 @@
 4. Check rendering cost and lifecycle work.
 5. Check accessibility and every visible state.
 
-Follow `Docs/ARCHITECTURE.md` for MVI ownership and foldering; do not create competing conventions here.
+Follow `Docs/Architecture/ARCHITECTURE.md` for MVI ownership and foldering; do not create competing conventions here.
 
 ## Preserve Identity
 

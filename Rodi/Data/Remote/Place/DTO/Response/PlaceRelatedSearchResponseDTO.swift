@@ -8,7 +8,7 @@ struct PlaceRelatedSearchDTO: Decodable {
 /// `/api/v1/places/related-search`의 장소 자동완성 항목입니다.
 /// 일반 장소 목록과 달리 장소 유형, 주소, 좌표를 포함하지 않습니다.
 struct PlaceRelatedSearchItemDTO: Decodable {
-    let placeID: Int
+    let placeID: Int64
     let name: String
     let region: String
 

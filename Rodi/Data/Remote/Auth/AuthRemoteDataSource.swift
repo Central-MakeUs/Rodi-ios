@@ -10,43 +10,35 @@ final class AuthRemoteDataSource {
     }
     
     func login(
-        provider: SocialLoginProvider,
+        providerRawValue: String,
         request: SocialLoginRequestDTO
     ) async throws(
         NetworkError
     ) -> SocialLoginResponseDTO {
-        logSocialLoginRequest(request: request)
+        logSocialLoginStarted(providerRawValue: providerRawValue)
 
-        let response = try await networkManager.request(
+        return try await ServerResponseHandler.payload(
             AuthAPI.login(
-                provider: provider,
+                providerRawValue: providerRawValue,
                 request: request
             ),
-            as: ServerResponse<SocialLoginResponseDTO>.self
+            using: networkManager,
+            as: SocialLoginResponseDTO.self
         )
-
-        logSocialLoginResponse(response: response)
-
-        guard response.isSuccess, let data = response.data else {
-            throw .apiError(
-                code: response.code,
-                message: response.message
-            )
-        }
-        return data
     }
     
     func restore(
-        provider: SocialLoginProvider,
+        providerRawValue: String,
         request: SocialLoginRequestDTO
     ) async throws(
         NetworkError
     ) -> SocialLoginResponseDTO {
-        try await response(
+        try await ServerResponseHandler.payload(
             AuthAPI.restore(
-                provider: provider,
+                providerRawValue: providerRawValue,
                 request: request
             ),
+            using: networkManager,
             as: SocialLoginResponseDTO.self
         )
     }
@@ -56,49 +48,30 @@ final class AuthRemoteDataSource {
     ) async throws(
         NetworkError
     ) {
-        _ = try await response(
+        try await ServerResponseHandler.empty(
             AuthAPI.logout(
                 request: request
             ),
-            as: EmptyResponse.self
+            using: networkManager
         )
-    }
-    
-    private func response<T: Decodable>(
-        _ api: AuthAPI,
-        as type: T.Type
-    ) async throws(
-        NetworkError
-    ) -> T {
-        let response = try await networkManager.request(
-            api,
-            as: ServerResponse<T>.self
-        )
-        guard response.isSuccess, let data = response.data else {
-            throw .apiError(
-                code: response.code,
-                message: response.message
-            )
-        }
-        return data
     }
 
-    private func logSocialLoginRequest(
-        request: SocialLoginRequestDTO
+    func refresh(
+        _ request: TokenRefreshRequestDTO
+    ) async throws(NetworkError) -> TokenRefreshResponseDTO {
+        try await ServerResponseHandler.payload(
+            AuthAPI.refresh(request: request),
+            using: networkManager,
+            as: TokenRefreshResponseDTO.self
+        )
+    }
+
+    private func logSocialLoginStarted(
+        providerRawValue: String
     ) {
         #if DEBUG
         RodiLogger.debug(
-            "소셜 로그인 POST 요청 credential=\(RodiLogger.masked(request.credential))"
-        )
-        #endif
-    }
-
-    private func logSocialLoginResponse(
-        response: ServerResponse<SocialLoginResponseDTO>
-    ) {
-        #if DEBUG
-        RodiLogger.debug(
-            "소셜 로그인 POST 응답 accessToken=\(response.data?.accessToken.map(RodiLogger.masked) ?? "nil")"
+            "소셜 로그인 요청 시작: provider=\(providerRawValue)"
         )
         #endif
     }

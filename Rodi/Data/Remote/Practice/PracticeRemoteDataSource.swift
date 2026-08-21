@@ -1,4 +1,3 @@
-import Alamofire
 import Foundation
 
 final class PracticeRemoteDataSource {
@@ -9,64 +8,59 @@ final class PracticeRemoteDataSource {
     }
 
     func register(placeID: Int) async throws(NetworkError) -> PracticeRegisterResponseDTO {
-        try await request(.register(placeID: placeID), as: PracticeRegisterResponseDTO.self)
+        try await ServerResponseHandler.payload(
+            PracticeAPI.register(placeID: placeID),
+            using: networkManager,
+            as: PracticeRegisterResponseDTO.self,
+            missingPayloadPolicy: .decodingFail
+        )
     }
 
     func recordVisit(
         practiceID: Int,
-        certifiedDistanceMeters: Int?
+        request visitRequest: PracticeVisitRequestDTO
     ) async throws(NetworkError) -> PracticeVisitResponseDTO {
-        try await request(
-            .recordVisit(
+        try await ServerResponseHandler.payload(
+            PracticeAPI.recordVisit(
                 practiceID: practiceID,
-                request: .init(certifiedDistanceMeters: certifiedDistanceMeters)
+                request: visitRequest
             ),
-            as: PracticeVisitResponseDTO.self
+            using: networkManager,
+            as: PracticeVisitResponseDTO.self,
+            missingPayloadPolicy: .decodingFail
         )
     }
 
     func fetchMyPractices(
-        query: MyPracticeQuery
+        query: MyPracticeListQueryDTO
     ) async throws(NetworkError) -> MyPracticeCursorPageResponseDTO {
-        try await request(.myPractices(query: query), as: MyPracticeCursorPageResponseDTO.self)
+        try await ServerResponseHandler.payload(
+            PracticeAPI.myPractices(query: query),
+            using: networkManager,
+            as: MyPracticeCursorPageResponseDTO.self,
+            missingPayloadPolicy: .decodingFail
+        )
     }
 
     func fetchSkipReasonForm() async throws(NetworkError) -> PracticeSkipReasonFormResponseDTO {
-        try await request(.skipReasonForm, as: PracticeSkipReasonFormResponseDTO.self)
+        try await ServerResponseHandler.payload(
+            PracticeAPI.skipReasonForm,
+            using: networkManager,
+            as: PracticeSkipReasonFormResponseDTO.self,
+            missingPayloadPolicy: .decodingFail
+        )
     }
 
     func submitSkipReason(
         practiceID: Int,
-        reasonCode: String,
-        detail: String?
+        request skipReasonRequest: PracticeSkipReasonRequestDTO
     ) async throws(NetworkError) {
-        try await empty(
-            .submitSkipReason(
+        try await ServerResponseHandler.empty(
+            PracticeAPI.submitSkipReason(
                 practiceID: practiceID,
-                request: .init(reasonCode: reasonCode, detail: detail)
-            )
+                request: skipReasonRequest
+            ),
+            using: networkManager
         )
-    }
-
-    private func empty(_ api: PracticeAPI) async throws(NetworkError) {
-        let response = try await networkManager.request(api, as: ServerResponse<EmptyResponse>.self)
-
-        guard response.isSuccess else {
-            throw .apiError(code: response.code, message: response.message)
-        }
-    }
-
-    private func request<T: Decodable>(_ api: PracticeAPI, as type: T.Type) async throws(NetworkError) -> T {
-        let response = try await networkManager.request(api, as: ServerResponse<T>.self)
-
-        guard response.isSuccess else {
-            throw .apiError(code: response.code, message: response.message)
-        }
-
-        guard let data = response.data else {
-            throw .decodingFail
-        }
-
-        return data
     }
 }

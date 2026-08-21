@@ -1,7 +1,7 @@
 import Foundation
 
 struct PracticeRegisterResponseDTO: Decodable {
-    let practiceID: Int
+    let practiceID: Int64
     let status: String?
     let visitCount: Int?
     let requiredDistanceMeters: Int?

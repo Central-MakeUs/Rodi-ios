@@ -26,22 +26,29 @@ final class PlaceRepositoryImpl: PlaceRepository {
         access: PlaceListAccess
     ) async throws(NetworkError) -> PlaceCursorPage {
         try PlaceMapper.cursorPage(
-            from: await remoteDataSource.fetchPlaces(query: query, access: access)
+            from: await remoteDataSource.fetchPlaces(
+                query: .init(query),
+                access: .init(access)
+            )
         )
     }
 
     func searchPlaces(query: PlaceSearchQuery) async throws(NetworkError) -> PlaceCursorPage {
-        try PlaceMapper.cursorPage(from: await remoteDataSource.search(query))
+        try PlaceMapper.cursorPage(
+            from: await remoteDataSource.search(.init(query))
+        )
     }
 
     func fetchRelatedSearches(query: PlaceRelatedSearchQuery) async throws(NetworkError) -> PlaceRelatedSearchResult {
         try PlaceMapper.relatedSearchResult(
-            from: await remoteDataSource.relatedSearch(query)
+            from: await remoteDataSource.relatedSearch(.init(query))
         )
     }
 
     func fetchBookmarkedPlaces(query: PlaceBookmarkListQuery) async throws(NetworkError) -> PlaceCursorPage {
-        try PlaceMapper.cursorPage(from: await remoteDataSource.bookmarks(query))
+        try PlaceMapper.cursorPage(
+            from: await remoteDataSource.bookmarks(.init(query))
+        )
     }
 
     func fetchPlaceDetail(id: Int) async throws(NetworkError) -> PlaceDetail {

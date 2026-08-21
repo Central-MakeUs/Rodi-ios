@@ -24,11 +24,13 @@
 		7863573BB827CEC2F5056C50 /* PracticeLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 903D4E98060C54B79A4FF5EB /* PracticeLiveActivity.swift */; };
 		A1B200000000000000000001 /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A1B200000000000000000002 /* XCTest.framework */; };
 		C1A000000000000000001001 /* Clarity in Frameworks */ = {isa = PBXBuildFile; productRef = C1A000000000000000003001 /* Clarity */; };
+		E1A1F4A0010A4C7A9B1C0001 /* RodiPracticeLiveActivity/Shared/PracticeLiveActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1A1F4A1010A4C7A9B1C0001 /* RodiPracticeLiveActivity/Shared/PracticeLiveActivityAttributes.swift */; };
+		E1A1F4A0010A4C7A9B1C0002 /* RodiPracticeLiveActivity/AppSupport/PracticeLiveActivityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1A1F4A1010A4C7A9B1C0002 /* RodiPracticeLiveActivity/AppSupport/PracticeLiveActivityService.swift */; };
 		F1B000000000000000001001 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = F1B000000000000000003001 /* FirebaseCore */; };
 		F1B000000000000000001002 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = F1B000000000000000003002 /* FirebaseAnalytics */; };
 		F1B000000000000000001003 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = F1B000000000000000003003 /* FirebaseCrashlytics */; };
 		F1B000000000000000001004 /* FirebasePerformance in Frameworks */ = {isa = PBXBuildFile; productRef = F1B000000000000000003004 /* FirebasePerformance */; };
-		FADD9B8005F6E08C3F9AA73C /* Rodi/Presentation/PracticeTracking/PracticeLiveActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F1FE2CD9DB7945D248FBEA3 /* Rodi/Presentation/PracticeTracking/PracticeLiveActivityAttributes.swift */; };
+		FADD9B8005F6E08C3F9AA73C /* RodiPracticeLiveActivity/Shared/PracticeLiveActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1A1F4A1010A4C7A9B1C0001 /* RodiPracticeLiveActivity/Shared/PracticeLiveActivityAttributes.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -69,11 +71,12 @@
 		045DE9792FEFA1000060C89A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		05E100012F00000100E00001 /* Dev.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Dev.xcconfig; sourceTree = "<group>"; };
 		05E100022F00000100E00001 /* Prod.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Prod.xcconfig; sourceTree = "<group>"; };
-		8F1FE2CD9DB7945D248FBEA3 /* Rodi/Presentation/PracticeTracking/PracticeLiveActivityAttributes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Rodi/Presentation/PracticeTracking/PracticeLiveActivityAttributes.swift; sourceTree = SOURCE_ROOT; };
 		903D4E98060C54B79A4FF5EB /* PracticeLiveActivity.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PracticeLiveActivity.swift; sourceTree = "<group>"; };
 		A1B200000000000000000002 /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = System/Library/Frameworks/XCTest.framework; sourceTree = SDKROOT; };
 		A1B200000000000000000003 /* RodiTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RodiTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C65E36336F2D2B59EAD7C56C /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		E1A1F4A1010A4C7A9B1C0001 /* RodiPracticeLiveActivity/Shared/PracticeLiveActivityAttributes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RodiPracticeLiveActivity/Shared/PracticeLiveActivityAttributes.swift; sourceTree = SOURCE_ROOT; };
+		E1A1F4A1010A4C7A9B1C0002 /* RodiPracticeLiveActivity/AppSupport/PracticeLiveActivityService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RodiPracticeLiveActivity/AppSupport/PracticeLiveActivityService.swift; sourceTree = SOURCE_ROOT; };
 		E73E620BAD2C71AB84067D43 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		EAC880421E775A2ACFA24094 /* RodiPracticeLiveActivity.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = RodiPracticeLiveActivity.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -197,7 +200,8 @@
 			children = (
 				903D4E98060C54B79A4FF5EB /* PracticeLiveActivity.swift */,
 				E73E620BAD2C71AB84067D43 /* Info.plist */,
-				8F1FE2CD9DB7945D248FBEA3 /* Rodi/Presentation/PracticeTracking/PracticeLiveActivityAttributes.swift */,
+				E1A1F4A1010A4C7A9B1C0001 /* RodiPracticeLiveActivity/Shared/PracticeLiveActivityAttributes.swift */,
+				E1A1F4A1010A4C7A9B1C0002 /* RodiPracticeLiveActivity/AppSupport/PracticeLiveActivityService.swift */,
 				03B2997E7F254438E20F793B /* Assets.xcassets */,
 			);
 			path = RodiPracticeLiveActivity;
@@ -243,7 +247,6 @@
 				F1B000000000000000003003 /* FirebaseCrashlytics */,
 				F1B000000000000000003004 /* FirebasePerformance */,
 				C1A000000000000000003001 /* Clarity */,
-				041D585F300EFD09008ACB6B /* LicenseList */,
 			);
 			productName = Rodi;
 			productReference = 042A22C62FEE58B100DB67F4 /* Rodi.app */;
@@ -326,7 +329,6 @@
 				04CA50662FF8E67A003FCF19 /* XCRemoteSwiftPackageReference "NSObject-Rx" */,
 				F1B000000000000000002001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				C1A000000000000000002001 /* XCRemoteSwiftPackageReference "clarity-apps" */,
-				041D585E300EFD09008ACB6B /* XCRemoteSwiftPackageReference "LicenseList" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 042A22C72FEE58B100DB67F4 /* Products */;
@@ -411,6 +413,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E1A1F4A0010A4C7A9B1C0001 /* RodiPracticeLiveActivity/Shared/PracticeLiveActivityAttributes.swift in Sources */,
+				E1A1F4A0010A4C7A9B1C0002 /* RodiPracticeLiveActivity/AppSupport/PracticeLiveActivityService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -419,7 +423,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7863573BB827CEC2F5056C50 /* PracticeLiveActivity.swift in Sources */,
-				FADD9B8005F6E08C3F9AA73C /* Rodi/Presentation/PracticeTracking/PracticeLiveActivityAttributes.swift in Sources */,
+				FADD9B8005F6E08C3F9AA73C /* RodiPracticeLiveActivity/Shared/PracticeLiveActivityAttributes.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -669,6 +673,10 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
@@ -697,6 +705,10 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
 				VALIDATE_PRODUCT = YES;

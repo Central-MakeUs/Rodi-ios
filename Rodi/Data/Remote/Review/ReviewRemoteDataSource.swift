@@ -7,85 +7,80 @@ final class ReviewRemoteDataSource {
         self.networkManager = networkManager
     }
 
-    func create(placeID: Int, submission: PlaceReviewSubmission) async throws(NetworkError) {
-        let response = try await networkManager.request(
-            ReviewAPI.create(placeID: placeID, request: .init(submission)),
-            as: ServerResponse<ReviewCreateResponseDTO>.self
+    func create(placeID: Int, request: ReviewRequestDTO) async throws(NetworkError) {
+        _ = try await ServerResponseHandler.payload(
+            ReviewAPI.create(placeID: placeID, request: request),
+            using: networkManager,
+            as: ReviewCreateResponseDTO.self
         )
-        guard response.isSuccess, response.data != nil else {
-            throw .apiError(code: response.code, message: response.message)
-        }
     }
 
     func fetchDetail(reviewID: Int) async throws(NetworkError) -> ReviewDetailResponseDTO {
-        try await request(.detail(reviewID: reviewID), as: ReviewDetailResponseDTO.self)
+        try await ServerResponseHandler.payload(
+            ReviewAPI.detail(reviewID: reviewID),
+            using: networkManager,
+            as: ReviewDetailResponseDTO.self
+        )
     }
 
-    func update(reviewID: Int, submission: PlaceReviewSubmission) async throws(NetworkError) {
-        try await empty(.update(reviewID: reviewID, request: .init(submission)))
+    func update(reviewID: Int, request: ReviewRequestDTO) async throws(NetworkError) {
+        try await ServerResponseHandler.empty(
+            ReviewAPI.update(reviewID: reviewID, request: request),
+            using: networkManager
+        )
     }
 
     func fetchSummary(
         placeID: Int,
-        level: ReviewLevelFilter
+        query: ReviewSummaryQueryDTO
     ) async throws(NetworkError) -> ReviewSummaryResponseDTO {
-        try await request(
-            .summary(placeID: placeID, level: level),
+        try await ServerResponseHandler.payload(
+            ReviewAPI.summary(placeID: placeID, query: query),
+            using: networkManager,
             as: ReviewSummaryResponseDTO.self
         )
     }
 
     func fetchReviews(
         placeID: Int,
-        query: PlaceReviewQuery
+        query: PlaceReviewListQueryDTO
     ) async throws(NetworkError) -> ReviewCursorPageResponseDTO {
-        try await request(
-            .list(placeID: placeID, query: query),
+        try await ServerResponseHandler.payload(
+            ReviewAPI.list(placeID: placeID, query: query),
+            using: networkManager,
             as: ReviewCursorPageResponseDTO.self
         )
     }
 
     func fetchMyReviews(
-        query: MyReviewQuery
+        query: MyReviewListQueryDTO
     ) async throws(NetworkError) -> MyReviewCursorPageResponseDTO {
-        try await request(
-            .myReviews(query: query),
+        try await ServerResponseHandler.payload(
+            ReviewAPI.myReviews(query: query),
+            using: networkManager,
             as: MyReviewCursorPageResponseDTO.self
         )
     }
 
     func delete(reviewID: Int) async throws(NetworkError) {
-        try await empty(.delete(reviewID: reviewID))
+        try await ServerResponseHandler.empty(ReviewAPI.delete(reviewID: reviewID), using: networkManager)
     }
 
     func fetchReportForm() async throws(NetworkError) -> ReviewReportFormResponseDTO {
-        try await request(.reportForm, as: ReviewReportFormResponseDTO.self)
+        try await ServerResponseHandler.payload(
+            ReviewAPI.reportForm,
+            using: networkManager,
+            as: ReviewReportFormResponseDTO.self
+        )
     }
 
     func report(
         reviewID: Int,
-        submission: ReviewReportSubmission
+        request: ReviewReportRequestDTO
     ) async throws(NetworkError) {
-        try await empty(
-            .report(reviewID: reviewID, request: .init(submission))
+        try await ServerResponseHandler.empty(
+            ReviewAPI.report(reviewID: reviewID, request: request),
+            using: networkManager
         )
-    }
-
-    private func empty(_ api: ReviewAPI) async throws(NetworkError) {
-        let response = try await networkManager.request(api, as: ServerResponse<EmptyResponse>.self)
-        guard response.isSuccess else {
-            throw .apiError(code: response.code, message: response.message)
-        }
-    }
-
-    private func request<T: Decodable>(
-        _ api: ReviewAPI,
-        as type: T.Type
-    ) async throws(NetworkError) -> T {
-        let response = try await networkManager.request(api, as: ServerResponse<T>.self)
-        guard response.isSuccess, let data = response.data else {
-            throw .apiError(code: response.code, message: response.message)
-        }
-        return data
     }
 }

@@ -40,12 +40,14 @@ struct HomeSearchView: View {
                     searchContent
                     .padding(.top, state.query.trimmingCharacters(
                         in: .whitespacesAndNewlines
-                    ).isEmpty ? 24 : 0)
-                    .padding(.bottom, shouldCenterEmptyState ? 0 : 32)
+                    ).isEmpty ? 3 : 0)
+                    .padding(.bottom, showsCenteredEmptyState ? 0 : 32)
                 }
 
-                if shouldCenterEmptyState {
-                    HomeSearchRegionEmptyState()
+                if shouldCenterRecentSearchEmptyState {
+                    HomeSearchEmptyState()
+                } else if shouldCenterEmptyState {
+                    HomeSearchEmptyState(query: state.query)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -78,13 +80,12 @@ extension HomeSearchView {
     private var searchContent: some View {
         if state.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             HomeRecentSearchList(
-                searches: state.recentSearches,
-                isLoading: state.isLoadingRecentSearches,
+                searches: state.recent.searches,
+                isLoading: state.recent.isLoading,
                 selectAction: { send(.recentSearchTapped($0)) },
                 deleteAction: { send(.recentSearchDeleteTapped($0)) },
                 clearAllAction: { send(.clearAllRecentSearchesTapped) }
             )
-            .padding(.horizontal, 16)
         } else {
             searchSuggestions
         }
@@ -92,20 +93,20 @@ extension HomeSearchView {
 
     @ViewBuilder
     private var searchSuggestions: some View {
-        let hasRegions = !state.regions.isEmpty
-        let isSelectedRegionSearch = state.isSelectedRegionSearch
+        let hasRegions = !state.results.regions.isEmpty
+        let isSelectedRegionSearch = state.results.isSelectedRegionSearch
         let hasPlaces = isSelectedRegionSearch
-            ? !state.results.isEmpty || state.viewState == .searching || state.isLoadingNextPage
-            : !state.relatedPlaceSuggestions.isEmpty || state.viewState == .searching || state.isLoadingNextPage
+            ? !state.results.places.isEmpty || state.results.viewState == .searching || state.results.isLoadingNextPage
+            : !state.results.relatedPlaceSuggestions.isEmpty || state.results.viewState == .searching || state.results.isLoadingNextPage
 
         if !hasRegions,
            !hasPlaces,
-           state.viewState == .emptyResults {
+           state.results.viewState == .emptyResults {
             EmptyView()
         } else {
             if hasRegions {
                 HomeSearchRegionList(
-                    regions: state.regions,
+                    regions: state.results.regions,
                     selectAction: { send(.regionTapped($0)) }
                 )
             }
@@ -118,18 +119,18 @@ extension HomeSearchView {
             if hasPlaces {
                 if isSelectedRegionSearch {
                     HomeSearchResultList(
-                        results: state.results,
-                        isSearching: state.viewState == .searching,
-                        isLoadingNextPage: state.isLoadingNextPage,
+                        results: state.results.places,
+                        isSearching: state.results.viewState == .searching,
+                        isLoadingNextPage: state.results.isLoadingNextPage,
                         showsEmptyMessage: false,
                         loadNextPage: { send(.loadNextPage) },
                         selectAction: { send(.resultTapped($0)) }
                     )
                 } else {
                     HomeRelatedSearchPlaceList(
-                        suggestions: state.relatedPlaceSuggestions,
-                        isSearching: state.viewState == .searching,
-                        isLoadingNextPage: state.isLoadingNextPage,
+                        suggestions: state.results.relatedPlaceSuggestions,
+                        isSearching: state.results.viewState == .searching,
+                        isLoadingNextPage: state.results.isLoadingNextPage,
                         showsEmptyMessage: !hasRegions,
                         loadNextPage: { send(.loadNextPage) },
                         selectAction: { send(.relatedPlaceSuggestionTapped($0)) }
@@ -141,10 +142,20 @@ extension HomeSearchView {
 
     private var shouldCenterEmptyState: Bool {
         !state.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-            state.viewState == .emptyResults &&
-            state.regions.isEmpty &&
-            state.relatedPlaceSuggestions.isEmpty &&
-            state.results.isEmpty
+            state.results.viewState == .emptyResults &&
+            state.results.regions.isEmpty &&
+            state.results.relatedPlaceSuggestions.isEmpty &&
+            state.results.places.isEmpty
+    }
+
+    private var shouldCenterRecentSearchEmptyState: Bool {
+        state.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+            !state.recent.isLoading &&
+            state.recent.searches.isEmpty
+    }
+
+    private var showsCenteredEmptyState: Bool {
+        shouldCenterEmptyState || shouldCenterRecentSearchEmptyState
     }
 
     private func dismiss() {

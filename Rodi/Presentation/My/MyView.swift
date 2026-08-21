@@ -18,15 +18,12 @@ struct MyView: View {
     let onReviewTestRequested: () -> Void
     let onReviewRequested: (ReviewWriteRequest) -> Void
     let onReviewEditRequested: (Int) -> Void
+    let practiceRecordsNavigationRequestID: Int
     let myPracticeRecordsReviewFlowFinishedRequestID: Int
     let myPostsReviewFlowFinishedRequestID: Int
     let isCourseTutorialCompleted: Bool
     let onCourseTutorialCompleted: () -> Void
-    private let memberRepository: MemberRepository
-    private let placeRepository: PlaceRepository
-    private let practiceRepository: PracticeRepository
-    private let reviewRepository: ReviewRepository
-    private let courseRepository: CourseRepository
+    private let destinationDependencies: MyDestinationDependencies
     private var router: Router<MyRoute> { coordinator.router }
 
     init(
@@ -38,11 +35,12 @@ struct MyView: View {
         onReviewTestRequested: @escaping () -> Void,
         onReviewRequested: @escaping (ReviewWriteRequest) -> Void,
         onReviewEditRequested: @escaping (Int) -> Void,
+        practiceRecordsNavigationRequestID: Int,
         myPracticeRecordsReviewFlowFinishedRequestID: Int,
         myPostsReviewFlowFinishedRequestID: Int,
         isCourseTutorialCompleted: Bool,
         onCourseTutorialCompleted: @escaping () -> Void,
-        dependencies: AppDependencies
+        dependencies: MyFeatureDependencies
     ) {
         self.coordinator = coordinator
         self.isMyTabSelected = isMyTabSelected
@@ -52,6 +50,7 @@ struct MyView: View {
         self.onReviewTestRequested = onReviewTestRequested
         self.onReviewRequested = onReviewRequested
         self.onReviewEditRequested = onReviewEditRequested
+        self.practiceRecordsNavigationRequestID = practiceRecordsNavigationRequestID
         self.myPracticeRecordsReviewFlowFinishedRequestID = myPracticeRecordsReviewFlowFinishedRequestID
         self.myPostsReviewFlowFinishedRequestID = myPostsReviewFlowFinishedRequestID
         self.isCourseTutorialCompleted = isCourseTutorialCompleted
@@ -64,15 +63,12 @@ struct MyView: View {
                     memberRepository: dependencies.memberRepository,
                     practiceRepository: dependencies.practiceRepository,
                     recentLoginProviderStore: dependencies.recentLoginProviderStore,
-                    levelUpPresentationStore: dependencies.levelUpPresentationStore
+                    levelUpPresentationStore: dependencies.levelUpPresentationStore,
+                    socialSessionService: dependencies.socialSessionService
                 )
             )
         )
-        memberRepository = dependencies.memberRepository
-        placeRepository = dependencies.placeRepository
-        practiceRepository = dependencies.practiceRepository
-        reviewRepository = dependencies.reviewRepository
-        courseRepository = dependencies.courseRepository
+        destinationDependencies = dependencies.destinations
     }
 
     var body: some View {
@@ -139,15 +135,15 @@ private extension MyView {
             
         case .drivingGoal:
             MyDrivingGoalView(
-                initialDrivingGoal: "",
-                memberRepository: memberRepository,
+                initialDrivingGoal: store.state.profile?.drivingGoal ?? "",
+                memberRepository: destinationDependencies.memberRepository,
                 onUpdated: { store.send(.drivingGoalUpdated($0)) },
                 backAction: { router.pop() }
             )
             
         case .savedPlaces:
             SavedPlacesView(
-                placeRepository: placeRepository,
+                placeRepository: destinationDependencies.placeRepository,
                 backAction: { router.pop() },
                 selectPlaceAction: { item in
                     RodiAnalytics.track(.savedPlaceSelected)
@@ -158,17 +154,20 @@ private extension MyView {
 
         case .practiceRecords:
             MyPracticeRecordsView(
-                practiceRepository: practiceRepository,
+                practiceRepository: destinationDependencies.practiceRepository,
                 reviewRequested: onReviewRequested,
+                navigationRefreshRequestID: practiceRecordsNavigationRequestID,
                 reviewFlowFinishedRequestID: myPracticeRecordsReviewFlowFinishedRequestID,
                 backAction: { router.pop() }
             )
 
         case .myPosts:
             MyPostsView(
-                reviewRepository: reviewRepository,
-                practiceRepository: practiceRepository,
-                courseRepository: courseRepository,
+                dependencies: .init(
+                    reviewRepository: destinationDependencies.reviewRepository,
+                    practiceRepository: destinationDependencies.practiceRepository,
+                    courseRepository: destinationDependencies.courseRepository
+                ),
                 backAction: { router.pop() },
                 openPracticeRecords: { router.push(.practiceRecords) },
                 openCourseRegistration: { router.push(.courseRegistration) },
@@ -179,12 +178,16 @@ private extension MyView {
 
         case .courseRegistration:
             CourseRegistrationView(
-                isCourseTutorialCompleted: isCourseTutorialCompleted,
-                memberRepository: memberRepository,
-                courseRepository: courseRepository,
-                closeAction: { router.pop() },
-                tutorialCompletedAction: onCourseTutorialCompleted,
-                courseRegistrationCompletedAction: { router.pop() }
+                presentation: .init(
+                    isTutorialCompleted: isCourseTutorialCompleted,
+                    close: { router.pop() },
+                    tutorialCompleted: onCourseTutorialCompleted,
+                    registrationCompleted: { router.pop() }
+                ),
+                dependencies: .init(
+                    memberRepository: destinationDependencies.memberRepository,
+                    courseRepository: destinationDependencies.courseRepository
+                )
             )
             .navigationBarBackButtonHidden(true)
             .toolbar(.hidden, for: .navigationBar)
@@ -194,6 +197,9 @@ private extension MyView {
             
         case .terms:
             MyTermsView(backAction: { router.pop() }, navigate: { router.push($0) })
+
+        case .dataSource:
+            MyDataSourceView(backAction: { router.pop() })
             
         case .licenses:
             MyOpenSourceLicenseView(backAction: { router.pop() })
@@ -208,7 +214,7 @@ private extension MyView {
 
         case .blockedMembers:
             MyBlockedMembersView(
-                memberRepository: memberRepository,
+                memberRepository: destinationDependencies.memberRepository,
                 backAction: { router.pop() }
             )
             

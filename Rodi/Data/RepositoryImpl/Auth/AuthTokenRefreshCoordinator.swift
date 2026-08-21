@@ -7,69 +7,66 @@ import Foundation
 
 @MainActor
 final class AuthTokenRefreshCoordinator: AccessTokenRefreshing {
-    private let networkManager: NetworkManager
+    private typealias RefreshTask = Task<TokenRefreshResult?, Error>
+
+    private let remoteDataSource: AuthRemoteDataSource
     private let tokenStore: TokenStoring
-    private var refreshTask: Task<
-        TokenRefreshResult?,
-        Error
-    >?
+    private var refreshTask: RefreshTask?
+    private var refreshTaskID: UUID?
     
     init(
-        networkManager: NetworkManager,
+        remoteDataSource: AuthRemoteDataSource,
         tokenStore: TokenStoring
     ) {
-        self.networkManager = networkManager
+        self.remoteDataSource = remoteDataSource
         self.tokenStore = tokenStore
     }
     
     func refreshAccessToken() async throws(
         NetworkError
     ) -> TokenRefreshResult? {
-        if let refreshTask {
-            return try await resolve(
-                refreshTask
-            )
+        let task: RefreshTask
+        let taskID: UUID
+
+        if let refreshTask, let refreshTaskID {
+            task = refreshTask
+            taskID = refreshTaskID
+        } else {
+            taskID = UUID()
+            task = makeRefreshTask()
+            refreshTask = task
+            refreshTaskID = taskID
         }
-        
-        let task = Task { [
-            networkManager,
-            tokenStore
-        ] () throws -> TokenRefreshResult? in
-            guard let refreshToken = await MainActor.run(
-                body: {
-                    tokenStore.refreshToken
-                }),
-                  !refreshToken.isEmpty else {
+
+        do {
+            let result = try await resolve(task)
+            finishRefreshTask(id: taskID)
+            return result
+        } catch let error {
+            finishRefreshTask(id: taskID)
+            if error.invalidatesAuthSession {
+                tokenStore.clear()
+            }
+            throw error
+        }
+    }
+
+    /// 여러 인증 요청이 하나의 refresh 작업을 공유해야 하므로, 이 Task의 수명은
+    /// 개별 호출자가 아니라 coordinator가 소유한다.
+    private func makeRefreshTask() -> RefreshTask {
+        Task { @MainActor [remoteDataSource, tokenStore] () throws -> TokenRefreshResult? in
+            guard let refreshToken = tokenStore.refreshToken, !refreshToken.isEmpty else {
                 throw NetworkError.refreshFailGoRoot
             }
-            
-            let request = TokenRefreshRequestDTO(
-                refreshToken: refreshToken
+
+            let token = try await remoteDataSource.refresh(
+                AuthMapper.tokenRefreshRequest(refreshToken: refreshToken)
             )
-            let response = try await networkManager.request(
-                AuthAPI
-                    .refresh(
-                        request: request
-                    ),
-                as: ServerResponse<TokenRefreshResponseDTO>.self
+            tokenStore.update(
+                accessToken: token.accessToken,
+                refreshToken: token.refreshToken
             )
-            
-            guard response.isSuccess, let token = response.data else {
-                throw NetworkError
-                    .apiError(
-                        code: response.code,
-                        message: response.message
-                    )
-            }
-            
-            await MainActor
-                .run {
-                    tokenStore
-                        .update(
-                            accessToken: token.accessToken,
-                            refreshToken: token.refreshToken
-                        )
-                }
+
             return TokenRefreshResult(
                 accessToken: token.accessToken,
                 refreshToken: token.refreshToken,
@@ -77,30 +74,16 @@ final class AuthTokenRefreshCoordinator: AccessTokenRefreshing {
                 isCourseTutorialCompleted: token.isCourseTutorialCompleted
             )
         }
-        
-        refreshTask = task
-        defer {
-            refreshTask = nil
-        }
-        
-        do {
-            return try await resolve(
-                task
-            )
-        } catch let error {
-            if error.invalidatesAuthSession {
-                tokenStore
-                    .clear()
-            }
-            throw error
-        }
     }
-    
+
+    private func finishRefreshTask(id: UUID) {
+        guard refreshTaskID == id else { return }
+        refreshTask = nil
+        refreshTaskID = nil
+    }
+
     private func resolve(
-        _ task: Task<
-        TokenRefreshResult?,
-        Error
-        >
+        _ task: RefreshTask
     ) async throws(
         NetworkError
     ) -> TokenRefreshResult? {

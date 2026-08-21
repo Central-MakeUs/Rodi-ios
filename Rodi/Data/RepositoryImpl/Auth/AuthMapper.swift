@@ -1,6 +1,26 @@
 import Foundation
 
-extension SocialLoginResponseDTO {
+nonisolated enum AuthMapper {
+    static func socialLoginRequest(
+        credential: String
+    ) -> SocialLoginRequestDTO {
+        .init(credential: credential)
+    }
+
+    static func logoutRequest(
+        refreshToken: String
+    ) -> LogoutRequestDTO {
+        .init(refreshToken: refreshToken)
+    }
+
+    static func tokenRefreshRequest(
+        refreshToken: String
+    ) -> TokenRefreshRequestDTO {
+        .init(refreshToken: refreshToken)
+    }
+}
+
+nonisolated extension SocialLoginResponseDTO {
     func loginResult(
         provider: SocialLoginProvider
     ) throws(
@@ -47,10 +67,6 @@ extension SocialLoginResponseDTO {
     private func date(
         _ value: String?
     ) -> Date? {
-        guard let value else {
-            return nil
-        }; return ISO8601DateFormatter().date(
-            from: value
-        )
+        ServerDateParser.date(from: value)
     }
 }

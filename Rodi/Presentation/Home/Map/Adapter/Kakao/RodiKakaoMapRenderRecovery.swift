@@ -46,6 +46,31 @@ extension RodiKakaoMapView {
             .disposed(by: rx.disposeBag)
     }
 
+    func recoverUserLocationMarkerIfNeeded() {
+        guard latestUserLocation != nil,
+              userLocationPoi == nil,
+              latestVisibilityState.isActive
+        else {
+            return
+        }
+
+        Observable<Int>
+            .timer(.milliseconds(450), scheduler: MainScheduler.instance)
+            .take(1)
+            .subscribe(onNext: { [weak self] _ in
+                guard let self,
+                      latestUserLocation != nil,
+                      userLocationPoi == nil,
+                      latestVisibilityState.isActive
+                else {
+                    return
+                }
+                activateEngineIfNeeded()
+                updateUserLocationMarker(animatedHeading: false)
+            })
+            .disposed(by: rx.disposeBag)
+    }
+
     func recoverFallbackTileRenderingIfNeeded() {
         guard latestUserLocation == nil, latestVisibilityState.isActive else { return }
 

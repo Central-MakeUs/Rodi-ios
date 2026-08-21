@@ -15,6 +15,10 @@ struct HomeSearchResultList: View {
 
     var body: some View {
         LazyVStack(spacing: 0) {
+            if isSearching, results.isEmpty {
+                SearchResultSkeletonList()
+            }
+
             if results.isEmpty, !isSearching, showsEmptyMessage {
                 Text("검색 결과가 없어요.")
                     .rodiTypography(.body3Medium)
@@ -32,10 +36,8 @@ struct HomeSearchResultList: View {
                     .overlay(RodiColor.primaryMinus100)
             }
 
-            if isSearching || isLoadingNextPage {
-                ProgressView()
-                    .tint(RodiColor.primary)
-                    .padding(.vertical, 20)
+            if (isSearching && !results.isEmpty) || isLoadingNextPage {
+                SearchResultSkeletonList(count: 2)
             } else if !results.isEmpty {
                 Color.clear
                     .frame(height: 1)

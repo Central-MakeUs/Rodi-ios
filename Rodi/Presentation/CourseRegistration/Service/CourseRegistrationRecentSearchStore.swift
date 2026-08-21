@@ -18,19 +18,10 @@ struct CourseRegistrationRecentSearchStore {
         static let maximumCount = 15
     }
 
-    private let userDefaults: UserDefaults
-
-    init(userDefaults: UserDefaults = .standard) {
-        self.userDefaults = userDefaults
-    }
+    private let persistence = UserDefaultsCodableStore<[CourseRegistrationRecentSearch]>(key: Key.searches)
 
     func load() -> [CourseRegistrationRecentSearch] {
-        guard let data = userDefaults.data(forKey: Key.searches),
-              let searches = try? JSONDecoder().decode([CourseRegistrationRecentSearch].self, from: data)
-        else {
-            return []
-        }
-        return searches
+        persistence.load() ?? []
     }
 
     func save(_ search: CourseRegistrationRecentSearch) -> [CourseRegistrationRecentSearch] {
@@ -49,11 +40,10 @@ struct CourseRegistrationRecentSearchStore {
     }
 
     func removeAll() {
-        userDefaults.removeObject(forKey: Key.searches)
+        persistence.remove()
     }
 
     private func persist(_ searches: [CourseRegistrationRecentSearch]) {
-        guard let data = try? JSONEncoder().encode(searches) else { return }
-        userDefaults.set(data, forKey: Key.searches)
+        persistence.save(searches)
     }
 }

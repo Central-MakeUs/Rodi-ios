@@ -2,8 +2,6 @@ import Foundation
 
 struct CourseDetailBottomSheetReducer: Reducer {
     enum Presentation: Equatable { case sheet, expandedDetail }
-    typealias ReviewPageState = CourseReviewReducer.PageState
-    typealias ReviewSummaryState = CourseReviewReducer.SummaryState
 
     struct State {
         var detail: PlaceDetail?
@@ -14,25 +12,36 @@ struct CourseDetailBottomSheetReducer: Reducer {
         var presentation: Presentation = .sheet
         var isRouteTimelineExpanded = false
         var reviews = CourseReviewReducer.State()
+        var routeGuidance = RouteGuidanceReducer.State()
+
+        var routeGuidancePresentation: RouteGuidanceFlowPresentation? {
+            routeGuidance.presentation
+        }
+
+        var isRouteGuidanceLaunching: Bool {
+            get { routeGuidance.isLaunching }
+            set { routeGuidance.isLaunching = newValue }
+        }
     }
 
     enum Action {
         case present(PlaceDetail, source: String)
         case dismiss
+        case reset
         case cancelRoadRouteLoading
         case toggleBookmark
         case bookmarkUpdated(placeID: Int, isBookmarked: Bool, source: String)
         case bookmarkFailed(previousDetail: PlaceDetail, message: String)
         case roadRouteLoaded(courseID: Int, path: [RodiCoordinate])
         case roadRouteFailed(courseID: Int, message: String?)
-        case externalRouteGuidanceWillOpen(
-            placeID: Int,
-            mode: PracticeMeasurementMode,
-            measurementID: UUID,
-            externalHandoffAt: Date
-        )
-        case externalRouteGuidanceFailed(measurementID: UUID)
-        case activeMeasurementEnded
+        case routeGuidanceTapped(userLocation: RodiCoordinate?, hasLocationPermission: Bool)
+        case routeGuidanceAppSelected(RouteGuidanceApp, rememberSelection: Bool)
+        case routeGuidanceInstallSelected(RouteGuidanceApp)
+        case routeGuidanceActiveMeasurementEnded
+        case routeGuidanceRouteOnlySelected
+        case routeGuidanceSettingsReturned
+        case routeGuidanceDismissed
+        case routeGuidance(RouteGuidanceReducer.Action)
         case expandRequested
         case collapseRequested
         case routeTimelineToggled
@@ -42,14 +51,40 @@ struct CourseDetailBottomSheetReducer: Reducer {
     enum Delegate { case dismissed, routeOverlayChanged(RodiRouteOverlay?), requestAuthentication, showSnackbar(String), reviewWritingRequested(ReviewWriteRequest), reviewEditingRequested(Int) }
     private let placeRepository: PlaceRepository
     private let practiceMeasurementStore: PracticeMeasurementStoring
+    private let practiceTrackingService: PracticeTrackingService
     private let hasActiveSession: () -> Bool
+    private let directionsService: KakaoDirectionsService
+    private let routeGuidanceReducer: RouteGuidanceReducer
     private let reviewsReducer: CourseReviewReducer
     private let onDelegate: (Delegate) -> Void
 
-    init(placeRepository: PlaceRepository, memberRepository: MemberRepository, practiceRepository: PracticeRepository, reviewRepository: ReviewRepository, practiceMeasurementStore: PracticeMeasurementStoring, hasActiveSession: @escaping () -> Bool, onDelegate: @escaping (Delegate) -> Void = { _ in }) {
+    init(
+        placeRepository: PlaceRepository,
+        memberRepository: MemberRepository,
+        practiceRepository: PracticeRepository,
+        reviewRepository: ReviewRepository,
+        practiceMeasurementStore: PracticeMeasurementStoring,
+        practiceTrackingService: PracticeTrackingService,
+        routeGuidanceService: RouteGuidanceService,
+        hasActiveSession: @escaping () -> Bool,
+        directionsService: KakaoDirectionsService = .init(),
+        onDelegate: @escaping (Delegate) -> Void = { _ in }
+    ) {
         self.placeRepository = placeRepository
         self.practiceMeasurementStore = practiceMeasurementStore
+        self.practiceTrackingService = practiceTrackingService
         self.hasActiveSession = hasActiveSession
+        self.directionsService = directionsService
+        routeGuidanceReducer = .init(
+            flowService: .init(
+                memberRepository: memberRepository,
+                practiceTrackingService: practiceTrackingService,
+                directionsService: directionsService,
+                routeGuidanceService: routeGuidanceService
+            ),
+            effectID: BottomSheetEffectID.courseRouteGuidance,
+            activeMeasurementFallbackName: "현재 코스"
+        )
         self.onDelegate = onDelegate
         reviewsReducer = .init(repository: reviewRepository, memberRepository: memberRepository, hasActiveSession: hasActiveSession)
     }
@@ -69,10 +104,20 @@ extension CourseDetailBottomSheetReducer {
             state = .init()
             return .run { send in
                 await send(.cancelRoadRouteLoading)
+                await send(.routeGuidanceDismissed)
                 await send(.reviews(.report(.reset)))
                 await send(.reviews(.block(.reset)))
                 await send(.reviews(.reset))
                 await send(.delegate(.dismissed))
+            }
+        case .reset:
+            state = .init()
+            return .run { send in
+                await send(.cancelRoadRouteLoading)
+                await send(.routeGuidanceDismissed)
+                await send(.reviews(.report(.reset)))
+                await send(.reviews(.block(.reset)))
+                await send(.reviews(.reset))
             }
         case .cancelRoadRouteLoading: return .cancel(id: BottomSheetEffectID.routeLoading)
         case .toggleBookmark:
@@ -96,25 +141,29 @@ extension CourseDetailBottomSheetReducer {
         case .roadRouteFailed(let courseID, let message):
             guard state.routeOverlay?.courseID == courseID else { return .none }; state.isRouteLoading = false; state.routeStatusMessage = message
             return .send(.delegate(.routeOverlayChanged(state.routeOverlay)))
-        case let .externalRouteGuidanceWillOpen(placeID, mode, measurementID, externalHandoffAt):
-            guard state.detail?.id == placeID, let name = state.detail?.name else { return .none }
-            let measurement = PracticeMeasurement(
-                id: measurementID,
-                placeID: placeID,
-                placeName: name,
-                mode: mode,
-                externalHandoffAt: externalHandoffAt,
-                status: mode == .gpsTracking ? .tracking : .awaitingReturn
+        case .routeGuidanceTapped(let userLocation, let hasLocationPermission):
+            return reduceRouteGuidance(
+                &state,
+                action: .start(
+                    detail: state.detail,
+                    userLocation: userLocation,
+                    hasLocationPermission: hasLocationPermission
+                )
             )
-            practiceMeasurementStore.save(measurement)
-            PracticeTrackingService.shared.synchronizeCompletedSessionCertificationIfNeeded()
-
-        case let .externalRouteGuidanceFailed(measurementID):
-            guard practiceMeasurementStore.load()?.id == measurementID else { return .none }
-            practiceMeasurementStore.clear()
-
-        case .activeMeasurementEnded:
-            practiceMeasurementStore.clear()
+        case .routeGuidanceAppSelected(let app, let rememberSelection):
+            return reduceRouteGuidance(&state, action: .appSelected(app, rememberSelection: rememberSelection))
+        case .routeGuidanceInstallSelected(let app):
+            return reduceRouteGuidance(&state, action: .installSelected(app))
+        case .routeGuidanceActiveMeasurementEnded:
+            return reduceRouteGuidance(&state, action: .activeMeasurementEnded)
+        case .routeGuidanceRouteOnlySelected:
+            return reduceRouteGuidance(&state, action: .routeOnlySelected)
+        case .routeGuidanceSettingsReturned:
+            return reduceRouteGuidance(&state, action: .settingsReturned)
+        case .routeGuidanceDismissed:
+            return reduceRouteGuidance(&state, action: .dismiss)
+        case .routeGuidance(let child):
+            return reduceRouteGuidance(&state, action: child)
         case .expandRequested:
             guard let placeID = state.detail?.id, state.presentation == .sheet else { return .none }
             state.presentation = .expandedDetail
@@ -134,6 +183,50 @@ extension CourseDetailBottomSheetReducer {
 
 // MARK: - Child Delegate
 private extension CourseDetailBottomSheetReducer {
+    func reduceRouteGuidance(
+        _ state: inout State,
+        action: RouteGuidanceReducer.Action
+    ) -> Effect<Action> {
+        if case .delegate(let delegate) = action {
+            return reduceRouteGuidanceDelegate(delegate, state: &state)
+        }
+        return routeGuidanceReducer
+            .reduce(&state.routeGuidance, with: action)
+            .map(Action.routeGuidance)
+    }
+
+    func reduceRouteGuidanceDelegate(
+        _ delegate: RouteGuidanceReducer.Delegate,
+        state: inout State
+    ) -> Effect<Action> {
+        switch delegate {
+        case let .willOpen(request, mode, measurementID):
+            practiceMeasurementStore.save(.init(
+                id: measurementID,
+                placeID: request.detail.id,
+                placeName: request.detail.name,
+                mode: mode,
+                externalHandoffAt: .now,
+                status: mode == .gpsTracking ? .tracking : .awaitingReturn
+            ))
+            practiceTrackingService.synchronizeCompletedSessionCertificationIfNeeded()
+
+        case let .openFinished(result, measurementID):
+            if case .openedApp = result {
+                // 측정 후보는 외부 앱 전환 전에 저장했다.
+            } else if practiceMeasurementStore.load()?.id == measurementID {
+                practiceMeasurementStore.clear()
+            }
+
+        case .activeMeasurementEnded:
+            practiceMeasurementStore.clear()
+
+        case let .showSnackbar(message):
+            return .send(.delegate(.showSnackbar(message)))
+        }
+        return .none
+    }
+
     func reduceReviewsDelegate(_ delegate: CourseReviewReducer.Delegate, state: inout State) -> Effect<Action> {
         switch delegate {
         case .writingRequested:
@@ -153,8 +246,9 @@ private extension CourseDetailBottomSheetReducer {
         let points = item.routeOverlayPoints
         guard points.count >= 2 else { state.routeOverlay = nil; state.routeStatusMessage = "경로 좌표가 아직 준비되지 않았어요."; return .cancel(id: BottomSheetEffectID.routeLoading) }
         state.routeOverlay = .init(courseID: item.id, points: points, path: points.map(\.coordinate), isRoadRoute: false); state.isRouteLoading = true
+        let directionsService = directionsService
         return .run { send in
-            do { await send(.roadRouteLoaded(courseID: item.id, path: try await KakaoDirectionsService().fetchRoute(points: points))) }
+            do { await send(.roadRouteLoaded(courseID: item.id, path: try await directionsService.fetchRoute(points: points))) }
             catch is CancellationError { }
             catch let error as KakaoDirectionsError { await send(.roadRouteFailed(courseID: item.id, message: error.fallbackMessage)) }
             catch { await send(.roadRouteFailed(courseID: item.id, message: "도로 경로를 불러오지 못해 대체 경로로 표시 중이에요.")) }

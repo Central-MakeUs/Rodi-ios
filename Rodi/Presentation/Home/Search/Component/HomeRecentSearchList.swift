@@ -21,7 +21,7 @@ struct HomeRecentSearchList: View {
     }
 
     private var recentSearchContent: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("최근 검색어")
                     .rodiTypography(.caption2Medium)
@@ -31,19 +31,17 @@ struct HomeRecentSearchList: View {
 
                 if !searches.isEmpty {
                     Button(action: clearAllAction) {
-                        Text("전체 삭제")
+                        Text("전체삭제")
                             .rodiTypography(.caption2Medium)
                             .foregroundStyle(RodiColor.gray500)
                     }
                         .buttonStyle(.plain)
                 }
             }
+            .padding(.horizontal, 16)
 
             if isLoading {
-                ProgressView()
-                    .tint(RodiColor.primary)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.top, 24)
+                SearchResultSkeletonList()
             } else {
                 LazyVStack(spacing: 0) {
                     ForEach(searches) { search in
@@ -65,7 +63,7 @@ struct HomeRecentSearchList: View {
                                     }
                                     .frame(width: 20, height: 20)
 
-                                    Text(search.keyword)
+                                    Text(displayKeyword(for: search))
                                         .rodiTypography(.body1Medium)
                                         .foregroundStyle(RodiColor.gray800)
                                         .lineLimit(1)
@@ -88,8 +86,9 @@ struct HomeRecentSearchList: View {
                                     .frame(width: 24, height: 24)
                             }
                             .buttonStyle(.plain)
-                            .accessibilityLabel("\(search.keyword) 삭제")
+                            .accessibilityLabel("\(displayKeyword(for: search)) 삭제")
                         }
+                        .padding(.horizontal, 16)
 
                         Divider()
                             .overlay(RodiColor.primaryMinus100)
@@ -97,5 +96,11 @@ struct HomeRecentSearchList: View {
                 }
             }
         }
+    }
+
+    private func displayKeyword(for search: RecentSearch) -> String {
+        search.kind == .region
+            ? HomeSearchDisplayName.region(search.keyword)
+            : search.keyword
     }
 }

@@ -19,9 +19,7 @@ struct MyPostsView: View {
     let editRequested: (Int) -> Void
 
     init(
-        reviewRepository: ReviewRepository,
-        practiceRepository: PracticeRepository,
-        courseRepository: CourseRepository,
+        dependencies: MyPostsFeatureDependencies,
         backAction: @escaping () -> Void,
         openPracticeRecords: @escaping () -> Void,
         openCourseRegistration: @escaping () -> Void,
@@ -33,9 +31,9 @@ struct MyPostsView: View {
             wrappedValue: Store(
                 state: MyPostsReducer.State(),
                 reducer: MyPostsReducer(
-                    reviewRepository: reviewRepository,
-                    practiceRepository: practiceRepository,
-                    courseRepository: courseRepository
+                    reviewRepository: dependencies.reviewRepository,
+                    practiceRepository: dependencies.practiceRepository,
+                    courseRepository: dependencies.courseRepository
                 )
             )
         )
@@ -55,12 +53,12 @@ struct MyPostsView: View {
                 content
             }
 
-            if store.state.deleteTargetReviewID != nil {
+            if store.state.reviews.deleteTargetReviewID != nil {
                 reviewDeleteConfirmationDialog
                     .zIndex(20)
             }
 
-            if store.state.deleteTargetCourseID != nil {
+            if store.state.courses.deleteTargetCourseID != nil {
                 courseDeleteConfirmationDialog
                     .zIndex(20)
             }
@@ -85,7 +83,7 @@ struct MyPostsView: View {
         .onChange(of: store.state.pendingEditReviewID) { reviewID in
             guard let reviewID else { return }
             editRequested(reviewID)
-            store.send(.editRequestHandled(reviewID: reviewID))
+            store.send(.editRequestHandled(reviewID))
         }
     }
 }
@@ -149,21 +147,21 @@ private extension MyPostsView {
             .padding(.top, 8)
             .padding(.bottom, 12)
 
-            if store.state.isCourseInitialLoading, store.state.courseItems.isEmpty {
+            if store.state.courses.isInitialLoading, store.state.courses.items.isEmpty {
                 ProgressView()
                     .tint(RodiColor.primary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if store.state.courseItems.isEmpty {
+            } else if store.state.courses.items.isEmpty {
                 MyCoursesEmptyState(
-                    filter: store.state.selectedCourseFilter,
-                    errorMessage: store.state.courseErrorMessage,
+                    filter: store.state.courses.selectedFilter,
+                    errorMessage: store.state.courses.errorMessage,
                     retry: { store.send(.retryTapped) },
                     openCourseRegistration: openCourseRegistration
                 )
             } else {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 24) {
-                        ForEach(store.state.courseItems) { course in
+                        ForEach(store.state.courses.items) { course in
                             VStack(alignment: .leading, spacing: 24) {
                                 MyCourseRow(
                                     course: course,
@@ -183,6 +181,10 @@ private extension MyPostsView {
                     .padding(.bottom, 24)
                 }
                 .scrollIndicators(.hidden)
+                .simultaneousGesture(
+                    DragGesture(minimumDistance: 1)
+                        .onChanged { _ in closeDropdowns() }
+                )
             }
         }
     }
@@ -194,7 +196,7 @@ private extension MyPostsView {
             isCourseFilterExpanded.toggle()
         } label: {
             HStack(spacing: 2) {
-                Text(isCourseFilterExpanded ? "접기" : store.state.selectedCourseFilter.title)
+                Text(isCourseFilterExpanded ? "접기" : store.state.courses.selectedFilter.title)
                     .rodiTypography(.body3Medium)
 
                 Image("ic_chevron_down")
@@ -216,43 +218,43 @@ private extension MyPostsView {
 
     @ViewBuilder
     var coursePaginationFooter: some View {
-        if store.state.isCourseNextPageLoading {
+        if store.state.courses.isNextPageLoading {
             ProgressView()
                 .tint(RodiColor.primary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 20)
-        } else if let lastItem = store.state.courseItems.last,
-                  store.state.hasNextCoursePage,
-                  store.state.courseErrorMessage == nil {
+        } else if let lastItem = store.state.courses.items.last,
+                  store.state.courses.hasNextPage,
+                  store.state.courses.errorMessage == nil {
             Color.clear
                 .frame(height: 1)
                 .onAppear {
-                    store.send(.courseLastItemAppeared(lastItem))
+                    store.send(.courses(.lastItemAppeared(lastItem)))
                 }
         }
 
-        if let errorMessage = store.state.courseErrorMessage, !store.state.courseItems.isEmpty {
+        if let errorMessage = store.state.courses.errorMessage, !store.state.courses.items.isEmpty {
             MyPostsRetryFooter(message: errorMessage, retry: { store.send(.retryTapped) })
         }
     }
 
     @ViewBuilder
     var reviewContent: some View {
-        if store.state.isInitialLoading, store.state.items.isEmpty {
+        if store.state.reviews.isInitialLoading, store.state.reviews.items.isEmpty {
             ProgressView()
                 .tint(RodiColor.primary)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else if store.state.items.isEmpty {
+        } else if store.state.reviews.items.isEmpty {
             MyPostsEmptyState(
-                errorMessage: store.state.errorMessage,
+                errorMessage: store.state.reviews.errorMessage,
                 retry: { store.send(.retryTapped) },
                 openPracticeRecords: openPracticeRecords,
-                hasPracticeRecords: store.state.hasPracticeRecords
+                hasPracticeRecords: store.state.reviews.hasPracticeRecords
             )
         } else {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 24) {
-                    ForEach(store.state.items) { review in
+                    ForEach(store.state.reviews.items) { review in
                         VStack(alignment: .leading, spacing: 24) {
                             MyPostReviewRow(
                                 review: review,
@@ -273,27 +275,31 @@ private extension MyPostsView {
                 .padding(.bottom, 24)
             }
             .scrollIndicators(.hidden)
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 1)
+                    .onChanged { _ in closeDropdowns() }
+            )
         }
     }
 
     @ViewBuilder
     var reviewPaginationFooter: some View {
-        if store.state.isNextPageLoading {
+        if store.state.reviews.isNextPageLoading {
             ProgressView()
                 .tint(RodiColor.primary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 20)
-        } else if let lastItem = store.state.items.last,
-                  store.state.hasNextPage,
-                  store.state.errorMessage == nil {
+        } else if let lastItem = store.state.reviews.items.last,
+                  store.state.reviews.hasNextPage,
+                  store.state.reviews.errorMessage == nil {
             Color.clear
                 .frame(height: 1)
                 .onAppear {
-                    store.send(.lastItemAppeared(lastItem))
+                    store.send(.reviews(.lastItemAppeared(lastItem)))
                 }
         }
 
-        if let errorMessage = store.state.errorMessage, !store.state.items.isEmpty {
+        if let errorMessage = store.state.reviews.errorMessage, !store.state.reviews.items.isEmpty {
             MyPostsRetryFooter(message: errorMessage, retry: { store.send(.retryTapped) })
         }
     }
@@ -306,17 +312,17 @@ private extension MyPostsView {
            let anchor = anchors[AnyHashable("course-filter")] {
             menuOverlay(anchor: anchor) {
                 RodiDropdownMenu(
-                    options: MyPostsReducer.CourseFilter.allCases
-                        .filter { $0 != store.state.selectedCourseFilter }
+                    options: MyPostsCourseFilter.allCases
+                        .filter { $0 != store.state.courses.selectedFilter }
                         .map {
                         .init(id: $0.title, title: $0.title)
                         },
                     onSelect: { option in
-                        guard let filter = MyPostsReducer.CourseFilter.allCases.first(where: { $0.title == option.id }) else {
+                        guard let filter = MyPostsCourseFilter.allCases.first(where: { $0.title == option.id }) else {
                             return
                         }
                         isCourseFilterExpanded = false
-                        store.send(.courseFilterSelected(filter))
+                        store.send(.courses(.filterSelected(filter)))
                     }
                 )
             }
@@ -327,7 +333,7 @@ private extension MyPostsView {
                     options: [.init(id: "delete", title: "삭제하기")],
                     onSelect: { _ in
                         activeMenuCourseID = nil
-                        store.send(.deleteCourseRequested(courseID: courseID))
+                        store.send(.courses(.deleteRequested(courseID)))
                     }
                 )
             }
@@ -342,9 +348,9 @@ private extension MyPostsView {
                     onSelect: { option in
                         activeMenuReviewID = nil
                         if option.id == "edit" {
-                            store.send(.editRequested(reviewID: reviewID))
+                            store.send(.reviews(.editRequested(reviewID)))
                         } else {
-                            store.send(.deleteRequested(reviewID: reviewID))
+                            store.send(.reviews(.deleteRequested(reviewID)))
                         }
                     }
                 )
@@ -373,6 +379,10 @@ private extension MyPostsView {
                     }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 1)
+                    .onChanged { _ in closeDropdowns() }
+            )
         }
         .ignoresSafeArea()
         .zIndex(10)
@@ -398,382 +408,19 @@ private extension MyPostsView {
 
     var reviewDeleteConfirmationDialog: some View {
         ReviewDeleteConfirmationDialog(
-            isDeleting: store.state.isDeleting,
-            errorMessage: store.state.deleteErrorMessage,
-            deleteAction: { store.send(.deleteConfirmed) },
-            cancelAction: { store.send(.deleteCancelled) }
+            isDeleting: store.state.reviews.isDeleting,
+            errorMessage: store.state.reviews.deleteErrorMessage,
+            deleteAction: { store.send(.reviews(.deleteConfirmed)) },
+            cancelAction: { store.send(.reviews(.deleteCancelled)) }
         )
     }
 
     var courseDeleteConfirmationDialog: some View {
         CourseDeleteConfirmationDialog(
-            isDeleting: store.state.isDeletingCourse,
-            errorMessage: store.state.courseDeleteErrorMessage,
-            deleteAction: { store.send(.deleteCourseConfirmed) },
-            cancelAction: { store.send(.deleteCourseCancelled) }
+            isDeleting: store.state.courses.isDeleting,
+            errorMessage: store.state.courses.deleteErrorMessage,
+            deleteAction: { store.send(.courses(.deleteConfirmed)) },
+            cancelAction: { store.send(.courses(.deleteCancelled)) }
         )
-    }
-}
-
-private struct MyCourseRow: View {
-    let course: MyCourseItem
-    let isMenuExpanded: Bool
-    let menuTapped: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(course.name)
-                .font(.pretendard(size: 15, weight: .semibold))
-                .tracking(-0.3)
-                .foregroundStyle(RodiColor.black)
-                .lineLimit(1)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .overlay(alignment: .trailing) {
-                    Button(action: menuTapped) {
-                        Image("ic_more_horizontal_circle")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 18, height: 18)
-                            .frame(maxWidth: .infinity, alignment: .trailing)
-                            .anchorPreference(key: RodiDropdownAnchorPreferenceKey.self, value: .bounds) {
-                                [AnyHashable("course-\(course.id)"): $0]
-                            }
-                    }
-                    .buttonStyle(.plain)
-                    .frame(width: 44, height: 44)
-                    .contentShape(Rectangle())
-                    .accessibilityLabel(isMenuExpanded ? "코스 메뉴 닫기" : "코스 메뉴 열기")
-                }
-
-            HStack(spacing: 4) {
-                Text(course.approvalStatus.title)
-                    .font(.pretendard(size: 13, weight: .medium))
-                    .tracking(-0.26)
-                    .foregroundStyle(statusTextColor)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(statusBackgroundColor)
-                    .clipShape(RoundedRectangle(cornerRadius: 2))
-
-                Text("･")
-                Text(createdAtText)
-            }
-            .font(.pretendard(size: 13, weight: .medium))
-            .tracking(-0.26)
-            .foregroundStyle(RodiColor.gray600)
-        }
-    }
-
-    private var statusTextColor: Color {
-        switch course.approvalStatus {
-        case .approved: Color(hex: 0x04B3AA)
-        case .pending: RodiColor.gray50
-        case .rejected: Color(hex: 0xFF3019)
-        }
-    }
-
-    private var statusBackgroundColor: Color {
-        switch course.approvalStatus {
-        case .approved: Color(hex: 0xE4FAF7)
-        case .pending: RodiColor.gray400
-        case .rejected: Color(hex: 0xFFEDF6)
-        }
-    }
-
-    private var createdAtText: String {
-        let dateComponents = course.createdAt.prefix(10).split(separator: "-")
-        guard dateComponents.count == 3,
-              dateComponents[0].count == 4,
-              dateComponents[1].count == 2,
-              dateComponents[2].count == 2
-        else {
-            return course.createdAt
-        }
-
-        return "\(dateComponents[0].suffix(2)).\(dateComponents[1]).\(dateComponents[2])"
-    }
-}
-
-private struct MyPostReviewRow: View {
-    let review: MyReviewItem
-    let isMenuExpanded: Bool
-    let menuTapped: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(review.placeName)
-                    .font(.pretendard(size: 15, weight: .semibold))
-                    .tracking(-0.3)
-                    .foregroundStyle(RodiColor.black)
-                    .lineLimit(1)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .overlay(alignment: .trailing) {
-                        Button(action: menuTapped) {
-                            Image("ic_more_horizontal_circle")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 18, height: 18)
-                                .frame(maxWidth: .infinity, alignment: .trailing)
-                                .anchorPreference(key: RodiDropdownAnchorPreferenceKey.self, value: .bounds) {
-                                    [AnyHashable("review-\(review.id)"): $0]
-                                }
-                        }
-                        .buttonStyle(.plain)
-                        .frame(width: 44, height: 44)
-                        .contentShape(Rectangle())
-                        .accessibilityLabel(isMenuExpanded ? "후기 메뉴 닫기" : "후기 메뉴 열기")
-                    }
-
-                Text(Self.dateFormatter.string(from: review.createdAt))
-                    .font(.pretendard(size: 13, weight: .medium))
-                    .tracking(-0.26)
-                    .foregroundStyle(RodiColor.gray600)
-            }
-
-            Text(review.content)
-                .font(.pretendard(size: 13, weight: .regular))
-                .tracking(-0.26)
-                .foregroundStyle(RodiColor.gray700)
-                .lineLimit(1)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 10)
-                .frame(height: 37)
-                .overlay {
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(RodiColor.gray200, lineWidth: 1)
-                }
-        }
-    }
-
-    private static let dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ko_KR")
-        formatter.dateFormat = "yy.MM.dd"
-        return formatter
-    }()
-}
-
-private struct MyCoursesEmptyState: View {
-    let filter: MyPostsReducer.CourseFilter
-    let errorMessage: String?
-    let retry: () -> Void
-    let openCourseRegistration: () -> Void
-
-    var body: some View {
-        VStack(spacing: 0) {
-            if let errorMessage {
-                Text(errorMessage)
-                    .rodiTypography(.body3Medium)
-                    .foregroundStyle(RodiColor.gray600)
-
-                Button(action: retry) {
-                    Text("다시 시도")
-                        .rodiTypography(.body3Medium)
-                        .foregroundStyle(RodiColor.primary)
-                }
-                .buttonStyle(.plain)
-                .padding(.top, 8)
-            } else {
-                Image("img_my_courses_empty")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 125, height: 50)
-
-                Text(emptyTitle)
-                    .rodiTypography(.headline1)
-                    .foregroundStyle(RodiColor.gray600)
-                    .padding(.top, 16)
-
-                if filter == .all {
-                    Text("나만 알고 있는 운전 연습하기 좋은\n코스를 공유해보세요.")
-                        .rodiTypography(.body3Medium)
-                        .foregroundStyle(RodiColor.gray600)
-                        .multilineTextAlignment(.center)
-                        .padding(.top, 8)
-
-                    Button(action: openCourseRegistration) {
-                        Text("코스 등록하기")
-                            .rodiTypography(.body3Medium)
-                            .foregroundStyle(RodiColor.primary)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 7)
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(RodiColor.primary, lineWidth: 1)
-                            }
-                    }
-                    .buttonStyle(.plain)
-                    .contentShape(Rectangle())
-                    .padding(.top, 16)
-                    .accessibilityLabel("코스 등록하기")
-                }
-            }
-        }
-        .multilineTextAlignment(.center)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.bottom, 104)
-    }
-
-    private var emptyTitle: String {
-        switch filter {
-        case .all: "등록한 코스가 없어요!"
-        case .approved: "승인된 코스가 없어요!"
-        case .pending: "검토중인 코스가 없어요!"
-        case .rejected: "반려된 코스가 없어요!"
-        }
-    }
-}
-
-private struct MyPostsEmptyState: View {
-    let errorMessage: String?
-    let retry: () -> Void
-    let openPracticeRecords: () -> Void
-    let hasPracticeRecords: Bool
-
-    var body: some View {
-        VStack(spacing: 8) {
-            if let errorMessage {
-                Text(errorMessage)
-                    .rodiTypography(.body3Medium)
-                    .foregroundStyle(RodiColor.gray600)
-
-                Button(action: retry) {
-                    Text("다시 시도")
-                        .rodiTypography(.body3Medium)
-                        .foregroundStyle(RodiColor.primary)
-                }
-                .buttonStyle(.plain)
-            } else {
-                VStack(alignment: .center) {
-                    Image("ic_review")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 60, height: 60)
-                        .padding(.bottom, 16)
-
-                    Text("아직 작성한 후기가 없어요!")
-                        .rodiTypography(.headline1)
-                        .foregroundStyle(RodiColor.gray600)
-                        .padding(.bottom, 8)
-
-                    Text("다녀온 코스의 경험을 기록해보세요.")
-                        .rodiTypography(.body3Medium)
-                        .foregroundStyle(RodiColor.gray600)
-
-                    if hasPracticeRecords {
-                        Button(action: openPracticeRecords) {
-                            Text("연습기록 보러가기")
-                                .rodiTypography(.body3Medium)
-                                .foregroundStyle(RodiColor.primary)
-                                .padding(.horizontal, 20)
-                                .padding(.vertical, 7)
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(RodiColor.primary, lineWidth: 1)
-                                }
-                        }
-                        .buttonStyle(.plain)
-                        .padding(.top, 16)
-                        .accessibilityLabel("연습기록 보러가기")
-                    }
-                }
-            }
-        }
-        .multilineTextAlignment(.center)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.bottom, 104)
-    }
-}
-
-private struct MyPostsRetryFooter: View {
-    let message: String
-    let retry: () -> Void
-
-    var body: some View {
-        VStack(spacing: 8) {
-            Text(message)
-                .rodiTypography(.body3Medium)
-                .foregroundStyle(RodiColor.gray600)
-
-            Button(action: retry) {
-                Text("다시 시도")
-                    .rodiTypography(.body3Medium)
-                    .foregroundStyle(RodiColor.primary)
-            }
-            .buttonStyle(.plain)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 16)
-    }
-}
-
-private struct CourseDeleteConfirmationDialog: View {
-    let isDeleting: Bool
-    let errorMessage: String?
-    let deleteAction: () -> Void
-    let cancelAction: () -> Void
-
-    var body: some View {
-        RodiModalBackground {
-            RodiDialog(contentInsets: .init(top: 32, leading: 20, bottom: 32, trailing: 20)) {
-                VStack(spacing: 0) {
-                    VStack(spacing: 16) {
-                        Text("정말 삭제하시겠습니까?")
-                            .font(.pretendard(size: 16, weight: .bold))
-                            .tracking(-0.32)
-                            .foregroundStyle(RodiColor.black)
-
-                        Text("이 코스는 삭제하면 더 이상 공개되지 않아요.")
-                            .rodiTypography(.caption1Medium)
-                            .foregroundStyle(RodiColor.black)
-                            .multilineTextAlignment(.center)
-
-                        if let errorMessage {
-                            Text(errorMessage)
-                                .rodiTypography(.caption2Medium)
-                                .foregroundStyle(RodiColor.secondary400)
-                                .multilineTextAlignment(.center)
-                        }
-                    }
-                    .frame(minWidth: 240)
-
-                    HStack(spacing: 8) {
-                        Button(action: deleteAction) {
-                            Group {
-                                if isDeleting {
-                                    ProgressView()
-                                        .controlSize(.small)
-                                        .tint(RodiColor.gray800)
-                                } else {
-                                    Text("삭제하기")
-                                        .rodiTypography(.buttonMedium)
-                                        .foregroundStyle(RodiColor.gray800)
-                                }
-                            }
-                            .frame(width: 116, height: 42)
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(RodiColor.gray300, lineWidth: 1)
-                            }
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(isDeleting)
-
-                        Button(action: cancelAction) {
-                            Text("취소")
-                                .rodiTypography(.buttonMedium)
-                                .foregroundStyle(RodiColor.white)
-                                .frame(width: 116, height: 42)
-                                .background(RodiColor.primary)
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(isDeleting)
-                    }
-                    .padding(.top, 24)
-                }
-            }
-        }
     }
 }

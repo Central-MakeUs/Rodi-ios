@@ -3,11 +3,13 @@ import SwiftUI
 struct MyPracticeRecordsView: View {
     @StateObject private var store: StoreOf<MyPracticeRecordsReducer>
     let backAction: () -> Void
+    let navigationRefreshRequestID: Int
     let reviewFlowFinishedRequestID: Int
 
     init(
         practiceRepository: PracticeRepository,
         reviewRequested: @escaping (ReviewWriteRequest) -> Void,
+        navigationRefreshRequestID: Int,
         reviewFlowFinishedRequestID: Int,
         backAction: @escaping () -> Void
     ) {
@@ -18,6 +20,7 @@ struct MyPracticeRecordsView: View {
             )
         )
         self.reviewRequested = reviewRequested
+        self.navigationRefreshRequestID = navigationRefreshRequestID
         self.reviewFlowFinishedRequestID = reviewFlowFinishedRequestID
         self.backAction = backAction
     }
@@ -33,6 +36,10 @@ struct MyPracticeRecordsView: View {
         .toolbar(.hidden, for: .navigationBar)
         .onAppear {
             store.send(.appeared)
+        }
+        .onChange(of: navigationRefreshRequestID) { requestID in
+            guard requestID > 0 else { return }
+            store.send(.reloadRequested)
         }
         .onChange(of: reviewFlowFinishedRequestID) { requestID in
             guard requestID > 0 else { return }
@@ -91,16 +98,8 @@ private extension MyPracticeRecordsView {
         }
 
         if let errorMessage = store.state.errorMessage {
-            VStack(spacing: 8) {
-                Text(errorMessage)
-                    .rodiTypography(.body3Medium)
-                    .foregroundStyle(RodiColor.gray600)
-                Button(action: { store.send(.retryTapped) }) {
-                    Text("다시 시도")
-                        .rodiTypography(.body3Medium)
-                        .foregroundStyle(RodiColor.primary)
-                }
-                .buttonStyle(.plain)
+            RodiRetryView(message: errorMessage) {
+                store.send(.retryTapped)
             }
             .padding(.vertical, 16)
         }
@@ -134,24 +133,14 @@ private struct MyPracticeRecordListRow: View {
             MyPracticeTypeChipRow(types: record.practiceTypes)
                 .padding(.top, 4)
 
-            if !record.isParkingPractice, !record.hasReview {
-                Button {
+            MyPracticeReviewStatus(
+                hasReview: record.hasReview,
+                isReviewWritable: !record.isParkingPractice,
+                reviewRequested: {
                     reviewRequested(.init(placeID: record.placeID, placeName: record.placeName))
-                } label: {
-                    Text("후기 작성")
-                        .rodiTypography(.body3Medium)
-                        .foregroundStyle(RodiColor.primary)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 32)
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(RodiColor.primary, lineWidth: 1)
-                        }
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("\(record.placeName) 후기 작성")
-                .padding(.top, 16)
-            }
+            )
+            .padding(.top, 16)
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(record.placeName), \(dateText)")
@@ -177,15 +166,7 @@ private struct MyPracticeRecordsEmptyState: View {
     var body: some View {
         VStack(spacing: 8) {
             if let errorMessage {
-                Text(errorMessage)
-                    .rodiTypography(.body3Medium)
-                    .foregroundStyle(RodiColor.gray600)
-                Button(action: retry) {
-                    Text("다시 시도")
-                        .rodiTypography(.body3Medium)
-                        .foregroundStyle(RodiColor.primary)
-                }
-                .buttonStyle(.plain)
+                RodiRetryView(message: errorMessage, retryAction: retry)
             } else {
                 Text("아직 연습기록이 없어요!")
                     .rodiTypography(.body3Medium)

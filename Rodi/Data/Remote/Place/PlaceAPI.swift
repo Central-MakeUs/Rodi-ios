@@ -9,15 +9,15 @@ import Foundation
 enum PlaceAPI: TargetType {
     case coordinates
     
-    case list(PlaceListQuery)
+    case list(PlaceListQueryDTO)
     
-    case authenticatedList(PlaceListQuery)
+    case authenticatedList(PlaceListQueryDTO)
     
-    case search(PlaceSearchQuery)
+    case search(PlaceSearchQueryDTO)
     
-    case relatedSearch(PlaceRelatedSearchQuery)
+    case relatedSearch(PlaceRelatedSearchQueryDTO)
     
-    case bookmarks(PlaceBookmarkListQuery)
+    case bookmarks(PlaceBookmarkListQueryDTO)
     
     case detail(id: Int)
     
@@ -61,10 +61,10 @@ enum PlaceAPI: TargetType {
         switch self {
         case .list(let query), .authenticatedList(let query):
             var parameters: Parameters = [
-                "swLat": query.viewport.southWestLatitude,
-                "swLng": query.viewport.southWestLongitude,
-                "neLat": query.viewport.northEastLatitude,
-                "neLng": query.viewport.northEastLongitude,
+                "swLat": query.southWestLatitude,
+                "swLng": query.southWestLongitude,
+                "neLat": query.northEastLatitude,
+                "neLng": query.northEastLongitude,
                 "lat": query.currentLatitude,
                 "lng": query.currentLongitude,
                 "size": query.size

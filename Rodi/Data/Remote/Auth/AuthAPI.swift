@@ -7,9 +7,9 @@ import Alamofire
 import Foundation
 
 enum AuthAPI: TargetType {
-    case login(provider: SocialLoginProvider, request: SocialLoginRequestDTO)
+    case login(providerRawValue: String, request: SocialLoginRequestDTO)
     
-    case restore(provider: SocialLoginProvider, request: SocialLoginRequestDTO)
+    case restore(providerRawValue: String, request: SocialLoginRequestDTO)
     
     case refresh(request: TokenRefreshRequestDTO)
     
@@ -21,10 +21,10 @@ enum AuthAPI: TargetType {
 
     var path: String {
         switch self {
-        case .login(let provider, _):
-            "/api/v1/auth/oauth/\(provider.rawValue)"
-        case .restore(let provider, _):
-            "/api/v1/auth/oauth/\(provider.rawValue)/restore"
+        case .login(let providerRawValue, _):
+            "/api/v1/auth/oauth/\(providerRawValue)"
+        case .restore(let providerRawValue, _):
+            "/api/v1/auth/oauth/\(providerRawValue)/restore"
         case .refresh:
             "/api/v1/auth/token/refresh"
         case .logout:

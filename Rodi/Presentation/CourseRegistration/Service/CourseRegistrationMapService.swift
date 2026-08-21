@@ -9,9 +9,14 @@ final class CourseRegistrationMapService {
     }
 
     private let locationService: MapLocationService
+    private let kakaoRESTClient: KakaoRESTClient
 
-    init(locationService: MapLocationService? = nil) {
+    init(
+        locationService: MapLocationService? = nil,
+        kakaoRESTClient: KakaoRESTClient? = nil
+    ) {
         self.locationService = locationService ?? MapLocationService()
+        self.kakaoRESTClient = kakaoRESTClient ?? KakaoRESTClient()
     }
 
     func requestCurrentLocation() async -> CurrentLocationResult {
@@ -26,10 +31,6 @@ final class CourseRegistrationMapService {
     }
 
     func reverseGeocode(_ coordinate: RodiCoordinate) async throws -> String {
-        guard !KakaoConfiguration.restAPIKey.isEmpty else {
-            throw CourseRegistrationAddressLookupError.missingAPIKey
-        }
-
         var components = URLComponents(
             string: "https://dapi.kakao.com/v2/local/geo/coord2address.json"
         )
@@ -41,30 +42,14 @@ final class CourseRegistrationMapService {
             throw CourseRegistrationAddressLookupError.invalidRequest
         }
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.setValue("KakaoAK \(KakaoConfiguration.restAPIKey)", forHTTPHeaderField: "Authorization")
-
-        let data: Data
-        let response: URLResponse
         do {
-            (data, response) = try await URLSession.shared.data(for: request)
-        } catch is CancellationError {
-            throw CancellationError()
-        } catch {
-            throw CourseRegistrationAddressLookupError.networkFailed
-        }
+            let response = try await kakaoRESTClient.get(url: url)
+            guard (200..<300).contains(response.statusCode) else {
+                throw CourseRegistrationAddressLookupError.httpStatus(response.statusCode)
+            }
 
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw CourseRegistrationAddressLookupError.networkFailed
-        }
-        guard (200..<300).contains(httpResponse.statusCode) else {
-            throw CourseRegistrationAddressLookupError.httpStatus(httpResponse.statusCode)
-        }
-
-        do {
-            let response = try JSONDecoder().decode(CoordToAddressResponse.self, from: data)
-            guard let document = response.documents.first else {
+            let decoded = try JSONDecoder().decode(CoordToAddressResponse.self, from: response.data)
+            guard let document = decoded.documents.first else {
                 throw CourseRegistrationAddressLookupError.addressNotFound
             }
             if let roadAddress = document.roadAddress?.addressName.nonEmpty {
@@ -74,8 +59,17 @@ final class CourseRegistrationMapService {
                 return address
             }
             throw CourseRegistrationAddressLookupError.addressNotFound
+        } catch is CancellationError {
+            throw CancellationError()
         } catch let error as CourseRegistrationAddressLookupError {
             throw error
+        } catch let error as KakaoRESTClient.TransportError {
+            switch error {
+            case .missingAPIKey:
+                throw CourseRegistrationAddressLookupError.missingAPIKey
+            case .invalidHTTPResponse, .networkFailed:
+                throw CourseRegistrationAddressLookupError.networkFailed
+            }
         } catch {
             throw CourseRegistrationAddressLookupError.decodingFailed
         }

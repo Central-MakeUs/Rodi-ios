@@ -22,7 +22,7 @@ struct HomeSearchRegionList: View {
                             .foregroundStyle(RodiColor.gray600)
                             .frame(width: 20, height: 20)
 
-                        Text(region)
+                        Text(HomeSearchDisplayName.region(region))
                             .rodiTypography(.body1Medium)
                             .foregroundStyle(RodiColor.gray800)
                             .lineLimit(1)
@@ -34,7 +34,10 @@ struct HomeSearchRegionList: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("\(region) 검색")
+                .accessibilityLabel("\(HomeSearchDisplayName.region(region)) 검색")
+
+                Divider()
+                    .overlay(RodiColor.primaryMinus100)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

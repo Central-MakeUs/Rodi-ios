@@ -56,6 +56,8 @@ final class CourseReviewReducerTests: XCTestCase {
 
 private struct ReviewRepositoryStub: ReviewRepository {
     func create(placeID: Int, submission: PlaceReviewSubmission) async throws(NetworkError) {}
+    func fetchDetail(reviewID: Int) async throws(NetworkError) -> ReviewDetail { fatalError() }
+    func update(reviewID: Int, submission: PlaceReviewSubmission) async throws(NetworkError) {}
     func fetchSummary(placeID: Int, level: ReviewLevelFilter) async throws(NetworkError) -> PlaceReviewSummary { fatalError() }
     func fetchReviews(placeID: Int, query: PlaceReviewQuery) async throws(NetworkError) -> PlaceReviewPage { fatalError() }
     func fetchMyReviews(query: MyReviewQuery) async throws(NetworkError) -> MyReviewPage { fatalError() }
@@ -67,10 +69,12 @@ private struct ReviewRepositoryStub: ReviewRepository {
 private struct MemberRepositoryStub: MemberRepository {
     func fetchMyProfile() async throws(NetworkError) -> MemberProfile { fatalError() }
     func withdraw() async throws(NetworkError) {}
+    func hardWithdraw() async throws(NetworkError) {}
     func block(memberID: Int) async throws(NetworkError) {}
     func fetchBlockedMembers(query: BlockedMemberQuery) async throws(NetworkError) -> BlockedMemberPage { fatalError() }
     func unblock(memberID: Int) async throws(NetworkError) {}
     func updateDrivingGoal(_ drivingGoal: String) async throws(NetworkError) {}
     func updatePlaceFilterTags(_ tags: [PlacePracticeType]) async throws(NetworkError) {}
     func submitOnboarding(_ submission: MemberOnboardingSubmission) async throws(NetworkError) {}
+    func completeCourseTutorial() async throws(NetworkError) -> CourseTutorialCompletion { fatalError() }
 }

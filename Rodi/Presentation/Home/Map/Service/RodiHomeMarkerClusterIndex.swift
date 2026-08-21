@@ -88,6 +88,11 @@ struct RodiHomeMarkerClusterIndex {
             markers = groups
                 .compactMap { key, members -> RodiMapMarker? in
                     guard !members.isEmpty else { return nil }
+
+                    if members.count == 1 {
+                        return members[0].mapMarker
+                    }
+
                     let coordinate = averagedCoordinate(of: members)
                     return RodiMapMarker(
                         id: "cluster:\(tier.id):\(key)",

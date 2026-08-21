@@ -13,7 +13,7 @@ enum MemberAPI: TargetType {
     case withdraw
     case hardWithdraw
     case block(memberID: Int)
-    case blockedMembers(query: BlockedMemberQuery)
+    case blockedMembers(query: BlockedMemberListQueryDTO)
     case unblock(memberID: Int)
     case submitOnboarding(MemberOnboardingRequestDTO)
     case completeCourseTutorial

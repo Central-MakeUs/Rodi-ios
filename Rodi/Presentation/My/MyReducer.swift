@@ -4,7 +4,6 @@
 //
 
 import Foundation
-import KakaoSDKUser
 
 struct MyReducer: Reducer {
     struct State {
@@ -69,20 +68,23 @@ struct MyReducer: Reducer {
     private let memberRepository: MemberRepository
     private let practiceRepository: PracticeRepository
     private let recentLoginProviderStore: RecentLoginProviderStore
-    private let levelUpPresentationStore: LevelUpPresentationStoring
+    private let levelUpPresentationStore: LevelUpPresentationStore
+    private let socialSessionService: SocialSessionService
 
     init(
         authRepository: AuthRepository,
         memberRepository: MemberRepository,
         practiceRepository: PracticeRepository,
         recentLoginProviderStore: RecentLoginProviderStore,
-        levelUpPresentationStore: LevelUpPresentationStoring
+        levelUpPresentationStore: LevelUpPresentationStore,
+        socialSessionService: SocialSessionService
     ) {
         self.authRepository = authRepository
         self.memberRepository = memberRepository
         self.practiceRepository = practiceRepository
         self.recentLoginProviderStore = recentLoginProviderStore
         self.levelUpPresentationStore = levelUpPresentationStore
+        self.socialSessionService = socialSessionService
     }
 
 }
@@ -260,7 +262,7 @@ extension MyReducer {
 
     func practiceRecordMessage(for error: Error) -> String {
         if case NetworkError.networkUnavailable = error {
-            return "인터넷 연결을 확인한 뒤 다시 시도해 주세요."
+            return "네트워크 연결을 확인해주세요."
         }
         return "연습기록을 불러오지 못했어요."
     }
@@ -275,7 +277,7 @@ extension MyReducer {
                 RodiLogger.warning("Logout API failed; local session cleared. error=\(error)")
             }
 
-            await logoutKakaoSDKSessionIfNeeded()
+            await socialSessionService.logoutKakaoSessionIfNeeded()
             await send(.sessionEnded(.logout))
         }
         .cancelTask(id: EffectID.session)
@@ -293,7 +295,7 @@ extension MyReducer {
 
             authRepository.clearSession()
             recentLoginProviderStore.clear()
-            await logoutKakaoSDKSessionIfNeeded()
+            await socialSessionService.logoutKakaoSessionIfNeeded()
             await send(.sessionEnded(.withdrawal))
         }
         .cancelTask(id: EffectID.session)
@@ -303,24 +305,10 @@ extension MyReducer {
         state.snackbarMessage = message
         return .run { send in
             try? await Task.sleep(for: .seconds(3))
+            guard !Task.isCancelled else { return }
             await send(.snackbarDismissed(message))
         }
         .cancelTask(id: EffectID.snackbar)
-    }
-
-    func logoutKakaoSDKSessionIfNeeded() async {
-        #if canImport(KakaoSDKUser)
-        await withCheckedContinuation { continuation in
-            UserApi.shared.logout { error in
-                if let error {
-                    RodiLogger.warning("Kakao SDK logout failed or no active Kakao session. error=\(error)")
-                } else {
-                    RodiLogger.info("Kakao SDK logout completed")
-                }
-                continuation.resume()
-            }
-        }
-        #endif
     }
 
 }

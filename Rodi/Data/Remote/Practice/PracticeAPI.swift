@@ -4,7 +4,7 @@ import Foundation
 enum PracticeAPI: TargetType {
     case register(placeID: Int)
     case recordVisit(practiceID: Int, request: PracticeVisitRequestDTO)
-    case myPractices(query: MyPracticeQuery)
+    case myPractices(query: MyPracticeListQueryDTO)
     case skipReasonForm
     case submitSkipReason(practiceID: Int, request: PracticeSkipReasonRequestDTO)
 

@@ -17,6 +17,7 @@ enum RodiColor {
     static let primary300 = Color(hex: 0x9D97FF)
     static let primary400 = Color(hex: 0x8278FF)
     static let primary500 = Color(hex: 0x7062FF)
+    static let primary800 = Color(hex: 0x2600B1)
 
     static let secondary400 = Color(hex: 0xFF740D)
     static let informationCancel = Color(hex: 0xFF3019)
@@ -45,6 +46,7 @@ enum RodiTypography {
     case headline2
     case body1SemiBold
     case body1Medium
+    case body2Medium
     case body3Medium
     case caption1Medium
     case caption1Regular
@@ -80,6 +82,8 @@ enum RodiTypography {
             17
         case .body1SemiBold, .body1Medium, .buttonMedium:
             16
+        case .body2Medium:
+            15
         case .body3Medium:
             14
         case .caption1Medium, .caption1Regular:
@@ -99,7 +103,7 @@ enum RodiTypography {
             "Pretendard-SemiBold"
         case .caption1Regular:
             "Pretendard-Regular"
-        case .body1Medium, .body3Medium, .caption1Medium, .caption2Medium, .caption3Medium, .buttonMedium:
+        case .body1Medium, .body2Medium, .body3Medium, .caption1Medium, .caption2Medium, .caption3Medium, .buttonMedium:
             "Pretendard-Medium"
         }
     }

@@ -62,9 +62,8 @@ final class MapService {
                 return .placeCoordinatesLoaded(
                     try await placeRepository.fetchCoordinates()
                 )
-            } catch is CancellationError {
-                return nil
             } catch {
+                guard !Task.isCancelled else { return nil }
                 return .placeCoordinatesLoadFailed
             }
         }

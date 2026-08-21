@@ -1,7 +1,7 @@
 import Foundation
 
 struct PlaceCoordinateDTO: Decodable {
-    let id: Int
+    let id: Int64
     let type: String
     let name: String
     let address: String

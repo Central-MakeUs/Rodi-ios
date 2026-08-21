@@ -5,9 +5,9 @@ enum ReviewAPI: TargetType {
     case create(placeID: Int, request: ReviewRequestDTO)
     case detail(reviewID: Int)
     case update(reviewID: Int, request: ReviewRequestDTO)
-    case summary(placeID: Int, level: ReviewLevelFilter)
-    case list(placeID: Int, query: PlaceReviewQuery)
-    case myReviews(query: MyReviewQuery)
+    case summary(placeID: Int, query: ReviewSummaryQueryDTO)
+    case list(placeID: Int, query: PlaceReviewListQueryDTO)
+    case myReviews(query: MyReviewListQueryDTO)
     case delete(reviewID: Int)
     case reportForm
     case report(reviewID: Int, request: ReviewReportRequestDTO)
@@ -40,13 +40,13 @@ enum ReviewAPI: TargetType {
         case .create:
             return nil
 
-        case .summary(_, let level):
-            guard let level = level.queryValue else { return nil }
+        case .summary(_, let query):
+            guard let level = query.level else { return nil }
             return ["level": level]
 
         case .list(_, let query):
             var parameters: Parameters = ["size": query.size]
-            if let level = query.level.queryValue {
+            if let level = query.level {
                 parameters["level"] = level
             }
             if let cursor = query.cursor, !cursor.isEmpty {

@@ -1,7 +1,8 @@
 apple_id(ENV["FASTLANE_APPLE_ID"]) # Your Apple Developer Portal username
 
-itc_team_id("123875520") # App Store Connect Team ID
-team_id("YRPYBFPPCT") # Developer Portal Team ID
+# 운영 계정·팀 식별자는 추적하지 않고 fastlane/.env 또는 CI 환경 변수로만 제공한다.
+itc_team_id(ENV["FASTLANE_ITC_TEAM_ID"])
+team_id(ENV["FASTLANE_TEAM_ID"])
 
 # For more information about the Appfile, see:
 #     https://docs.fastlane.tools/advanced/#appfile

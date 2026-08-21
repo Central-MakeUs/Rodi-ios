@@ -36,6 +36,7 @@ final class RodiKakaoMapView: UIView {
         static let regionFocusVerticalOffsetRatio: CGFloat = 0.05
         static let oneKilometerFocusLevel = 14
         static let closeSingleLocationLevel = 15
+        static let courseMarkerFocusLevel = 16
         static let focusAnimationDurationMillis: UInt = 700
         static let userLocationLayerID = "rodi_user_location_layer"
         static let userDirectionLayerID = "rodi_user_direction_layer"

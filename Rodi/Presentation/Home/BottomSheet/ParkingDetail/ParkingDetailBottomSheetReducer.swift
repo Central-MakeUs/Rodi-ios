@@ -9,22 +9,33 @@ struct ParkingDetailBottomSheetReducer: Reducer {
     struct State {
         var detail: PlaceDetail?
         var isBookmarkUpdating = false
+        var routeGuidance = RouteGuidanceReducer.State()
+
+        var routeGuidancePresentation: RouteGuidanceFlowPresentation? {
+            routeGuidance.presentation
+        }
+
+        var isRouteGuidanceLaunching: Bool {
+            get { routeGuidance.isLaunching }
+            set { routeGuidance.isLaunching = newValue }
+        }
     }
 
     enum Action {
         case present(PlaceDetail, source: String)
         case dismiss
+        case reset
         case toggleBookmark
         case bookmarkUpdated(placeID: Int, isBookmarked: Bool, source: String)
         case bookmarkFailed(previousDetail: PlaceDetail, message: String)
-        case externalRouteGuidanceWillOpen(
-            placeID: Int,
-            mode: PracticeMeasurementMode,
-            measurementID: UUID,
-            externalHandoffAt: Date
-        )
-        case externalRouteGuidanceFailed(measurementID: UUID)
-        case activeMeasurementEnded
+        case routeGuidanceTapped(userLocation: RodiCoordinate?, hasLocationPermission: Bool)
+        case routeGuidanceAppSelected(RouteGuidanceApp, rememberSelection: Bool)
+        case routeGuidanceInstallSelected(RouteGuidanceApp)
+        case routeGuidanceActiveMeasurementEnded
+        case routeGuidanceRouteOnlySelected
+        case routeGuidanceSettingsReturned
+        case routeGuidanceDismissed
+        case routeGuidance(RouteGuidanceReducer.Action)
         case delegate(Delegate)
     }
 
@@ -37,16 +48,32 @@ struct ParkingDetailBottomSheetReducer: Reducer {
 
     private let placeRepository: PlaceRepository
     private let practiceMeasurementStore: PracticeMeasurementStoring
+    private let practiceTrackingService: PracticeTrackingService
     private let hasActiveSession: () -> Bool
+    private let routeGuidanceReducer: RouteGuidanceReducer
     private let onDelegate: (Delegate) -> Void
 
     init(placeRepository: PlaceRepository,
+         memberRepository: MemberRepository,
          practiceMeasurementStore: PracticeMeasurementStoring,
+         practiceTrackingService: PracticeTrackingService,
+         routeGuidanceService: RouteGuidanceService,
          hasActiveSession: @escaping () -> Bool,
          onDelegate: @escaping (Delegate) -> Void = { _ in }) {
         self.placeRepository = placeRepository
         self.practiceMeasurementStore = practiceMeasurementStore
+        self.practiceTrackingService = practiceTrackingService
         self.hasActiveSession = hasActiveSession
+        routeGuidanceReducer = .init(
+            flowService: .init(
+                memberRepository: memberRepository,
+                practiceTrackingService: practiceTrackingService,
+                directionsService: .init(),
+                routeGuidanceService: routeGuidanceService
+            ),
+            effectID: BottomSheetEffectID.parkingRouteGuidance,
+            activeMeasurementFallbackName: "현재 연습 장소"
+        )
         self.onDelegate = onDelegate
     }
 }
@@ -54,6 +81,51 @@ struct ParkingDetailBottomSheetReducer: Reducer {
 
 // MARK: - Core Logics
 extension ParkingDetailBottomSheetReducer {
+
+    func reduceRouteGuidance(
+        _ state: inout State,
+        action: RouteGuidanceReducer.Action
+    ) -> Effect<Action> {
+        if case .delegate(let delegate) = action {
+            return reduceRouteGuidanceDelegate(delegate, state: &state)
+        }
+        return routeGuidanceReducer
+            .reduce(&state.routeGuidance, with: action)
+            .map(Action.routeGuidance)
+    }
+
+    func reduceRouteGuidanceDelegate(
+        _ delegate: RouteGuidanceReducer.Delegate,
+        state: inout State
+    ) -> Effect<Action> {
+        switch delegate {
+        case let .willOpen(request, mode, measurementID):
+            practiceMeasurementStore.save(.init(
+                id: measurementID,
+                placeID: request.detail.id,
+                placeName: request.detail.name,
+                placeType: .parking,
+                mode: mode,
+                externalHandoffAt: .now,
+                status: mode == .gpsTracking ? .tracking : .awaitingReturn
+            ))
+            practiceTrackingService.synchronizeCompletedSessionCertificationIfNeeded()
+
+        case let .openFinished(result, measurementID):
+            if case .openedApp = result {
+                // 측정 후보는 외부 앱 전환 전에 저장했다.
+            } else if practiceMeasurementStore.load()?.id == measurementID {
+                practiceMeasurementStore.clear()
+            }
+
+        case .activeMeasurementEnded:
+            practiceMeasurementStore.clear()
+
+        case let .showSnackbar(message):
+            return .send(.delegate(.showSnackbar(message)))
+        }
+        return .none
+    }
 
     func reduce(_ state: inout State, with action: Action) -> Effect<Action> {
         switch action {
@@ -67,7 +139,14 @@ extension ParkingDetailBottomSheetReducer {
         case .dismiss:
             guard state.detail != nil else { return .none }
             state = State()
-            return .send(.delegate(.dismissed))
+            return .run { send in
+                await send(.routeGuidanceDismissed)
+                await send(.delegate(.dismissed))
+            }
+
+        case .reset:
+            state = .init()
+            return .send(.routeGuidanceDismissed)
 
         case .toggleBookmark:
             guard let detail = state.detail, !state.isBookmarkUpdating else { return .none }
@@ -91,25 +170,36 @@ extension ParkingDetailBottomSheetReducer {
             state.isBookmarkUpdating = false
             return .send(.delegate(.showSnackbar(message)))
 
-        case let .externalRouteGuidanceWillOpen(placeID, mode, measurementID, externalHandoffAt):
-            guard state.detail?.id == placeID, let name = state.detail?.name else { return .none }
-            practiceMeasurementStore.save(.init(
-                id: measurementID,
-                placeID: placeID,
-                placeName: name,
-                placeType: .parking,
-                mode: mode,
-                externalHandoffAt: externalHandoffAt,
-                status: mode == .gpsTracking ? .tracking : .awaitingReturn
-            ))
-            PracticeTrackingService.shared.synchronizeCompletedSessionCertificationIfNeeded()
+        case .routeGuidanceTapped(let userLocation, let hasLocationPermission):
+            return reduceRouteGuidance(
+                &state,
+                action: .start(
+                    detail: state.detail,
+                    userLocation: userLocation,
+                    hasLocationPermission: hasLocationPermission
+                )
+            )
 
-        case let .externalRouteGuidanceFailed(measurementID):
-            guard practiceMeasurementStore.load()?.id == measurementID else { return .none }
-            practiceMeasurementStore.clear()
+        case .routeGuidanceAppSelected(let app, let rememberSelection):
+            return reduceRouteGuidance(&state, action: .appSelected(app, rememberSelection: rememberSelection))
 
-        case .activeMeasurementEnded:
-            practiceMeasurementStore.clear()
+        case .routeGuidanceInstallSelected(let app):
+            return reduceRouteGuidance(&state, action: .installSelected(app))
+
+        case .routeGuidanceActiveMeasurementEnded:
+            return reduceRouteGuidance(&state, action: .activeMeasurementEnded)
+
+        case .routeGuidanceRouteOnlySelected:
+            return reduceRouteGuidance(&state, action: .routeOnlySelected)
+
+        case .routeGuidanceSettingsReturned:
+            return reduceRouteGuidance(&state, action: .settingsReturned)
+
+        case .routeGuidanceDismissed:
+            return reduceRouteGuidance(&state, action: .dismiss)
+
+        case .routeGuidance(let child):
+            return reduceRouteGuidance(&state, action: child)
 
         case .delegate(let delegate):
             onDelegate(delegate)

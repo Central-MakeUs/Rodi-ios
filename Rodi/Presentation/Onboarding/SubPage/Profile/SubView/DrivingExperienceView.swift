@@ -70,8 +70,8 @@ struct DrivingExperienceView: View {
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
-            if answers.recentDrivingFrequency != nil {
-                OnboardingSection(title: "면허 취득후 도로주행을 해본 적이 있나요?", trailing: "복수선택") {
+            if answers.licenseDrivingPeriod != nil {
+                OnboardingSection(title: "면허 취득 후 도로 주행을 해본 적이 있나요?", trailing: "복수선택") {
                     RodiChipFlow {
                         ForEach(RoadDrivingExperience.allCases) { experience in
                             RodiSelectionChip(
@@ -94,7 +94,7 @@ struct DrivingExperienceView: View {
 
     private var soloDrivingQuestions: some View {
         VStack(alignment: .leading, spacing: 32) {
-            OnboardingSection(title: "혼자 운전할 때 주로 어디까지 가보셨나요?") {
+            OnboardingSection(title: "혼자 운전, 어디까지 해봤나요?") {
                 chipGroup(
                     SoloDrivingRange.allCases,
                     selected: answers.soloDrivingRange,
@@ -102,7 +102,7 @@ struct DrivingExperienceView: View {
                 )
             }
 
-            OnboardingSection(title: "혼자 주차는 어느 정도까지 가능한가요?") {
+            OnboardingSection(title: "혼자 주차는 어느 정도 해봤나요?") {
                 chipGroup(
                     SoloParkingLevel.allCases,
                     selected: answers.soloParkingLevel,

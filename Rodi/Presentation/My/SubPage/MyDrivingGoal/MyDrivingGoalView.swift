@@ -48,7 +48,7 @@ struct MyDrivingGoalView: View {
                         get: { store.state.drivingGoal },
                         set: { store.send(.drivingGoalChanged($0)) }
                     ),
-                    placeholder: "ex)강남 운전 자신있게 하기!",
+                    placeholder: "",
                     characterLimit: Metrics.characterLimit,
                     isFocused: $isFieldFocused
                 )
@@ -62,7 +62,7 @@ struct MyDrivingGoalView: View {
                         .stroke(isFieldFocused ? RodiColor.gray850 : RodiColor.gray300, lineWidth: 1)
                 }
 
-                Text("\(store.state.drivingGoal.count) / \(Metrics.characterLimit)")
+                Text("\(store.state.drivingGoal.count)/\(Metrics.characterLimit)")
                     .rodiTypography(.body3Medium)
                     .foregroundStyle(RodiColor.gray600)
                     .frame(maxWidth: .infinity, alignment: .trailing)
@@ -86,6 +86,11 @@ struct MyDrivingGoalView: View {
             onUpdated(profile)
             backAction()
         }
+        .onAppear {
+            DispatchQueue.main.async {
+                isFieldFocused = true
+            }
+        }
     }
 
     private var header: some View {
@@ -96,10 +101,7 @@ struct MyDrivingGoalView: View {
 
             HStack {
                 Button(action: backAction) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundStyle(RodiColor.black)
-                        .frame(width: 24, height: 24)
+                    Image("ic_chevron_left_24")
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("뒤로가기")
@@ -107,21 +109,9 @@ struct MyDrivingGoalView: View {
                 Spacer()
 
                 Button(action: saveDrivingGoal) {
-                    Circle()
-                        .fill(store.state.canSave ? RodiColor.primary : RodiColor.primary100)
-                        .frame(width: 24, height: 24)
-                        .overlay {
-                            if store.state.isSaving {
-                                ProgressView()
-                                    .tint(RodiColor.white)
-                                    .scaleEffect(0.65)
-                            } else {
-                                Image(store.state.canSave ? "ic_driving_goal_check_active" : "ic_driving_goal_check_inactive")
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(width: 16, height: 16)
-                            }
-                        }
+                    store.state.canSave
+                        ? Image("ic_check_circle_active")
+                        : Image("ic_check_circle_inactive")
                 }
                 .buttonStyle(.plain)
                 .disabled(!store.state.canSave || store.state.isSaving)

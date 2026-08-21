@@ -13,7 +13,6 @@ import KakaoMapsSDK
 struct RodiApp: App {
 
     @UIApplicationDelegateAdaptor(AppLifecycleDelegate.self) private var appLifecycleDelegate
-    @Environment(\.scenePhase) private var scenePhase
 
     init() {
         RodiLogger.configure()
@@ -32,18 +31,6 @@ struct RodiApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
-        }
-        .onChange(of: scenePhase) { newValue in
-            switch newValue {
-            case .background:
-                break
-            case .inactive:
-                break
-            case .active:
-                break
-            @unknown default:
-                fatalError()
-            }
         }
     }
 }

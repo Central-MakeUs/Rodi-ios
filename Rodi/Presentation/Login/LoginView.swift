@@ -151,7 +151,7 @@ private extension LoginView {
                 Image("img_resent_login_tooltip")
                     .resizable()
                     .scaledToFit()
-                    .frame(width: UIScreen.main.bounds.width * 0.35)
+                    .frame(maxWidth: 132)
                     .frame(maxWidth: .infinity)
             }
             VStack(spacing: 12) {

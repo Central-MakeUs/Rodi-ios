@@ -5,7 +5,6 @@
 
 import ImageIO
 import SwiftUI
-import UIKit
 
 struct OnboardingAnalysisDialog: View {
     var body: some View {
@@ -23,7 +22,7 @@ struct OnboardingAnalysisDialog: View {
             }
             .padding(.horizontal, 60)
             .padding(.vertical, 56)
-            .frame(width: 290, height: UIScreen.main.bounds.height * 0.5)
+            .frame(width: 290)
             .background(RodiColor.white)
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }

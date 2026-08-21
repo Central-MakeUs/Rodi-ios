@@ -132,7 +132,7 @@ struct DrivingPreferenceView: View {
                 }
             }
 
-            Text("\(state.drivingGoal.count) / \(Metrics.goalLimit)")
+            Text("\(state.drivingGoal.count)/\(Metrics.goalLimit)")
                 .rodiTypography(.body3Medium)
                 .foregroundStyle(RodiColor.gray600)
                 .frame(maxWidth: .infinity, alignment: .trailing)

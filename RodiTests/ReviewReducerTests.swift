@@ -18,7 +18,7 @@ final class ReviewReducerTests: XCTestCase {
         XCTAssertEqual(state.writing.target?.placeID, 1)
     }
 
-    func testWritingRequiresAllFirstPageSelectionsAndCaution() {
+    func testWritingRequiresSelectionsButNotOptionalCaution() {
         let reducer = makeWritingReducer()
         var state = ReviewWritingReducer.State()
         let request = ReviewWriteRequest(placeID: 1, placeName: "연습 코스")
@@ -27,11 +27,6 @@ final class ReviewReducerTests: XCTestCase {
         _ = reducer.reduce(&state, with: .recommendationSelected(true))
         _ = reducer.reduce(&state, with: .difficultySelected(.easy))
         _ = reducer.reduce(&state, with: .congestionSelected(.quiet))
-        _ = reducer.reduce(&state, with: .nextTapped)
-
-        XCTAssertEqual(state.page, .first)
-
-        _ = reducer.reduce(&state, with: .cautionChanged("보행자를 주의해주세요."))
         _ = reducer.reduce(&state, with: .nextTapped)
 
         XCTAssertEqual(state.page, .second)
@@ -83,12 +78,21 @@ private struct PromptServiceStub: ReviewPromptServicing {
 }
 
 private struct WritingServiceStub: ReviewWritingServicing {
-    func submitReview(placeID: Int, submission: PlaceReviewSubmission) async throws {}
+    func fetchReviewDetail(reviewID: Int) async throws -> ReviewDetail { fatalError() }
+    func createReview(placeID: Int, submission: PlaceReviewSubmission) async throws {}
+    func updateReview(reviewID: Int, submission: PlaceReviewSubmission) async throws {}
 }
 
 private struct SkipReasonServiceStub: ReviewSkipReasonServicing {
     func fetchForm() async throws -> PracticeSkipReasonForm {
-        .init(options: [])
+        .init(
+            questionID: nil,
+            type: nil,
+            title: nil,
+            description: nil,
+            isRequired: false,
+            options: []
+        )
     }
 
     func submit(practiceID: Int, reasonCode: String, detail: String?) async throws {}

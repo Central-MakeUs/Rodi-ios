@@ -39,6 +39,11 @@ struct WithdrawalAccountDialog: View {
             }
             .accessibilityElement(children: .contain)
     }
+}
+
+
+// MARK: - Layout
+extension WithdrawalAccountDialog {
 
     @ViewBuilder
     private var buttonRow: some View {

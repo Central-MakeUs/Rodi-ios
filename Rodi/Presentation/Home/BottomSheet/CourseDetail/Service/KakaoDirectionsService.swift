@@ -45,11 +45,13 @@ enum KakaoDirectionsError: Error {
 }
 
 struct KakaoDirectionsService {
-    func fetchRoute(points: [RodiRouteOverlayPoint]) async throws -> [RodiCoordinate] {
-        guard !KakaoConfiguration.restAPIKey.isEmpty else {
-            throw KakaoDirectionsError.missingAPIKey
-        }
+    private let kakaoRESTClient: KakaoRESTClient
 
+    init(kakaoRESTClient: KakaoRESTClient = .init()) {
+        self.kakaoRESTClient = kakaoRESTClient
+    }
+
+    func fetchRoute(points: [RodiRouteOverlayPoint]) async throws -> [RodiCoordinate] {
         guard
             let start = points.first(where: { $0.role == .start }) ?? points.first,
             let end = points.last(where: { $0.role == .end }) ?? points.last,
@@ -83,32 +85,29 @@ struct KakaoDirectionsService {
             throw KakaoDirectionsError.invalidCourse
         }
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.setValue("KakaoAK \(KakaoConfiguration.restAPIKey)", forHTTPHeaderField: "Authorization")
-
-        let data: Data
-        let response: URLResponse
+        let response: KakaoRESTClient.Response
         do {
-            (data, response) = try await URLSession.shared.data(for: request)
-        } catch {
-            if error is CancellationError {
-                throw error
+            response = try await kakaoRESTClient.get(url: url)
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch let error as KakaoRESTClient.TransportError {
+            switch error {
+            case .missingAPIKey:
+                throw KakaoDirectionsError.missingAPIKey
+            case .invalidHTTPResponse, .networkFailed:
+                throw KakaoDirectionsError.networkFailed("transport_failed")
             }
-            throw KakaoDirectionsError.networkFailed(error.localizedDescription)
         }
 
-        if let httpResponse = response as? HTTPURLResponse {
-            RodiLogger.info("Kakao directions response status=\(httpResponse.statusCode)")
-            guard (200..<300).contains(httpResponse.statusCode) else {
-                let message = KakaoDirectionsErrorResponse.decodeMessage(from: data)
-                throw KakaoDirectionsError.httpStatus(code: httpResponse.statusCode, message: message)
-            }
+        RodiLogger.info("Kakao directions response status=\(response.statusCode)")
+        guard (200..<300).contains(response.statusCode) else {
+            let message = KakaoDirectionsErrorResponse.decodeMessage(from: response.data)
+            throw KakaoDirectionsError.httpStatus(code: response.statusCode, message: message)
         }
 
         let decoded: KakaoDirectionsResponse
         do {
-            decoded = try JSONDecoder().decode(KakaoDirectionsResponse.self, from: data)
+            decoded = try JSONDecoder().decode(KakaoDirectionsResponse.self, from: response.data)
         } catch {
             throw KakaoDirectionsError.decodingFailed(error.localizedDescription)
         }

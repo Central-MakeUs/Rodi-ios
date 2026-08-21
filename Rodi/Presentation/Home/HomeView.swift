@@ -11,6 +11,7 @@ struct HomeView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.screenBounds) private var screenBounds
     @Environment(\.screenSafeAreaInsets) private var screenSafeAreaInsets
+    @EnvironmentObject private var networkConnectionMonitor: NetworkConnectionMonitor
 
     @StateObject private var store: StoreOf<HomeReducer>
     @ObservedObject private var snackbarService: SnackbarService
@@ -20,58 +21,19 @@ struct HomeView: View {
     @State private var handledListPresentationRequestID = 0
     @State private var handledPlaceSelectionRequestID = 0
     @State private var handledReviewFlowFinishedRequestID = 0
-    @State private var liveActivityPermissionDialog: LiveActivityPermissionDialogConfiguration?
-    @State private var routeGuidanceDialog: RouteGuidanceAppDialogConfiguration?
+    @State private var isAwaitingLiveActivitySettingsReturn = false
+    @State private var isMapNetworkUnavailableScreenPresented = false
 
-    private let isHomeTabSelected: Bool
-    private let onAuthenticationRequired: () -> Void
-    private let onReviewTestRequested: () -> Void
-    private let onBottomTabBarVisibilityChanged: (Bool) -> Void
-    private let listPresentationRequestID: Int
-    private let placeSelectionRequest: HomePlaceSelectionRequest?
-    private let onPlaceSelectionHandled: (Int) -> Void
-    private let reviewFlowFinishedRequestID: Int
-    private let onReviewRequested: (ReviewWriteRequest) -> Void
-    private let onReviewEditRequested: (Int) -> Void
-    private let courseDetailReviewState: ReviewReducer.State
-    private let courseDetailReviewSnackbarMessage: String?
-    private let isCourseDetailReviewPresented: Bool
-    private let sendCourseDetailReview: (ReviewReducer.Action) -> Void
+    private let presentation: HomePresentation
     private let bottomTabBarHeight: CGFloat
-    private let dependencies: AppDependencies
+    private let dependencies: HomeFeatureDependencies
 
     init(
-        isHomeTabSelected: Bool,
-        onAuthenticationRequired: @escaping () -> Void = {},
-        onReviewTestRequested: @escaping () -> Void = {},
-        onBottomTabBarVisibilityChanged: @escaping (Bool) -> Void = { _ in },
-        listPresentationRequestID: Int = 0,
-        placeSelectionRequest: HomePlaceSelectionRequest? = nil,
-        onPlaceSelectionHandled: @escaping (Int) -> Void = { _ in },
-        reviewFlowFinishedRequestID: Int = 0,
-        onReviewRequested: @escaping (ReviewWriteRequest) -> Void = { _ in },
-        onReviewEditRequested: @escaping (Int) -> Void = { _ in },
-        courseDetailReviewState: ReviewReducer.State = .init(),
-        courseDetailReviewSnackbarMessage: String? = nil,
-        isCourseDetailReviewPresented: Bool = false,
-        sendCourseDetailReview: @escaping (ReviewReducer.Action) -> Void = { _ in },
+        presentation: HomePresentation,
         bottomTabBarHeight: CGFloat,
-        dependencies: AppDependencies
+        dependencies: HomeFeatureDependencies
     ) {
-        self.isHomeTabSelected = isHomeTabSelected
-        self.onAuthenticationRequired = onAuthenticationRequired
-        self.onReviewTestRequested = onReviewTestRequested
-        self.onBottomTabBarVisibilityChanged = onBottomTabBarVisibilityChanged
-        self.listPresentationRequestID = listPresentationRequestID
-        self.placeSelectionRequest = placeSelectionRequest
-        self.onPlaceSelectionHandled = onPlaceSelectionHandled
-        self.reviewFlowFinishedRequestID = reviewFlowFinishedRequestID
-        self.onReviewRequested = onReviewRequested
-        self.onReviewEditRequested = onReviewEditRequested
-        self.courseDetailReviewState = courseDetailReviewState
-        self.courseDetailReviewSnackbarMessage = courseDetailReviewSnackbarMessage
-        self.isCourseDetailReviewPresented = isCourseDetailReviewPresented
-        self.sendCourseDetailReview = sendCourseDetailReview
+        self.presentation = presentation
         self.bottomTabBarHeight = bottomTabBarHeight
         self.dependencies = dependencies
 
@@ -79,29 +41,68 @@ struct HomeView: View {
         _store = StateObject(wrappedValue: Store(
             state: HomeReducer.State(),
             reducer: HomeReducer(
-                dependencies: dependencies,
-                authenticationRequired: onAuthenticationRequired,
-                reviewWritingRequested: onReviewRequested,
-                reviewEditingRequested: onReviewEditRequested
+                dependencies: .init(
+                    tokenStore: dependencies.tokenStore,
+                    placeRepository: dependencies.placeRepository,
+                    practiceRepository: dependencies.practiceRepository,
+                    recentSearchRepository: dependencies.recentSearchRepository,
+                    reviewRepository: dependencies.reviewRepository,
+                    memberRepository: dependencies.memberRepository,
+                    practiceMeasurementStore: dependencies.practiceMeasurementStore,
+                    practiceTrackingService: dependencies.practiceTrackingService
+                ),
+                delegateHandler: presentation.handleDelegate
             )
         ))
     }
 
     var body: some View {
-        core
-            .overlay {
-                ZStack {
-                    liveActivityPermissionDialogOverlay
-                    routeGuidanceDialogOverlay
-                }
+        HomePresentationHost(
+            isSearchPresented: searchPresentationBinding,
+            isExpandedPresented: courseDetailExpandedPresentationBinding,
+            isReviewPresented: courseDetailReviewPresentationBinding,
+            onExpandedDismiss: handleCourseDetailExpandedPresentationDismissed,
+            snackbarMessage: snackbarService.message
+        ) {
+            core
+        } searchContent: {
+            if let origin = store.state.presentation.searchOrigin {
+                HomeSearchView(
+                    origin: origin,
+                    state: store.state.search,
+                    send: { store.send(.search($0)) }
+                )
             }
+        } expandedContent: {
+            CourseDetailBottomSheetView(
+                state: store.state.bottomSheet.courseDetail,
+                send: { store.send(.bottomSheet(.courseDetail($0))) },
+                userLocation: store.state.map.userLocation,
+                hasLocationPermission: store.state.map.locationAuthorizationState == .authorized,
+                requestLocationPermission: {
+                    store.send(.presentation(.setLocationSettingsAlertPresented(true)))
+                },
+                renderingMode: .expanded,
+                expandedBackAction: {
+                    store.send(.bottomSheet(.courseDetail(.collapseRequested)))
+                }
+            )
+        } routeGuidanceContent: {
+            routeGuidanceOverlay
+        } reviewContent: {
+            ReviewView(
+                state: presentation.courseDetailReviewPresentation.state,
+                send: presentation.courseDetailReviewPresentation.send
+            )
+            .rodiSnackbar(message: presentation.courseDetailReviewPresentation.snackbarMessage)
+        }
             .onAppear {
-                store.send(.map(.tabSelectionChanged(isHomeTabSelected)))
+                store.send(.map(.tabSelectionChanged(presentation.isHomeTabSelected)))
                 handleScenePhase(scenePhase)
-                onBottomTabBarVisibilityChanged(store.state.presentation.isBottomTabBarVisible)
-                handleListPresentationRequest(listPresentationRequestID)
-                handlePlaceSelection(placeSelectionRequest)
-                handleReviewFlowFinished(reviewFlowFinishedRequestID)
+                presentation.bottomTabBarVisibilityChanged(store.state.presentation.isBottomTabBarVisible)
+                handleListPresentationRequest(presentation.listPresentationRequestID)
+                handlePlaceSelection(presentation.placeSelectionRequest)
+                handleReviewFlowFinished(presentation.reviewFlowFinishedRequestID)
             }
             .alert("위치 접근 권한이 필요해요", isPresented: locationSettingsAlertBinding) {
                 Button("취소", role: .cancel) {}
@@ -113,7 +114,6 @@ struct HomeView: View {
             } message: {
                 Text("현 위치 기반 기능을 사용하려면 설정에서 위치 접근을 '앱을 사용하는 동안 허용'으로 변경해주세요.")
             }
-            // TODO: 스낵바 손보기(윤수)
             .rodiSnackbar(message: snackbarService.message)
             .onChange(of: store.state.presentation.pendingSnackbar) { snackbar in
                 guard let snackbar else { return }
@@ -121,71 +121,41 @@ struct HomeView: View {
                 store.send(.presentation(.snackbarRequestHandled))
             }
             .onChange(of: store.state.presentation.isBottomTabBarVisible) {
-                onBottomTabBarVisibilityChanged($0)
+                presentation.bottomTabBarVisibilityChanged($0)
             }
-            .fullScreenCover(isPresented: searchPresentationBinding) {
-                if let origin = store.state.presentation.searchOrigin {
-                    HomeSearchView(
-                        origin: origin,
-                        state: store.state.search,
-                        send: { store.send(.search($0)) }
-                    )
-                }
-            }
-            .fullScreenCover(
-                isPresented: courseDetailExpandedPresentationBinding,
-                onDismiss: handleCourseDetailExpandedPresentationDismissed
-            ) {
-                ZStack {
-                    CourseDetailBottomSheetView(
-                        state: store.state.bottomSheet.courseDetail,
-                        send: { store.send(.bottomSheet(.courseDetail($0))) },
-                        userLocation: store.state.map.userLocation,
-                        hasLocationPermission: store.state.map.locationAuthorizationState == .authorized,
-                        memberRepository: dependencies.memberRepository,
-                        requestLocationPermission: {
-                            store.send(.presentation(.setLocationSettingsAlertPresented(true)))
-                        },
-                        renderingMode: .expanded,
-                        expandedBackAction: {
-                            store.send(.bottomSheet(.courseDetail(.collapseRequested)))
-                        },
-                        presentLiveActivityPermissionDialog: { configuration in
-                            liveActivityPermissionDialog = configuration
-                        },
-                        presentRouteGuidanceDialog: { configuration in
-                            routeGuidanceDialog = configuration
-                        }
-                    )
-                    .interactiveDismissDisabled()
-                    .fullScreenCover(isPresented: courseDetailReviewPresentationBinding) {
-                        ReviewFlowView(
-                            state: courseDetailReviewState,
-                            send: sendCourseDetailReview
-                        )
-                        .rodiSnackbar(message: courseDetailReviewSnackbarMessage)
-                        .interactiveDismissDisabled()
-                    }
-
-                    liveActivityPermissionDialogOverlay
-                    routeGuidanceDialogOverlay
-                }
-                .rodiSnackbar(message: snackbarService.message)
-            }
-            .onChange(of: isHomeTabSelected) { isSelected in
+            .onChange(of: presentation.isHomeTabSelected) { isSelected in
                 store.send(.map(.tabSelectionChanged(isSelected)))
             }
             .onChange(of: scenePhase) { phase in
                 handleScenePhase(phase)
             }
-            .onChange(of: listPresentationRequestID) { requestID in
+            .onChange(of: presentation.listPresentationRequestID) { requestID in
                 handleListPresentationRequest(requestID)
             }
-            .onChange(of: placeSelectionRequest) { request in
+            .onChange(of: presentation.placeSelectionRequest) { request in
                 handlePlaceSelection(request)
             }
-            .onChange(of: reviewFlowFinishedRequestID) { requestID in
+            .onChange(of: presentation.reviewFlowFinishedRequestID) { requestID in
                 handleReviewFlowFinished(requestID)
+            }
+            .task(id: shouldDelayMapNetworkUnavailableScreen) {
+                guard shouldDelayMapNetworkUnavailableScreen else {
+                    isMapNetworkUnavailableScreenPresented = false
+                    return
+                }
+
+                do {
+                    try await Task.sleep(nanoseconds: 3_000_000_000)
+                } catch {
+                    return
+                }
+
+                guard !Task.isCancelled,
+                      shouldDelayMapNetworkUnavailableScreen
+                else {
+                    return
+                }
+                isMapNetworkUnavailableScreenPresented = true
             }
     }
 }
@@ -219,48 +189,84 @@ private struct HomePlaceLoadingIndicator: View {
 // MARK: - Core
 extension HomeView {
 
-    @ViewBuilder
-    private var liveActivityPermissionDialogOverlay: some View {
-        if let configuration = liveActivityPermissionDialog {
-            LiveActivityPermissionDialog(
-                routeOnlyAction: {
-                    liveActivityPermissionDialog = nil
-                    configuration.openRouteOnly()
-                },
-                openSettingsAction: {
-                    liveActivityPermissionDialog = nil
-                    configuration.openSettings()
-                },
-                closeAction: {
-                    liveActivityPermissionDialog = nil
-                }
-            )
-            .zIndex(10)
+    private var routeGuidanceOverlay: some View {
+        HomeRouteGuidanceOverlay(
+            presentation: routeGuidancePresentation,
+            routeOnlyAction: sendRouteGuidanceRouteOnly,
+            openSettingsAction: {
+                isAwaitingLiveActivitySettingsReturn = true
+                AppSettings.openSetting()
+            },
+            closeAction: sendRouteGuidanceDismissed,
+            appSelectedAction: sendRouteGuidanceAppSelected,
+            installSelectedAction: sendRouteGuidanceInstallSelected,
+            activeMeasurementEndedAction: sendRouteGuidanceActiveMeasurementEnded
+        )
+    }
+
+    private var routeGuidancePresentation: RouteGuidanceFlowPresentation? {
+        switch store.state.bottomSheet.route {
+        case .courseDetail:
+            store.state.bottomSheet.courseDetail.routeGuidancePresentation
+        case .parkingDetail:
+            store.state.bottomSheet.parkingDetail.routeGuidancePresentation
+        case .recommendList, .filter:
+            nil
         }
     }
 
-    @ViewBuilder
-    private var routeGuidanceDialogOverlay: some View {
-        if let configuration = routeGuidanceDialog {
-            RouteGuidanceAppDialog(
-                mode: configuration.mode,
-                closeAction: {
-                    routeGuidanceDialog = nil
-                },
-                onceAction: { app in
-                    routeGuidanceDialog = nil
-                    configuration.onceAction(app)
-                },
-                alwaysAction: { app in
-                    routeGuidanceDialog = nil
-                    configuration.alwaysAction(app)
-                },
-                installAction: { app in
-                    routeGuidanceDialog = nil
-                    configuration.installAction(app)
-                }
-            )
-            .zIndex(11)
+    private func sendRouteGuidanceAppSelected(_ app: RouteGuidanceApp, rememberSelection: Bool) {
+        switch store.state.bottomSheet.route {
+        case .courseDetail:
+            store.send(.bottomSheet(.courseDetail(.routeGuidanceAppSelected(app, rememberSelection: rememberSelection))))
+        case .parkingDetail:
+            store.send(.bottomSheet(.parkingDetail(.routeGuidanceAppSelected(app, rememberSelection: rememberSelection))))
+        case .recommendList, .filter:
+            break
+        }
+    }
+
+    private func sendRouteGuidanceInstallSelected(_ app: RouteGuidanceApp) {
+        switch store.state.bottomSheet.route {
+        case .courseDetail:
+            store.send(.bottomSheet(.courseDetail(.routeGuidanceInstallSelected(app))))
+        case .parkingDetail:
+            store.send(.bottomSheet(.parkingDetail(.routeGuidanceInstallSelected(app))))
+        case .recommendList, .filter:
+            break
+        }
+    }
+
+    private func sendRouteGuidanceRouteOnly() {
+        switch store.state.bottomSheet.route {
+        case .courseDetail:
+            store.send(.bottomSheet(.courseDetail(.routeGuidanceRouteOnlySelected)))
+        case .parkingDetail:
+            store.send(.bottomSheet(.parkingDetail(.routeGuidanceRouteOnlySelected)))
+        case .recommendList, .filter:
+            break
+        }
+    }
+
+    private func sendRouteGuidanceActiveMeasurementEnded() {
+        switch store.state.bottomSheet.route {
+        case .courseDetail:
+            store.send(.bottomSheet(.courseDetail(.routeGuidanceActiveMeasurementEnded)))
+        case .parkingDetail:
+            store.send(.bottomSheet(.parkingDetail(.routeGuidanceActiveMeasurementEnded)))
+        case .recommendList, .filter:
+            break
+        }
+    }
+
+    private func sendRouteGuidanceDismissed() {
+        switch store.state.bottomSheet.route {
+        case .courseDetail:
+            store.send(.bottomSheet(.courseDetail(.routeGuidanceDismissed)))
+        case .parkingDetail:
+            store.send(.bottomSheet(.parkingDetail(.routeGuidanceDismissed)))
+        case .recommendList, .filter:
+            break
         }
     }
 
@@ -289,7 +295,6 @@ extension HomeView {
                     send: { store.send(.bottomSheet($0)) },
                     userLocation: store.state.map.userLocation,
                     hasLocationPermission: store.state.map.locationAuthorizationState == .authorized,
-                    memberRepository: dependencies.memberRepository,
                     bottomTabBarHeight: bottomTabBarHeight,
                     onCourseDetailHeightChanged: { height in
                         guard abs(courseBottomSheetHeight - height) > 0.5 else { return }
@@ -306,13 +311,7 @@ extension HomeView {
                     requestLocationPermission: {
                         store.send(.presentation(.setLocationSettingsAlertPresented(true)))
                     },
-                    presentLiveActivityPermissionDialog: { configuration in
-                        liveActivityPermissionDialog = configuration
-                    },
-                    presentRouteGuidanceDialog: { configuration in
-                        routeGuidanceDialog = configuration
-                    },
-                    debugReviewTestAction: onReviewTestRequested,
+                    debugReviewTestAction: debugReviewTestAction,
                     debugHardWithdrawAction: {
                         try await dependencies.memberRepository.hardWithdraw()
                     }
@@ -324,8 +323,21 @@ extension HomeView {
             if isSavedPlaceLoading {
                 savedPlaceLoadingOverlay
             }
+
+            if isMapNetworkUnavailableScreenPresented {
+                MapNetworkUnavailableView()
+                    .ignoresSafeArea()
+                    .transition(.opacity)
+                    .zIndex(2)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var shouldDelayMapNetworkUnavailableScreen: Bool {
+        presentation.isHomeTabSelected
+            && scenePhase == .active
+            && networkConnectionMonitor.status == .disconnected
     }
 
     private func handleListPresentationRequest(_ requestID: Int) {
@@ -343,7 +355,7 @@ extension HomeView {
         }
         handledPlaceSelectionRequestID = request.id
         store.send(.map(.savedPlaceSelected(request.place)))
-        onPlaceSelectionHandled(request.id)
+        presentation.placeSelectionHandled(request.id)
     }
 
     private func handleReviewFlowFinished(_ requestID: Int) {
@@ -361,6 +373,26 @@ extension HomeView {
         store.send(.map(.activityChanged(phase == .active)))
         guard phase == .active else { return }
         store.send(.map(.locationAuthorizationRefreshRequested))
+        guard isAwaitingLiveActivitySettingsReturn else { return }
+        isAwaitingLiveActivitySettingsReturn = false
+        switch store.state.bottomSheet.route {
+        case .courseDetail:
+            store.send(.bottomSheet(.courseDetail(.routeGuidanceSettingsReturned)))
+        case .parkingDetail:
+            store.send(.bottomSheet(.parkingDetail(.routeGuidanceSettingsReturned)))
+        case .recommendList, .filter:
+            break
+        }
+    }
+}
+
+private extension HomeView {
+    var debugReviewTestAction: () -> Void {
+        #if DEBUG
+        return { store.send(.debugReviewTestRequested) }
+        #else
+        return {}
+        #endif
     }
 }
 
@@ -528,8 +560,8 @@ extension HomeView {
             }
 
             if store.state.map.markerState == .failed {
-                NetworkRetryBanner(
-                    retryAction: { store.send(.map(.markerRetryRequested)) }
+                NetworkConnectionSnackbar(
+                    refreshAction: { store.send(.map(.markerRetryRequested)) }
                 )
                 .padding(.horizontal, 16)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
@@ -540,7 +572,7 @@ extension HomeView {
 
     private var mapCameraBottomInset: CGFloat {
         switch store.state.map.cameraFocus {
-        case .closeSingleLocation, .currentLocation:
+        case .closeSingleLocation, .courseMarker, .currentLocation:
             // 화면 상단 45% / 하단 55% 위치에 포커스 대상을 둔다.
             return screenHeight * 0.1
 
@@ -717,7 +749,7 @@ extension HomeView {
 
     private var courseDetailReviewPresentationBinding: Binding<Bool> {
         Binding(
-            get: { isCourseDetailReviewPresented },
+            get: { presentation.courseDetailReviewPresentation.isPresented },
             set: { _ in }
         )
     }

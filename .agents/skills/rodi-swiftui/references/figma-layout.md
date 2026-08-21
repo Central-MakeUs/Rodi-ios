@@ -13,7 +13,7 @@
 - Map colors to `RodiColor`, text to `RodiTypography` or Pretendard helpers, and imagery to the actual asset catalog.
 - Reuse existing feature components before creating a new one.
 - Preserve Rodi's custom bottom tab and Home bottom sheet when they differ from generic system UI.
-- Follow `Docs/ARCHITECTURE.md` for state ownership and foldering instead of copying generated web component boundaries.
+- Follow `Docs/Architecture/ARCHITECTURE.md` for state ownership and foldering instead of copying generated web component boundaries.
 - Record any missing asset, ambiguous behavior, or deliberate design deviation.
 
 ## Build Adaptive Geometry

@@ -128,13 +128,17 @@ extension RodiKakaoMapView {
         startEngineIfPossible(reason: "active_update")
         activateEngineIfNeeded()
         updateLogoPosition()
-        if didUserLocationChange || didUserHeadingChange {
+        // 위치 값이 지도 엔진 준비 전 전달되면 첫 marker 생성이 실패할 수 있다.
+        // 이후 SwiftUI update에서 아직 POI가 없으면 최신 위치로 다시 동기화한다.
+        let needsUserLocationMarkerRecovery = userLocation != nil && userLocationPoi == nil
+        if didUserLocationChange || didUserHeadingChange || needsUserLocationMarkerRecovery {
             updateUserLocationMarker(
                 animatedHeading: shouldAnimateHeadingChange(
                     from: previousHeadingDegrees,
                     to: userHeadingDegrees
                 )
             )
+            recoverUserLocationMarkerIfNeeded()
         }
         updateHomeMarkers(with: mapMarkers)
         if previousRouteOverlay != routeOverlay {

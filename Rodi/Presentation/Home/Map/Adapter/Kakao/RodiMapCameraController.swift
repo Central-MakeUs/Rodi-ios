@@ -137,7 +137,11 @@ extension RodiKakaoMapView {
             )
         }
 
-        guard (latestCameraFocus == .closeSingleLocation || latestCameraFocus == .currentLocation),
+        guard (
+            latestCameraFocus == .closeSingleLocation ||
+            latestCameraFocus == .courseMarker ||
+            latestCameraFocus == .currentLocation
+        ),
               latestCameraBottomInset > 0,
               bounds.height > latestCameraBottomInset
         else {
@@ -185,6 +189,10 @@ extension RodiKakaoMapView {
 
         if focus == .closeSingleLocation {
             return min(max(Constants.closeSingleLocationLevel, map.minLevel), map.maxLevel)
+        }
+
+        if focus == .courseMarker {
+            return min(max(Constants.courseMarkerFocusLevel, map.minLevel), map.maxLevel)
         }
 
         guard animated else { return Constants.mapLevel }

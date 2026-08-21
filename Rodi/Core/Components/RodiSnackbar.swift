@@ -37,3 +37,9 @@ struct RodiSnackbarModifier: ViewModifier {
             .animation(.easeInOut(duration: 0.2), value: message)
     }
 }
+
+extension View {
+    func rodiSnackbar(message: String?) -> some View {
+        modifier(RodiSnackbarModifier(message: message))
+    }
+}

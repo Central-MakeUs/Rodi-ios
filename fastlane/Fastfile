@@ -14,8 +14,7 @@ ENVIRONMENTS = {
     local_secrets_path: File.join(ROOT_DIRECTORY, "Config/Secrets.dev.local.xcconfig"),
     scheme: "Rodi Dev",
     configuration: "Debug",
-    bundle_identifier: "com.dororong.rodi.dev",
-    app_store_id: "6796222178"
+    bundle_identifier: "com.dororong.rodi.dev"
   },
   prod: {
     configuration_path: File.join(ROOT_DIRECTORY, "Config/Prod.xcconfig"),
@@ -133,13 +132,7 @@ end
 
 def verify_deployment_target!(environment)
   settings = environment_settings(environment)
-  configured_app_store_id = app_store_id_from_secrets!(environment)
-
-  if settings[:app_store_id] && configured_app_store_id != settings[:app_store_id]
-    UI.user_error!(
-      "#{environment} APP_STORE_APP_ID must be #{settings[:app_store_id]}, got #{configured_app_store_id}"
-    )
-  end
+  app_store_id_from_secrets!(environment)
 
   settings
 end

@@ -1,6 +1,5 @@
 import SwiftUI
 
-// TODO: 코드 수정하기 (윤수)
 struct BottomSheetPanGestureView: UIViewRepresentable {
     let isEnabled: Bool
     let onChanged: (CGFloat) -> Void

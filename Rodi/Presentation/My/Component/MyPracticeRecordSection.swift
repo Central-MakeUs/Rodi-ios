@@ -53,18 +53,7 @@ private extension MyPracticeRecordSection {
                 .frame(maxWidth: .infinity)
                 .frame(height: 141)
         } else if let errorMessage {
-            VStack(spacing: 8) {
-                Text(errorMessage)
-                    .rodiTypography(.body3Medium)
-                    .foregroundStyle(RodiColor.gray600)
-
-                Button(action: retry) {
-                    Text("다시 시도")
-                        .rodiTypography(.body3Medium)
-                        .foregroundStyle(RodiColor.primary)
-                }
-                .buttonStyle(.plain)
-            }
+            RodiRetryView(message: errorMessage, retryAction: retry)
             .frame(maxWidth: .infinity)
             .frame(height: 141)
         } else if records.isEmpty {

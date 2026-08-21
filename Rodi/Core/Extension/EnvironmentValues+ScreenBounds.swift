@@ -4,7 +4,6 @@
 //
 
 import SwiftUI
-import UIKit
 
 @MainActor
 private enum ScreenWindow {

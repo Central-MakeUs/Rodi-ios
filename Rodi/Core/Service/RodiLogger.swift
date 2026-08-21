@@ -80,12 +80,8 @@ enum RodiLogger {
         return "set(length=\(value.count), suffix=\(value.suffix(4)))"
     }
 
-    static func coordinate(latitude: Double, longitude: Double) -> String {
-        #if DEBUG
-        return "(\(latitude), \(longitude))"
-        #else
-        return "(lat/lng hidden)"
-        #endif
+    static func coordinate(latitude _: Double, longitude _: Double) -> String {
+        "(coordinate hidden)"
     }
 
     static func coordinate(_ coordinate: RodiCoordinate) -> String {

@@ -79,14 +79,7 @@ private extension MyBlockedMembersView {
                     .rodiTypography(.body1Medium)
                     .foregroundStyle(RodiColor.gray600)
 
-                Button {
-                    store.send(.retryInitialTapped)
-                } label: {
-                    Text("다시 시도")
-                        .rodiTypography(.body1Medium)
-                        .foregroundStyle(RodiColor.primary)
-                }
-                .buttonStyle(.plain)
+                RodiRetryButton { store.send(.retryInitialTapped) }
             } else if store.state.hasCompletedInitialLoad {
                 Text("차단한 사용자가 없습니다.")
                     .rodiTypography(.headline1)
@@ -110,14 +103,7 @@ private extension MyBlockedMembersView {
                     .rodiTypography(.body3Medium)
                     .foregroundStyle(RodiColor.gray600)
 
-                Button {
-                    store.send(.retryNextPageTapped)
-                } label: {
-                    Text("다시 시도")
-                        .rodiTypography(.body3Medium)
-                        .foregroundStyle(RodiColor.primary)
-                }
-                .buttonStyle(.plain)
+                RodiRetryButton { store.send(.retryNextPageTapped) }
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 16)

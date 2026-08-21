@@ -10,7 +10,7 @@ struct LocationPermissionView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Text("현재 위치로 주변 연습 장소를 추천하고,\n시작한 연습의 방문 인증과 진행 현황을 위해 위치정보를 사용합니다.")
+            Text("현재 위치를 기반으로 주변 운전 연습 코스를\n추천하기 위해 위치정보를 사용합니다.")
                 .rodiTypography(.headline2)
                 .foregroundStyle(RodiColor.black)
                 .multilineTextAlignment(.center)

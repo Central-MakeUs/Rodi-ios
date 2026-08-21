@@ -8,29 +8,32 @@ import Foundation
 @MainActor
 final class MapMarkerRenderingService {
 
-    func progressiveSnapshots( for markers: [RodiMapMarker]) -> AsyncStream<[RodiMapMarker]> {
-        let batches = batches(for: markers)
-
+    func progressiveSnapshots(for markers: [RodiMapMarker]) -> AsyncStream<[RodiMapMarker]> {
         return AsyncStream { continuation in
-            guard !batches.isEmpty else {
-                continuation.yield([])
-                continuation.finish()
-                return
-            }
+            let renderingTask = Task { @MainActor [markers] in
+                guard !markers.isEmpty else {
+                    continuation.yield([])
+                    continuation.finish()
+                    return
+                }
 
-            let renderingTask = Task { @MainActor in
-                for (index, batch) in batches.enumerated() {
-                    if index > 0 {
-                        do {
-                            try await Task.sleep(for: .milliseconds(16))
-                        } catch {
-                            break
-                        }
+                let initialBatchSize = 80
+                let batchSize = 150
+                var renderedCount = min(initialBatchSize, markers.count)
+
+                while !Task.isCancelled {
+                    continuation.yield(Array(markers.prefix(renderedCount)))
+                    guard renderedCount < markers.count else { break }
+
+                    do {
+                        try await Task.sleep(for: .milliseconds(16))
+                    } catch {
+                        break
                     }
 
-                    guard !Task.isCancelled else { break }
-                    continuation.yield(batch)
+                    renderedCount = min(renderedCount + batchSize, markers.count)
                 }
+
                 continuation.finish()
             }
 
@@ -38,22 +41,5 @@ final class MapMarkerRenderingService {
                 renderingTask.cancel()
             }
         }
-    }
-
-    private func batches(for markers: [RodiMapMarker]) -> [[RodiMapMarker]] {
-        guard !markers.isEmpty else { return [] }
-
-        let initialBatchSize = 80
-        let batchSize = 150
-        var batches: [[RodiMapMarker]] = []
-        var renderedCount = min(initialBatchSize, markers.count)
-        batches.append(Array(markers.prefix(renderedCount)))
-
-        while renderedCount < markers.count {
-            renderedCount = min(renderedCount + batchSize, markers.count)
-            batches.append(Array(markers.prefix(renderedCount)))
-        }
-
-        return batches
     }
 }

@@ -7,12 +7,13 @@ description: Implement and review Rodi SwiftUI views, layouts, components, and F
 
 ## Load Context
 
-1. Read repository `AGENTS.md` and [Docs/UI_FIGMA.md](../../../Docs/UI_FIGMA.md).
-2. Read [Docs/ARCHITECTURE.md](../../../Docs/ARCHITECTURE.md) only for state, action, boundary, or foldering changes.
+1. Read repository `AGENTS.md` and [Docs/Guides/UI_FIGMA.md](../../../Docs/Guides/UI_FIGMA.md).
+2. Read [Docs/Architecture/ARCHITECTURE.md](../../../Docs/Architecture/ARCHITECTURE.md) only for state, action, boundary, or foldering changes.
 3. Load only relevant detail:
    - [availability.md](references/availability.md) for API selection and compatibility.
    - [swiftui-review.md](references/swiftui-review.md) for identity, performance, and accessibility.
    - [figma-layout.md](references/figma-layout.md) for Figma, screenshots, and adaptive layout.
+   - [external-swiftui-guidelines.md](references/external-swiftui-guidelines.md) only when reviewing general SwiftUI composition, state, list, accessibility, or layout decisions.
 
 ## Workflow
 

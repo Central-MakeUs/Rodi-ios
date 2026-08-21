@@ -93,6 +93,7 @@ extension RodiKakaoMapView {
 
         activateEngineIfNeeded()
         updateUserLocationMarker(animatedHeading: false)
+        recoverUserLocationMarkerIfNeeded()
         moveCamera(
             to: latestCameraTarget,
             requestID: latestCameraRequestID,

@@ -154,7 +154,7 @@ private extension MyPracticeRecordsReducer {
 
     static func message(for error: Error) -> String {
         if case NetworkError.networkUnavailable = error {
-            return "인터넷 연결을 확인한 뒤 다시 시도해 주세요."
+            return "네트워크 연결을 확인해주세요."
         }
         return "연습기록을 불러오지 못했어요."
     }

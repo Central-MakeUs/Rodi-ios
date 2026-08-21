@@ -16,22 +16,26 @@ struct OnboardingRouterView: View {
     private let onComplete: (Bool) -> Void
     private let automaticLoginProvider: SocialLoginProvider?
     private let automaticLoginRequestConsumed: () -> Void
-    private let dependencies: AppDependencies
+    private let dependencies: OnboardingFeatureDependencies
 
     init(
         onComplete: @escaping (Bool) -> Void,
         automaticLoginProvider: SocialLoginProvider? = nil,
         automaticLoginRequestConsumed: @escaping () -> Void = {},
         sessionStore: OnboardingSessionStore = .init(),
-        dependencies: AppDependencies
+        dependencies: OnboardingFeatureDependencies
     ) {
         let restored = sessionStore.load()
         _coordinator = StateObject(
             wrappedValue: Coordinator(
-                path: Self.navigationPath(for: restored.route, session: restored.session),
-                acceptsSystemPath: { currentPath, proposedPath in
-                    !(currentPath == [.terms] && proposedPath.isEmpty)
-                }
+                path: OnboardingNavigationPath.restoredPath(
+                    route: restored.route,
+                    session: restored.session
+                )
+//                ,
+//                acceptsSystemPath: { currentPath, proposedPath in
+//                    !(currentPath == [.terms] && proposedPath.isEmpty)
+//                }
             )
         )
         _session = State(initialValue: restored.session)
@@ -140,24 +144,4 @@ private extension OnboardingRouterView {
         automaticLoginCommand = .init(kind: .login(automaticLoginProvider))
     }
 
-    static func navigationPath(
-        for route: OnboardingRoute?,
-        session: OnboardingSession
-    ) -> [OnboardingRoute] {
-        guard let route else { return [] }
-
-        let memberRoutes: [OnboardingRoute] = [
-            .terms,
-            .nickname,
-            .drivingExperience,
-            .optionalDrivingPreference,
-            .safety,
-            .locationPermission
-        ]
-        let guestRoutes: [OnboardingRoute] = [.terms, .safety, .locationPermission]
-        let routes = session.isGuest ? guestRoutes : memberRoutes
-
-        guard let routeIndex = routes.firstIndex(of: route) else { return [route] }
-        return Array(routes[...routeIndex])
-    }
 }

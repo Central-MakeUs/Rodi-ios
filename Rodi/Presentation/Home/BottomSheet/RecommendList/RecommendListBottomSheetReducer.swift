@@ -27,6 +27,8 @@ struct RecommendListBottomSheetReducer: Reducer {
         /// 지역 검색으로 카메라가 새 viewport에 도달하기 전의 일시 상태입니다.
         /// 이전 viewport 결과를 빈 결과로 잘못 보여주지 않기 위해 별도로 관리합니다.
         var isAwaitingRegionViewport = false
+        /// 홈 검색에서 선택한 행정구역의 첫 목록 조회 결과인지 표시합니다.
+        var isRegionSearchResult = false
         var errorMessage: String?
         var needsResearch = false
         var requestRevision = 0
@@ -37,7 +39,7 @@ struct RecommendListBottomSheetReducer: Reducer {
         case present
         case collapse
         case expand
-        case regionViewportReloadStarted
+        case regionViewportReloadStarted(origin: RodiCoordinate)
         case viewportChanged(viewport: PlaceViewport, center: RodiCoordinate, isUserInitiated: Bool)
         case prepareInitialSearch(origin: RodiCoordinate)
         case reloadCurrentViewport(origin: RodiCoordinate?)
@@ -100,7 +102,7 @@ extension RecommendListBottomSheetReducer {
             state.presentation = .expanded
             return displayStateEffect(state)
 
-        case .regionViewportReloadStarted:
+        case .regionViewportReloadStarted(let origin):
             state.requestRevision += 1
             state.items = []
             state.activeViewport = nil
@@ -109,7 +111,9 @@ extension RecommendListBottomSheetReducer {
             state.isInitialLoading = false
             state.isNextPageLoading = false
             state.isManualResearchLoading = false
+            state.pendingInitialSearchOrigin = origin
             state.isAwaitingRegionViewport = true
+            state.isRegionSearchResult = true
             state.errorMessage = nil
             state.needsResearch = false
             return displayStateEffect(state)
@@ -162,6 +166,7 @@ extension RecommendListBottomSheetReducer {
                   let center = state.latestViewportCenter,
                   !state.isInitialLoading,
                   !state.isNextPageLoading else { return .none }
+            state.isRegionSearchResult = false
             return loadFirstPage(viewport: viewport, origin: origin ?? center, state: &state, isManualResearch: true)
 
         case .reloadAfterRegionViewport(let origin):

@@ -42,11 +42,11 @@ final class AuthRepositoryImpl: AuthRepository {
             )
         }
         
-        let request = SocialLoginRequestDTO(
+        let request = AuthMapper.socialLoginRequest(
             credential: trimmedCredential
         )
         let loginResponse = try await remoteDataSource.login(
-            provider: provider,
+            providerRawValue: provider.rawValue,
             request: request
         )
         
@@ -81,8 +81,8 @@ final class AuthRepositoryImpl: AuthRepository {
         }
         
         let restoreResponse = try await remoteDataSource.restore(
-            provider: provider,
-            request: SocialLoginRequestDTO(
+            providerRawValue: provider.rawValue,
+            request: AuthMapper.socialLoginRequest(
                 credential: trimmedCredential
             )
         )
@@ -153,9 +153,7 @@ final class AuthRepositoryImpl: AuthRepository {
             return
         }
         
-        let request = LogoutRequestDTO(
-            refreshToken: refreshToken
-        )
+        let request = AuthMapper.logoutRequest(refreshToken: refreshToken)
         try await remoteDataSource
             .logout(
                 request

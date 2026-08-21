@@ -6,42 +6,7 @@
 import Foundation
 
 struct HomeSearchReducer: Reducer {
-    enum SearchContext: Equatable {
-        case suggestions(keyword: String)
-        case selectedRegion(keyword: String)
-    }
-
-    enum ViewState: Equatable {
-        case initial
-        case searching
-        case results
-        case emptyResults
-    }
-
-    struct State {
-        var origin: RodiCoordinate = .southKoreaCenter
-        var query = ""
-        var recentSearches: [RecentSearch] = []
-        var regions: [String] = []
-        var relatedPlaceSuggestions: [PlaceRelatedSearchSuggestion] = []
-        var results: [PlaceListItem] = []
-        var viewState: ViewState = .initial
-        var isLoadingRecentSearches = false
-        var isLoadingNextPage = false
-        var hasNextPage = false
-        var nextCursor: String?
-        var searchRequestID = 0
-        var activeSearchContext: SearchContext?
-        var loadedSuggestionKeyword: String?
-        var hasTrackedSearchOpen = false
-
-        var isSelectedRegionSearch: Bool {
-            if case .selectedRegion = activeSearchContext {
-                return true
-            }
-            return false
-        }
-    }
+    typealias State = HomeSearchState
 
     enum Action {
         case appeared(origin: RodiCoordinate)
@@ -98,14 +63,14 @@ struct HomeSearchReducer: Reducer {
                 state.hasTrackedSearchOpen = true
                 RodiAnalytics.track(.searchOpened)
             }
-            guard !state.isLoadingRecentSearches, state.recentSearches.isEmpty else { return .none }
-            state.isLoadingRecentSearches = true
+            guard !state.recent.isLoading, state.recent.searches.isEmpty else { return .none }
+            state.recent.isLoading = true
             return loadRecentSearchesEffect()
 
         case .queryChanged(let rawQuery):
             let query = String(rawQuery.prefix(50))
             state.query = query
-            state.loadedSuggestionKeyword = nil
+            state.results.loadedSuggestionKeyword = nil
 
             guard !normalized(query).isEmpty else {
                 resetSearch(state: &state)
@@ -127,7 +92,7 @@ struct HomeSearchReducer: Reducer {
                 )
             )
             state.query = query
-            guard state.loadedSuggestionKeyword != query else { return .none }
+            guard state.results.loadedSuggestionKeyword != query else { return .none }
             return beginSuggestionSearch(keyword: query, delay: false, state: &state)
 
         case .recentSearchTapped(let recentSearch):
@@ -165,19 +130,19 @@ struct HomeSearchReducer: Reducer {
             return selectRegion(named: region, state: &state)
 
         case .loadNextPage:
-            guard state.hasNextPage,
-                  !state.isLoadingNextPage,
-                  let cursor = state.nextCursor
+            guard state.results.hasNextPage,
+                  !state.results.isLoadingNextPage,
+                  let cursor = state.results.nextCursor
             else {
                 return .none
             }
-            state.isLoadingNextPage = true
-            switch state.activeSearchContext {
+            state.results.isLoadingNextPage = true
+            switch state.results.activeContext {
             case .suggestions(let keyword):
                 return relatedSearchEffect(
                     keyword: keyword,
                     cursor: cursor,
-                    requestID: state.searchRequestID,
+                    requestID: state.results.requestID,
                     isAppending: true,
                     delay: false
                 )
@@ -185,7 +150,7 @@ struct HomeSearchReducer: Reducer {
                 return placeSearchEffect(
                     keyword: keyword,
                     cursor: cursor,
-                    requestID: state.searchRequestID,
+                    requestID: state.results.requestID,
                     isAppending: true,
                     registration: nil,
                     origin: state.origin
@@ -195,20 +160,20 @@ struct HomeSearchReducer: Reducer {
             }
 
         case let .relatedSearchLoaded(result, requestID, isAppending):
-            guard requestID == state.searchRequestID,
-                  case .suggestions = state.activeSearchContext
+            guard requestID == state.results.requestID,
+                  case .suggestions = state.results.activeContext
             else {
                 return .none
             }
-            state.isLoadingNextPage = false
-            state.loadedSuggestionKeyword = normalized(state.query)
-            state.regions = isAppending ? uniqueRegions(state.regions + result.regions) : result.regions
-            state.relatedPlaceSuggestions = isAppending
-                ? uniqueSuggestions(state.relatedPlaceSuggestions + result.places.items)
+            state.results.isLoadingNextPage = false
+            state.results.loadedSuggestionKeyword = normalized(state.query)
+            state.results.regions = isAppending ? uniqueRegions(state.results.regions + result.regions) : result.regions
+            state.results.relatedPlaceSuggestions = isAppending
+                ? uniqueSuggestions(state.results.relatedPlaceSuggestions + result.places.items)
                 : result.places.items
-            state.hasNextPage = result.places.hasNext
-            state.nextCursor = result.places.nextCursor
-            state.viewState = state.regions.isEmpty && state.relatedPlaceSuggestions.isEmpty ? .emptyResults : .results
+            state.results.hasNextPage = result.places.hasNext
+            state.results.nextCursor = result.places.nextCursor
+            state.results.viewState = state.results.regions.isEmpty && state.results.relatedPlaceSuggestions.isEmpty ? .emptyResults : .results
             guard !isAppending else { return .none }
             RodiAnalytics.track(
                 .searchResultsLoaded(
@@ -219,67 +184,67 @@ struct HomeSearchReducer: Reducer {
             return .none
 
         case let .relatedSearchFailed(error, requestID, isAppending):
-            guard requestID == state.searchRequestID,
-                  case .suggestions = state.activeSearchContext
+            guard requestID == state.results.requestID,
+                  case .suggestions = state.results.activeContext
             else {
                 return .none
             }
-            state.isLoadingNextPage = false
-            if !isAppending, state.relatedPlaceSuggestions.isEmpty, state.regions.isEmpty {
-                state.viewState = .emptyResults
+            state.results.isLoadingNextPage = false
+            if !isAppending, state.results.relatedPlaceSuggestions.isEmpty, state.results.regions.isEmpty {
+                state.results.viewState = .emptyResults
             }
             return showSnackbar(error.localizedDescription)
 
         case let .searchLoaded(page, requestID, isAppending):
-            guard requestID == state.searchRequestID,
-                  case .selectedRegion = state.activeSearchContext
+            guard requestID == state.results.requestID,
+                  case .selectedRegion = state.results.activeContext
             else {
                 return .none
             }
-            state.isLoadingNextPage = false
-            state.results = isAppending ? uniqueItems(state.results + page.items) : page.items
-            state.hasNextPage = page.hasNext
-            state.nextCursor = page.nextCursor
-            state.viewState = state.results.isEmpty ? .emptyResults : .results
+            state.results.isLoadingNextPage = false
+            state.results.places = isAppending ? uniqueItems(state.results.places + page.items) : page.items
+            state.results.hasNextPage = page.hasNext
+            state.results.nextCursor = page.nextCursor
+            state.results.viewState = state.results.places.isEmpty ? .emptyResults : .results
             return .none
 
         case let .searchFailed(error, requestID, isAppending):
-            guard requestID == state.searchRequestID,
-                  case .selectedRegion = state.activeSearchContext
+            guard requestID == state.results.requestID,
+                  case .selectedRegion = state.results.activeContext
             else {
                 return .none
             }
-            state.isLoadingNextPage = false
-            if !isAppending, state.results.isEmpty {
-                state.viewState = .emptyResults
+            state.results.isLoadingNextPage = false
+            if !isAppending, state.results.places.isEmpty {
+                state.results.viewState = .emptyResults
             }
             return showSnackbar(error.localizedDescription)
 
         case .recentSearchesLoaded(let recentSearches):
-            state.isLoadingRecentSearches = false
-            state.recentSearches = recentSearches
+            state.recent.isLoading = false
+            state.recent.searches = recentSearches
             return .none
 
         case .recentSearchesFailed(let error):
-            state.isLoadingRecentSearches = false
+            state.recent.isLoading = false
             return showSnackbar(error.localizedDescription)
 
         case .recentSearchDeleteTapped(let id):
             return deleteRecentSearchEffect(id: id)
 
         case .recentSearchDeleted(let id):
-            state.recentSearches.removeAll { $0.id == id }
+            state.recent.searches.removeAll { $0.id == id }
             return .none
 
         case .recentSearchDeleteFailed(let error):
             return showSnackbar(error.localizedDescription)
 
         case .clearAllRecentSearchesTapped:
-            guard !state.recentSearches.isEmpty else { return .none }
+            guard !state.recent.searches.isEmpty else { return .none }
             return deleteAllRecentSearchesEffect()
 
         case .allRecentSearchesDeleted:
-            state.recentSearches = []
+            state.recent.searches = []
             return .none
 
         case .allRecentSearchesDeleteFailed(let error):
@@ -314,19 +279,19 @@ struct HomeSearchReducer: Reducer {
         delay: Bool,
         state: inout State
     ) -> Effect<Action> {
-        state.searchRequestID += 1
-        state.activeSearchContext = .suggestions(keyword: keyword)
-        state.regions = []
-        state.relatedPlaceSuggestions = []
-        state.results = []
-        state.hasNextPage = false
-        state.nextCursor = nil
-        state.isLoadingNextPage = false
-        state.viewState = .searching
+        state.results.requestID += 1
+        state.results.activeContext = .suggestions(keyword: keyword)
+        state.results.regions = []
+        state.results.relatedPlaceSuggestions = []
+        state.results.places = []
+        state.results.hasNextPage = false
+        state.results.nextCursor = nil
+        state.results.isLoadingNextPage = false
+        state.results.viewState = .searching
         return relatedSearchEffect(
             keyword: keyword,
             cursor: nil,
-            requestID: state.searchRequestID,
+            requestID: state.results.requestID,
             isAppending: false,
             delay: delay
         )
@@ -337,20 +302,20 @@ struct HomeSearchReducer: Reducer {
         state: inout State,
         registration: RecentSearchRegistration? = nil
     ) -> Effect<Action> {
-        state.searchRequestID += 1
-        state.activeSearchContext = .selectedRegion(keyword: keyword)
-        state.loadedSuggestionKeyword = nil
-        state.regions = []
-        state.relatedPlaceSuggestions = []
-        state.results = []
-        state.hasNextPage = false
-        state.nextCursor = nil
-        state.isLoadingNextPage = false
-        state.viewState = .searching
+        state.results.requestID += 1
+        state.results.activeContext = .selectedRegion(keyword: keyword)
+        state.results.loadedSuggestionKeyword = nil
+        state.results.regions = []
+        state.results.relatedPlaceSuggestions = []
+        state.results.places = []
+        state.results.hasNextPage = false
+        state.results.nextCursor = nil
+        state.results.isLoadingNextPage = false
+        state.results.viewState = .searching
         return placeSearchEffect(
             keyword: keyword,
             cursor: nil,
-            requestID: state.searchRequestID,
+            requestID: state.results.requestID,
             isAppending: false,
             registration: registration,
             origin: state.origin
@@ -388,28 +353,28 @@ struct HomeSearchReducer: Reducer {
         named region: String,
         state: inout State
     ) {
-        state.searchRequestID += 1
-        state.activeSearchContext = .selectedRegion(keyword: region)
-        state.loadedSuggestionKeyword = nil
-        state.regions = []
-        state.relatedPlaceSuggestions = []
-        state.results = []
-        state.hasNextPage = false
-        state.nextCursor = nil
-        state.isLoadingNextPage = false
-        state.viewState = .emptyResults
+        state.results.requestID += 1
+        state.results.activeContext = .selectedRegion(keyword: region)
+        state.results.loadedSuggestionKeyword = nil
+        state.results.regions = []
+        state.results.relatedPlaceSuggestions = []
+        state.results.places = []
+        state.results.hasNextPage = false
+        state.results.nextCursor = nil
+        state.results.isLoadingNextPage = false
+        state.results.viewState = .emptyResults
     }
 
     private func resetSearch(state: inout State) {
-        state.searchRequestID += 1
-        state.activeSearchContext = nil
-        state.regions = []
-        state.relatedPlaceSuggestions = []
-        state.results = []
-        state.hasNextPage = false
-        state.nextCursor = nil
-        state.isLoadingNextPage = false
-        state.viewState = .initial
+        state.results.requestID += 1
+        state.results.activeContext = nil
+        state.results.regions = []
+        state.results.relatedPlaceSuggestions = []
+        state.results.places = []
+        state.results.hasNextPage = false
+        state.results.nextCursor = nil
+        state.results.isLoadingNextPage = false
+        state.results.viewState = .initial
     }
 
     private func loadRecentSearchesEffect() -> Effect<Action> {

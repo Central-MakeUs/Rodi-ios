@@ -105,17 +105,19 @@ extension RodiKakaoMapView {
             return
         }
 
-        let latitudeSpan = max(maxLatitude - minLatitude, 0.032)
-        let longitudeSpan = max(maxLongitude - minLongitude, 0.032)
+        let latitudeSpan = max(maxLatitude - minLatitude, 0.016)
+        let longitudeSpan = max(maxLongitude - minLongitude, 0.016)
         let bottomCoverageRatio = bounds.height > 0
             ? min(max(latestCameraBottomInset / bounds.height, 0), 0.7)
             : 0.4
-        let bottomLatitudePadding = 0.85 + bottomCoverageRatio * 2.05
-        let topLatitudePadding = 0.55
+        // 경로의 전체 모양은 보존하되, 이전의 과도한 기본 여백을 줄여
+        // marker 탭 직후 polyline이 사용 가능한 지도 영역을 더 크게 채우게 합니다.
+        let bottomLatitudePadding = 0.28 + bottomCoverageRatio * 1.15
+        let topLatitudePadding = 0.20
         let paddedMinLatitude = minLatitude - latitudeSpan * bottomLatitudePadding
         let paddedMaxLatitude = maxLatitude + latitudeSpan * topLatitudePadding
-        let paddedMinLongitude = minLongitude - longitudeSpan * 0.65
-        let paddedMaxLongitude = maxLongitude + longitudeSpan * 0.65
+        let paddedMinLongitude = minLongitude - longitudeSpan * 0.20
+        let paddedMaxLongitude = maxLongitude + longitudeSpan * 0.20
         let paddedPoints = [
             MapPoint(longitude: paddedMinLongitude, latitude: paddedMinLatitude),
             MapPoint(longitude: paddedMaxLongitude, latitude: paddedMinLatitude),

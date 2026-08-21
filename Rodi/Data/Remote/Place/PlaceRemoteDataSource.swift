@@ -10,59 +10,75 @@ final class PlaceRemoteDataSource {
     }
 
     func fetchCoordinates() async throws(NetworkError) -> [PlaceCoordinateDTO] {
-        try await request(.coordinates, manager: publicNetworkManager, as: [PlaceCoordinateDTO].self)
+        try await ServerResponseHandler.payload(
+            PlaceAPI.coordinates,
+            using: publicNetworkManager,
+            as: [PlaceCoordinateDTO].self
+        )
     }
 
-    func fetchPlaces(query: PlaceListQuery, access: PlaceListAccess) async throws(NetworkError) -> PlaceCursorPageDTO {
+    func fetchPlaces(
+        query: PlaceListQueryDTO,
+        access: PlaceRemoteAccess
+    ) async throws(NetworkError) -> PlaceCursorPageDTO {
         switch access {
-        case .public: try await request(.list(query), manager: publicNetworkManager, as: PlaceCursorPageDTO.self)
-        case .member: try await request(.authenticatedList(query), manager: authenticatedNetworkManager, as: PlaceCursorPageDTO.self)
+        case .public:
+            try await ServerResponseHandler.payload(
+                PlaceAPI.list(query),
+                using: publicNetworkManager,
+                as: PlaceCursorPageDTO.self
+            )
+        case .authenticated:
+            try await ServerResponseHandler.payload(
+                PlaceAPI.authenticatedList(query),
+                using: authenticatedNetworkManager,
+                as: PlaceCursorPageDTO.self
+            )
         }
     }
 
-    func search(_ query: PlaceSearchQuery) async throws(NetworkError) -> PlaceCursorPageDTO {
-        try await request(.search(query), manager: authenticatedNetworkManager, as: PlaceCursorPageDTO.self)
+    func search(_ query: PlaceSearchQueryDTO) async throws(NetworkError) -> PlaceCursorPageDTO {
+        try await ServerResponseHandler.payload(
+            PlaceAPI.search(query),
+            using: authenticatedNetworkManager,
+            as: PlaceCursorPageDTO.self
+        )
     }
 
-    func relatedSearch(_ query: PlaceRelatedSearchQuery) async throws(NetworkError) -> PlaceRelatedSearchDTO {
-        try await request(.relatedSearch(query), manager: authenticatedNetworkManager, as: PlaceRelatedSearchDTO.self)
+    func relatedSearch(_ query: PlaceRelatedSearchQueryDTO) async throws(NetworkError) -> PlaceRelatedSearchDTO {
+        try await ServerResponseHandler.payload(
+            PlaceAPI.relatedSearch(query),
+            using: authenticatedNetworkManager,
+            as: PlaceRelatedSearchDTO.self
+        )
     }
 
-    func bookmarks(_ query: PlaceBookmarkListQuery) async throws(NetworkError) -> PlaceCursorPageDTO {
-        try await request(.bookmarks(query), manager: authenticatedNetworkManager, as: PlaceCursorPageDTO.self)
+    func bookmarks(_ query: PlaceBookmarkListQueryDTO) async throws(NetworkError) -> PlaceCursorPageDTO {
+        try await ServerResponseHandler.payload(
+            PlaceAPI.bookmarks(query),
+            using: authenticatedNetworkManager,
+            as: PlaceCursorPageDTO.self
+        )
     }
 
     func detail(id: Int) async throws(NetworkError) -> PlaceDetailDTO {
-        try await request(.detail(id: id), manager: authenticatedNetworkManager, as: PlaceDetailDTO.self)
+        try await ServerResponseHandler.payload(
+            PlaceAPI.detail(id: id),
+            using: authenticatedNetworkManager,
+            as: PlaceDetailDTO.self
+        )
     }
 
     func bookmark(id: Int) async throws(NetworkError) {
-        try await empty(.bookmark(id: id))
+        try await ServerResponseHandler.empty(PlaceAPI.bookmark(id: id), using: authenticatedNetworkManager)
     }
 
     func unbookmark(id: Int) async throws(NetworkError) {
-        try await empty(.unbookmark(id: id))
+        try await ServerResponseHandler.empty(PlaceAPI.unbookmark(id: id), using: authenticatedNetworkManager)
     }
+}
 
-    private func empty(_ api: PlaceAPI) async throws(NetworkError) {
-        let response = try await authenticatedNetworkManager.request(
-            api,
-            as: ServerResponse<EmptyResponse>.self
-        )
-        guard response.isSuccess else {
-            throw .apiError(code: response.code, message: response.message)
-        }
-    }
-
-    private func request<T: Decodable>(
-        _ api: PlaceAPI,
-        manager: NetworkManager,
-        as type: T.Type
-    ) async throws(NetworkError) -> T {
-        let response = try await manager.request(api, as: ServerResponse<T>.self)
-        guard response.isSuccess, let data = response.data else {
-            throw .apiError(code: response.code, message: response.message)
-        }
-        return data
-    }
+enum PlaceRemoteAccess {
+    case `public`
+    case authenticated
 }

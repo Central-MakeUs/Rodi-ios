@@ -208,6 +208,7 @@ private extension MyBlockedMembersReducer {
     func dismissSnackbar(_ message: String) -> Effect<Action> {
         .run { send in
             try? await Task.sleep(for: .seconds(3))
+            guard !Task.isCancelled else { return }
             await send(.snackbarDismissed(message))
         }
         .cancelTask(id: EffectID.snackbar)
@@ -215,7 +216,7 @@ private extension MyBlockedMembersReducer {
 
     static func message(for error: Error) -> String {
         if case NetworkError.networkUnavailable = error {
-            return "인터넷 연결을 확인한 뒤 다시 시도해 주세요."
+            return "네트워크 연결을 확인해주세요."
         }
         return "차단목록을 불러오지 못했어요."
     }
@@ -239,7 +240,7 @@ private extension MyBlockedMembersReducer {
 
     static func unblockMessage(for error: Error) -> String {
         if case NetworkError.networkUnavailable = error {
-            return "인터넷 연결을 확인한 뒤 다시 시도해 주세요."
+            return "네트워크 연결을 확인해주세요."
         }
         return "차단을 해제하지 못했어요. 다시 시도해주세요."
     }

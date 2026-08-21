@@ -23,6 +23,7 @@ struct ReviewReducer: Reducer {
         )
         case directWritingRequested(ReviewWriteRequest)
         case editingRequested(reviewID: Int)
+        case reset
         case prompt(ReviewPromptReducer.Action)
         case writing(ReviewWritingReducer.Action)
         case skipReason(ReviewSkipReasonReducer.Action)
@@ -95,6 +96,15 @@ extension ReviewReducer {
             return writingReducer
                 .reduce(&state.writing, with: .editStarted(reviewID: reviewID))
                 .map(Action.writing)
+
+        case .reset:
+            resetChildren(state: &state)
+            state.route = .hidden
+            return .run { send in
+                await send(.prompt(.reset))
+                await send(.writing(.reset))
+                await send(.skipReason(.reset))
+            }
 
         case .prompt(let childAction):
             if case .delegate(let delegate) = childAction {

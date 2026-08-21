@@ -18,19 +18,3 @@ struct CourseWaypointRequestDTO: Encodable {
     let lng: Double
     let name: String
 }
-
-extension CourseRegisterRequestDTO {
-    init(_ submission: CourseRegistrationSubmission) {
-        self.init(
-            name: submission.name,
-            address: submission.address,
-            distanceMeters: submission.distanceMeters,
-            waypoints: submission.waypoints.map {
-                .init(type: $0.kind.rawValue, lat: $0.latitude, lng: $0.longitude, name: $0.name)
-            },
-            practiceTypes: submission.practiceTypes,
-            description: submission.description,
-            caution: submission.caution
-        )
-    }
-}

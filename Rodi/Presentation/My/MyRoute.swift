@@ -14,6 +14,7 @@ enum MyRoute: Route {
     case courseRegistration
     case permissions
     case terms
+    case dataSource
     case licenses
     case accountManagement
     case blockedMembers
@@ -30,6 +31,7 @@ enum MyRoute: Route {
         case .courseRegistration: "my.courseRegistration"
         case .permissions: "my.permissions"
         case .terms: "my.terms"
+        case .dataSource: "my.dataSource"
         case .licenses: "my.licenses"
         case .accountManagement: "my.accountManagement"
         case .blockedMembers: "my.blockedMembers"

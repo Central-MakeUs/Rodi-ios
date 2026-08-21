@@ -33,7 +33,12 @@ private extension CourseDetailExpandedPage {
             }
         }
         .overlayPreferenceValue(RodiDropdownAnchorPreferenceKey.self) { anchors in
-            reviewLevelDropdownOverlay(anchors: anchors)
+            CourseReviewDropdownOverlay(
+                anchors: anchors,
+                state: state.reviews,
+                activeDropdown: $activeReviewDropdown,
+                send: { send(.reviews($0)) }
+            )
         }
         .overlay {
             if state.reviews.block.isConfirmationPresented {
@@ -61,7 +66,7 @@ private extension CourseDetailExpandedPage {
                     VStack(alignment: .leading, spacing: 0) {
                         courseInformation(detail: detail)
                         routeSection(detail: detail)
-                            .padding(.top, 28)
+                            .padding(.top, 24)
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 20)
@@ -87,32 +92,15 @@ private extension CourseDetailExpandedPage {
     }
 
     func allReviewsPage(detail: PlaceDetail) -> some View {
-        ZStack {
-            RodiColor.white
-                .ignoresSafeArea()
-
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    CourseReviewView(
-                        state: state.reviews,
-                        activeDropdown: $activeReviewDropdown,
-                        send: { send(.reviews($0)) }
-                    )
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 20)
-                .padding(.bottom, 24)
-            }
-            .scrollIndicators(.hidden)
-            .simultaneousGesture(dropdownDismissDragGesture)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            fixedHeader(title: "레벨별 후기")
-        }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            fixedActionBar(detail: detail)
-        }
+        CourseDetailAllReviewsPage(
+            detail: detail,
+            reviewState: state.reviews,
+            activeReviewDropdown: $activeReviewDropdown,
+            sendReviewAction: { send(.reviews($0)) },
+            backAction: { send(.reviews(.backTapped)) },
+            dismissDropdownAction: { activeReviewDropdown = nil },
+            actionBar: { fixedActionBar(detail: detail) }
+        )
     }
 
     func fullWidthDivider(height: CGFloat) -> some View {
@@ -249,7 +237,6 @@ private extension CourseDetailExpandedPage {
                     .frame(height: 37)
                     .background(RodiColor.gray100)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .padding(.bottom, 18)
             }
         }
     }
@@ -319,137 +306,11 @@ private extension CourseDetailExpandedPage {
         )
     }
 
-    @ViewBuilder
-    func reviewLevelDropdownOverlay(
-        anchors: [AnyHashable: Anchor<CGRect>]
-    ) -> some View {
-        if let activeReviewDropdown,
-           let anchor = anchors[activeReviewDropdown] {
-            GeometryReader { proxy in
-                let triggerFrame = proxy[anchor]
-
-                ZStack(alignment: .topLeading) {
-                    Color.clear
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            self.activeReviewDropdown = nil
-                        }
-
-                    reviewDropdownMenu(
-                        for: activeReviewDropdown,
-                        triggerFrame: triggerFrame
-                    )
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-            .ignoresSafeArea()
-            .zIndex(10)
-        }
-    }
-
-    var effectiveSelectedReviewLevel: ReviewLevel? {
-        switch state.reviews.selectedLevel {
-        case .current:
-            selectedReviewSummary?.level
-        case .level(let level):
-            level
-        case .all:
-            nil
-        }
-    }
-
-    var reviewLevelOptions: [RodiDropdownOption] {
-        ReviewLevel.allCases
-            .filter { $0 != selectedReviewLevel }
-            .map { .init(id: $0.rawValue, title: $0.displayName) }
-    }
-
-    func reviewActionOptions(for reviewID: Int) -> [RodiDropdownOption] {
-        let isMine = state.reviews.pages.values
-            .lazy
-            .flatMap(\.items)
-            .first(where: { $0.id == reviewID })?
-            .isMine == true
-
-        return isMine
-            ? [
-                .init(id: "edit", title: "수정하기"),
-                .init(id: "delete", title: "삭제하기")
-            ]
-            : [
-                .init(id: "report", title: "신고하기"),
-                .init(id: "block", title: "차단")
-            ]
-    }
-
-    var selectedReviewLevel: ReviewLevel? {
-        effectiveSelectedReviewLevel
-    }
-
-    var selectedReviewSummaryState: CourseDetailBottomSheetReducer.ReviewSummaryState {
-        state.reviews.summaries[state.reviews.selectedLevel] ?? .init()
-    }
-
-    var selectedReviewSummary: PlaceReviewSummary? {
-        selectedReviewSummaryState.value
-    }
-
     var dropdownDismissDragGesture: some Gesture {
         DragGesture(minimumDistance: 1)
             .onChanged { _ in
                 activeReviewDropdown = nil
             }
-    }
-
-    func selectReviewLevel(_ level: ReviewLevel) {
-        send(.reviews(.levelSelected(.level(level))))
-    }
-
-    @ViewBuilder
-    func reviewDropdownMenu(
-        for dropdown: CourseReviewDropdown,
-        triggerFrame: CGRect
-    ) -> some View {
-        switch dropdown {
-        case .allReviewsHeader, .summary:
-            RodiDropdownMenu(
-                options: reviewLevelOptions,
-                onSelect: { option in
-                    self.activeReviewDropdown = nil
-                    guard let level = ReviewLevel(rawValue: option.id) else { return }
-                    selectReviewLevel(level)
-                }
-            )
-            .alignmentGuide(.leading) { dimensions in
-                dimensions[.trailing] - triggerFrame.maxX
-            }
-            .alignmentGuide(.top) { dimensions in
-                dimensions[.top] - triggerFrame.maxY - 8
-            }
-
-        case .reviewMenu(let reviewID):
-            RodiDropdownMenu(
-                options: reviewActionOptions(for: reviewID),
-                onSelect: { option in
-                    self.activeReviewDropdown = nil
-                    if option.id == "edit" {
-                        send(.reviews(.editRequested(reviewID: reviewID)))
-                    } else if option.id == "delete" {
-                        send(.reviews(.deleteRequested(reviewID: reviewID)))
-                    } else if option.id == "report" {
-                        send(.reviews(.reportRequested(reviewID: reviewID)))
-                    } else if option.id == "block" {
-                        send(.reviews(.blockRequested(reviewID: reviewID)))
-                    }
-                }
-            )
-            .alignmentGuide(.leading) { dimensions in
-                dimensions[.trailing] - triggerFrame.maxX
-            }
-            .alignmentGuide(.top) { dimensions in
-                dimensions[.top] - triggerFrame.maxY - 4
-            }
-        }
     }
 
     func actionBar(detail: PlaceDetail) -> some View {

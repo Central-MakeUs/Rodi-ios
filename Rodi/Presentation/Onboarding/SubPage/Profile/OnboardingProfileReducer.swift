@@ -188,7 +188,7 @@ private extension OnboardingProfileReducer {
     static func submissionOutcome(for error: NetworkError) -> SubmissionOutcome {
         switch error {
         case .networkUnavailable, .timeOut:
-            .failed("네트워크 연결을 확인한 뒤 다시 시도해 주세요.")
+            .failed("네트워크 연결을 확인해주세요.")
         case .httpStatusCode(let code) where code >= 500,
              .apiError(_, _, let code?) where code >= 500:
             .failed("서버 오류가 발생했어요. 잠시 후 다시 시도해 주세요.")

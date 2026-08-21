@@ -5,12 +5,47 @@
 
 import Foundation
 
-struct PlaceMapper {
+nonisolated struct PlaceMapper {
+    static func listQuery(from query: PlaceListQuery) -> PlaceListQueryDTO {
+        .init(
+            southWestLatitude: query.viewport.southWestLatitude,
+            southWestLongitude: query.viewport.southWestLongitude,
+            northEastLatitude: query.viewport.northEastLatitude,
+            northEastLongitude: query.viewport.northEastLongitude,
+            currentLatitude: query.currentLatitude,
+            currentLongitude: query.currentLongitude,
+            size: query.size,
+            cursor: query.cursor
+        )
+    }
+
+    static func searchQuery(from query: PlaceSearchQuery) -> PlaceSearchQueryDTO {
+        .init(
+            keyword: query.keyword,
+            currentLatitude: query.currentLatitude,
+            currentLongitude: query.currentLongitude,
+            size: query.size,
+            cursor: query.cursor
+        )
+    }
+
+    static func relatedSearchQuery(
+        from query: PlaceRelatedSearchQuery
+    ) -> PlaceRelatedSearchQueryDTO {
+        .init(keyword: query.keyword, size: query.size, cursor: query.cursor)
+    }
+
+    static func bookmarkListQuery(
+        from query: PlaceBookmarkListQuery
+    ) -> PlaceBookmarkListQueryDTO {
+        .init(size: query.size, cursor: query.cursor)
+    }
+
     static func coordinate(
         from dto: PlaceCoordinateDTO
     ) throws(NetworkError) -> PlaceCoordinate {
         PlaceCoordinate(
-            id: dto.id,
+            id: try int(from: dto.id),
             type: try placeType(from: dto.type),
             name: dto.name,
             address: dto.address,
@@ -38,7 +73,7 @@ struct PlaceMapper {
         PlaceRelatedSearchResult(
             regions: dto.regions,
             places: PlaceRelatedSearchCursorPage(
-                items: dto.places.items.map(relatedSearchSuggestion(from:)),
+                items: try dto.places.items.map(relatedSearchSuggestion(from:)),
                 hasNext: dto.places.hasNext,
                 nextCursor: dto.places.nextCursor,
                 totalCount: dto.places.totalCount
@@ -50,7 +85,7 @@ struct PlaceMapper {
         from dto: PlaceDetailDTO
     ) throws(NetworkError) -> PlaceDetail {
         PlaceDetail(
-            id: dto.id,
+            id: try int(from: dto.id),
             type: try placeType(from: dto.type),
             name: dto.name,
             address: dto.address,
@@ -65,12 +100,47 @@ struct PlaceMapper {
     }
 }
 
-private extension PlaceMapper {
+nonisolated extension PlaceListQueryDTO {
+    init(_ query: PlaceListQuery) {
+        self = PlaceMapper.listQuery(from: query)
+    }
+}
+
+nonisolated extension PlaceSearchQueryDTO {
+    init(_ query: PlaceSearchQuery) {
+        self = PlaceMapper.searchQuery(from: query)
+    }
+}
+
+nonisolated extension PlaceRelatedSearchQueryDTO {
+    init(_ query: PlaceRelatedSearchQuery) {
+        self = PlaceMapper.relatedSearchQuery(from: query)
+    }
+}
+
+nonisolated extension PlaceBookmarkListQueryDTO {
+    init(_ query: PlaceBookmarkListQuery) {
+        self = PlaceMapper.bookmarkListQuery(from: query)
+    }
+}
+
+nonisolated extension PlaceRemoteAccess {
+    init(_ access: PlaceListAccess) {
+        switch access {
+        case .public:
+            self = .public
+        case .member:
+            self = .authenticated
+        }
+    }
+}
+
+nonisolated private extension PlaceMapper {
     static func relatedSearchSuggestion(
         from dto: PlaceRelatedSearchItemDTO
-    ) -> PlaceRelatedSearchSuggestion {
+    ) throws(NetworkError) -> PlaceRelatedSearchSuggestion {
         PlaceRelatedSearchSuggestion(
-            id: dto.placeID,
+            id: try int(from: dto.placeID),
             name: dto.name,
             region: dto.region
         )
@@ -80,7 +150,7 @@ private extension PlaceMapper {
         from dto: PlaceListItemDTO
     ) throws(NetworkError) -> PlaceListItem {
         PlaceListItem(
-            id: dto.id,
+            id: try int(from: dto.id),
             type: try placeType(from: dto.type),
             name: dto.name,
             address: dto.address,
@@ -107,9 +177,16 @@ private extension PlaceMapper {
         }
         return value
     }
+
+    static func int(from value: Int64) throws(NetworkError) -> Int {
+        guard let value = Int(exactly: value) else {
+            throw .decodingFail
+        }
+        return value
+    }
 }
 
-private extension PlaceCourseDetailDTO {
+nonisolated private extension PlaceCourseDetailDTO {
     var domain: PlaceCourseDetail {
         PlaceCourseDetail(
             summary: description,
@@ -120,7 +197,7 @@ private extension PlaceCourseDetailDTO {
     }
 }
 
-private extension PlaceWaypointDTO {
+nonisolated private extension PlaceWaypointDTO {
     var domain: PlaceWaypoint {
         PlaceWaypoint(
             type: type,
@@ -132,7 +209,7 @@ private extension PlaceWaypointDTO {
     }
 }
 
-private extension PlaceParkingDetailDTO {
+nonisolated private extension PlaceParkingDetailDTO {
     var domain: PlaceParkingDetail {
         PlaceParkingDetail(
             roadAddress: roadAddress,
@@ -147,7 +224,7 @@ private extension PlaceParkingDetailDTO {
     }
 }
 
-private extension PlaceFeeInfoDTO {
+nonisolated private extension PlaceFeeInfoDTO {
     var domain: PlaceFeeInfo {
         PlaceFeeInfo(
             baseMinutes: baseMinutes,
@@ -161,7 +238,7 @@ private extension PlaceFeeInfoDTO {
     }
 }
 
-private extension PlaceOperatingHoursDTO {
+nonisolated private extension PlaceOperatingHoursDTO {
     var domain: PlaceOperatingHours {
         PlaceOperatingHours(
             weekday: weekday,
