@@ -5,7 +5,6 @@
 //  Created by Codex on 7/1/26.
 //
 
-import UIKit
 import SwiftUI
 
 #if canImport(KakaoMapsSDK)

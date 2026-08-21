@@ -153,9 +153,7 @@ struct CourseRegistrationPinEditingReducer: Reducer {
 
         case .completionTapped(let points):
             guard !state.isSaving else { return .none }
-            guard let temporary = state.temporaryPlace else {
-                return .send(.delegate(.cancelled))
-            }
+            guard let temporary = state.temporaryPlace else { return .none }
             guard points.count >= 2 else {
                 return .send(.delegate(.completed(state.target, temporary, nil)))
             }

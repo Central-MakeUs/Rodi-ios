@@ -17,6 +17,8 @@ struct RootReducer: Reducer {
 
         var pendingUpdate: AppVersionUpdate?
         var hasCheckedAppVersion = false
+        var hasCompletedAppVersionCheck = false
+        var isSceneActive = false
         var isRestoringSession = false
         var initialSessionVerification: InitialSessionVerification = .pending
         var rootRoute: RootRoute = .launching
@@ -89,6 +91,8 @@ extension RootReducer {
             return checkAppVersionIfNeeded(state: &state)
 
         case .sceneBecameActive:
+            state.isSceneActive = true
+            guard state.hasCompletedAppVersionCheck, state.pendingUpdate == nil else { return .none }
             return restoreSessionIfNeeded(
                 state: &state,
                 after: .practiceTracking(
@@ -97,13 +101,21 @@ extension RootReducer {
             )
 
         case .sceneBecameInactive:
+            state.isSceneActive = false
             return practiceTrackingReducer
                 .reduce(&state.practiceTracking, with: .sceneBecameInactive)
                 .map(Action.practiceTracking)
 
         case .appVersionCheckCompleted(let update):
+            state.hasCompletedAppVersionCheck = true
             state.pendingUpdate = update
-            return .none
+            guard update == nil, state.isSceneActive else { return .none }
+            return restoreSessionIfNeeded(
+                state: &state,
+                after: .practiceTracking(
+                    .sceneBecameActive(canPresentPrompt: state.reviewFlow.review.route == .hidden)
+                )
+            )
 
         case .sessionRestoreCompleted(let result):
             state.isRestoringSession = false
@@ -233,8 +245,14 @@ private extension RootReducer {
 private extension RootReducer {
 
     func checkAppVersionIfNeeded(state: inout State) -> Effect<Action> {
-        guard AppEnvironment.current.isProduction, !state.hasCheckedAppVersion else { return .none }
+        guard !state.hasCheckedAppVersion else { return .none }
         state.hasCheckedAppVersion = true
+
+        guard AppEnvironment.current.isProduction || AppVersionUpdateChecker.isRequiredUpdateExperimentEnabled else {
+            state.hasCompletedAppVersionCheck = true
+            return .none
+        }
+
         return .run { send in
             await send(.appVersionCheckCompleted(await AppVersionUpdateChecker.checkForRequiredUpdate()))
         }

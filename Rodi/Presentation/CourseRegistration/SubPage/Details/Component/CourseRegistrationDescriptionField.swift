@@ -23,7 +23,7 @@ struct CourseRegistrationDescriptionField: View {
         VStack(alignment: .trailing, spacing: 4) {
             RodiTextField(
                 text: $text,
-                placeholder: "예) 교차로 연습하기 좋은 코스",
+                placeholder: "예) 교차로 연습하기 좋은 코스에요",
                 characterLimit: spec.maxLength,
                 isFocused: isFocused
             )

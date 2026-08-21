@@ -152,9 +152,9 @@ struct HomeMapReducer: Reducer {
 
         case .markerTapped(let markerID):
             guard let interaction = markerInteractionResolver.resolve(markerID: markerID, markers: state.markers, items: state.mapItems) else { return .none }
-            state.isCurrentLocationButtonActive = false
             switch interaction {
             case .cluster(let marker, let target):
+                state.isCurrentLocationButtonActive = false
                 state.selectedMarkerID = nil
                 state.routeOverlay = nil
                 state.markerRenderingGeneration += 1
@@ -165,6 +165,10 @@ struct HomeMapReducer: Reducer {
                 requestCamera(&state)
                 return .cancel(id: CancellationID.progressiveMarkerRendering)
             case .course(let marker, let placeID), .parking(let marker, let placeID):
+                guard hasActiveSession() else {
+                    return .send(.delegate(.requestAuthentication))
+                }
+                state.isCurrentLocationButtonActive = false
                 state.routeOverlay = nil
                 state.selectedSearchResultName = marker.title
                 state.selectedMarkerID = markerID

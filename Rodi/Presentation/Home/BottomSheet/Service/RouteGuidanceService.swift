@@ -65,8 +65,6 @@ enum RouteGuidanceResult {
 
 @MainActor
 struct RouteGuidanceService {
-    static let shared = RouteGuidanceService()
-
     let kakaoMapWaypointLimit = 5
     let kakaoNaviWaypointLimit = 3
     private let preferredAppStore = UserDefaultsStringStore(key: "routeGuidance.preferredApp")

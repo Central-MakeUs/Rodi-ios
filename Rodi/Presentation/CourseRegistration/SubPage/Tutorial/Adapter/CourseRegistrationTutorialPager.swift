@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 
 /// UIPageViewController의 확정 페이지를 reducer에 전달하는 iOS 16.1 호환 Adapter다.
 struct CourseRegistrationTutorialPager: UIViewControllerRepresentable {

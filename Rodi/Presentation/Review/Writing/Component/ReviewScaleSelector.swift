@@ -11,7 +11,8 @@ private enum ReviewScaleMetrics {
     static let connectionHeight: CGFloat = 2
 }
 
-private struct ReviewScaleTrackLayout: Layout {
+@MainActor
+private struct ReviewScaleTrackLayout: @preconcurrency Layout {
     func sizeThatFits(
         proposal: ProposedViewSize,
         subviews: Subviews,

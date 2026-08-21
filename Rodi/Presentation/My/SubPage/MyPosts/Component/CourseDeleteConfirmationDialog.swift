@@ -21,7 +21,7 @@ struct CourseDeleteConfirmationDialog: View {
                             .tracking(-0.32)
                             .foregroundStyle(RodiColor.black)
 
-                        Text("이 코스는 삭제하면 더 이상 공개되지 않아요.")
+                        Text("현재 검토 중인 코스예요.\n삭제하면 코스 검토가 중단돼요.")
                             .rodiTypography(.caption1Medium)
                             .foregroundStyle(RodiColor.black)
                             .multilineTextAlignment(.center)

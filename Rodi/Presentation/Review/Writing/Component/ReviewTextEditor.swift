@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 
 struct ReviewTextEditor: UIViewRepresentable {
     @Binding private var text: String

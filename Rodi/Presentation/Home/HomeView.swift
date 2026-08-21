@@ -560,8 +560,8 @@ extension HomeView {
             }
 
             if store.state.map.markerState == .failed {
-                NetworkRetryBanner(
-                    retryAction: { store.send(.map(.markerRetryRequested)) }
+                NetworkConnectionSnackbar(
+                    refreshAction: { store.send(.map(.markerRetryRequested)) }
                 )
                 .padding(.horizontal, 16)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)

@@ -51,31 +51,3 @@ struct DetailInfoRow: View {
         }
     }
 }
-
-struct DetailChipWrap: View {
-    enum Style {
-        case normal
-        case warning
-    }
-
-    let titles: [String]
-    let style: Style
-
-    private let columns = [
-        GridItem(.adaptive(minimum: 72), spacing: 6, alignment: .leading)
-    ]
-
-    var body: some View {
-        LazyVGrid(columns: columns, alignment: .leading, spacing: 6) {
-            ForEach(titles, id: \.self) { title in
-                Text(title)
-                    .rodiTypography(.caption3Medium)
-                    .foregroundStyle(style == .warning ? RodiColor.gray900 : RodiColor.gray700)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 4)
-                    .background(style == .warning ? RodiColor.tagHard : RodiColor.gray200)
-                    .clipShape(RoundedRectangle(cornerRadius: 2))
-            }
-        }
-    }
-}

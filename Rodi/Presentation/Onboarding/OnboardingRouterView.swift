@@ -31,10 +31,11 @@ struct OnboardingRouterView: View {
                 path: OnboardingNavigationPath.restoredPath(
                     route: restored.route,
                     session: restored.session
-                ),
-                acceptsSystemPath: { currentPath, proposedPath in
-                    !(currentPath == [.terms] && proposedPath.isEmpty)
-                }
+                )
+//                ,
+//                acceptsSystemPath: { currentPath, proposedPath in
+//                    !(currentPath == [.terms] && proposedPath.isEmpty)
+//                }
             )
         )
         _session = State(initialValue: restored.session)

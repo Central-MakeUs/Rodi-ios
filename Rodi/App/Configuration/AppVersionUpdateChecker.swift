@@ -29,18 +29,45 @@ enum AppVersionUpdateChecker {
         let trackViewUrl: URL?
     }
 
+    #if DEBUG
+    static var isRequiredUpdateExperimentEnabled: Bool {
+        ProcessInfo.processInfo.arguments.contains("-RODI_FORCE_REQUIRED_UPDATE")
+    }
+    #else
+    static var isRequiredUpdateExperimentEnabled: Bool { false }
+    #endif
+
+    static func requiresUpdate(currentVersion: String, latestVersion: String) -> Bool {
+        currentVersion.compare(latestVersion, options: .numeric) == .orderedAscending
+    }
+
     static func checkForRequiredUpdate() async -> AppVersionUpdate? {
         guard
             let bundleIdentifier = Bundle.main.bundleIdentifier,
-            let currentVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
-            let lookupURL = lookupURL(bundleIdentifier: bundleIdentifier)
+            let currentVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
         else {
             RodiLogger.warning("App version check skipped: bundle metadata unavailable")
             return nil
         }
 
+        if isRequiredUpdateExperimentEnabled {
+            RodiLogger.info("Mandatory app update experiment enabled")
+            return AppVersionUpdate(
+                currentVersion: currentVersion,
+                latestVersion: "test",
+                appStoreURL: URL(string: "https://apps.apple.com")!
+            )
+        }
+
+        guard let lookupURL = lookupURL(bundleIdentifier: bundleIdentifier) else {
+            RodiLogger.warning("App version check skipped: lookup URL unavailable")
+            return nil
+        }
+
         do {
-            let (data, _) = try await URLSession.shared.data(from: lookupURL)
+            var request = URLRequest(url: lookupURL)
+            request.timeoutInterval = 5
+            let (data, _) = try await URLSession.shared.data(for: request)
             let response = try JSONDecoder().decode(LookupResponse.self, from: data)
 
             guard response.resultCount > 0, let result = response.results.first else {
@@ -48,7 +75,7 @@ enum AppVersionUpdateChecker {
                 return nil
             }
 
-            guard currentVersion.compare(result.version, options: .numeric) == .orderedAscending else {
+            guard requiresUpdate(currentVersion: currentVersion, latestVersion: result.version) else {
                 RodiLogger.info("App version is current: current=\(currentVersion), latest=\(result.version)")
                 return nil
             }

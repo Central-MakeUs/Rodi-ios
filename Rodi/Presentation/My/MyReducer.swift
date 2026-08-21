@@ -305,6 +305,7 @@ extension MyReducer {
         state.snackbarMessage = message
         return .run { send in
             try? await Task.sleep(for: .seconds(3))
+            guard !Task.isCancelled else { return }
             await send(.snackbarDismissed(message))
         }
         .cancelTask(id: EffectID.snackbar)

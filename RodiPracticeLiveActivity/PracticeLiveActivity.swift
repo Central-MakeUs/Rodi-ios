@@ -50,19 +50,26 @@ struct RodiPracticeLiveActivity: Widget {
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    Label(
-                        PracticeActivityView.phaseTitle(for: context.state),
-                        systemImage: PracticeActivityView.phaseIcon(for: context.state)
-                    )
-                        .font(.caption.weight(.semibold))
+                    HStack(spacing: 4) {
+                        Image(systemName: PracticeActivityView.phaseIcon(for: context.state))
+                        Text(expandedPhaseTitle(for: context.state))
+                    }
+                        .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(PracticeActivityView.phaseColor(for: context.state))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .padding(.leading, 4)
+                        .accessibilityLabel(PracticeActivityView.phaseTitle(for: context.state))
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     Text(compactValue(for: context.state))
-                        .font(.caption.monospacedDigit().weight(.semibold))
+                        .font(.system(size: 12, weight: .semibold).monospacedDigit())
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .padding(.trailing, 4)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    PracticeActivityView(context: context)
+                    PracticeDynamicIslandExpandedView(context: context)
                 }
             } compactLeading: {
                 Image(systemName: context.state.phaseRawValue == "completed" ? "checkmark.circle.fill" : "car.fill")
@@ -86,6 +93,96 @@ struct RodiPracticeLiveActivity: Widget {
             return PracticeActivityView.formattedDistance(distance)
         }
         return "\(Int((state.progress * 100).rounded()))%"
+    }
+
+    private func expandedPhaseTitle(for state: PracticeLiveActivityAttributes.ContentState) -> String {
+        switch state.phaseRawValue {
+        case "headingToCourse": "이동 중"
+        case "drivingCourse": "주행 중"
+        case "completed": "완료"
+        default: "종료"
+        }
+    }
+}
+
+@available(iOS 16.1, *)
+private struct PracticeDynamicIslandExpandedView: View {
+    let context: ActivityViewContext<PracticeLiveActivityAttributes>
+
+    var body: some View {
+        Group {
+            switch context.state.phaseRawValue {
+            case "headingToCourse":
+                headingToCourseContent
+            case "drivingCourse":
+                drivingCourseContent
+            case "completed":
+                completionContent
+            default:
+                completionContent
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            PracticeActivityPalette.gray100,
+            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+        )
+        .accessibilityElement(children: .combine)
+    }
+
+    private var headingToCourseContent: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text("연습 코스로 이동하고 있어요")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(PracticeActivityPalette.primary)
+                Text("코스에 도착하면 주행 기록을 시작해요.")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(PracticeActivityPalette.gray800)
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Image(context.attributes.rabbitAssetName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 42, height: 42)
+                .accessibilityHidden(true)
+        }
+    }
+
+    private var drivingCourseContent: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            (Text(context.attributes.courseName).foregroundColor(PracticeActivityPalette.primary)
+            + Text(" 코스 주행 중").foregroundColor(PracticeActivityPalette.text))
+                .font(.system(size: 14, weight: .semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+
+            Text("Rodi가 코스 주행을 확인하고 있어요.")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(PracticeActivityPalette.gray800)
+                .lineLimit(1)
+
+            ProgressView(value: min(max(context.state.progress, 0), 1))
+                .tint(PracticeActivityPalette.primary)
+                .scaleEffect(y: 0.65, anchor: .center)
+                .accessibilityLabel("연습 진행 상태 \(Int((context.state.progress * 100).rounded()))퍼센트")
+        }
+    }
+
+    private var completionContent: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text("오늘의 운전연습을 완료했어요!")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(PracticeActivityPalette.primary)
+            Text("Rodi로 돌아가 연습 기록을 확인해 주세요.")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(PracticeActivityPalette.gray800)
+                .lineLimit(1)
+        }
     }
 }
 

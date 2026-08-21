@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 
 /// 커스텀 navigation header에서도 시스템 interactive-pop을 유지합니다.
 struct RodiInteractivePopGestureEnabler: UIViewControllerRepresentable {

@@ -103,6 +103,13 @@ bundle exec fastlane prod_beta
 - 두 beta lane 모두 해당 환경 local secrets의 App Store app ID와 API key가 필요하다.
 - `BUILD_NUMBER=...` 방식은 현재 lane 계약이 아니다. 번호 정책을 바꾸려면 Fastfile부터 수정한다.
 
+## Required Update
+
+- Prod 앱은 시작 시 App Store Korea의 최신 사용자 버전을 조회한다. 설치 버전보다 최신 버전이 있으면 Root route를 열지 않고 기존 강제 업데이트 dialog만 표시한다.
+- 조회는 5초 안에 끝나지 않거나 실패하면 앱을 막지 않는다. 네트워크 오류로 사용자가 앱에 들어오지 못하는 상황을 피하기 위한 정책이다.
+- Dev에서 전체 진입 차단을 확인하려면 Xcode Scheme의 Arguments Passed On Launch에 `-RODI_FORCE_REQUIRED_UPDATE`를 추가해 실행한다. 이 인자는 Debug에서만 동작하며 App Store 버전·사용자 상태를 변경하지 않는다.
+- 강제 업데이트 검증은 Dev 인자 실험과, 실제 Store에 새 버전을 공개한 뒤 이전 설치본을 실행하는 실기기 확인을 모두 수행한다.
+
 ## App Store, Privacy, And Legal Gates
 
 `PrivacyInfo.xcprivacy`는 현재 User ID, 사용자 콘텐츠·기타 데이터, 제품 상호작용,

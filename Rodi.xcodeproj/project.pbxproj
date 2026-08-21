@@ -247,7 +247,6 @@
 				F1B000000000000000003003 /* FirebaseCrashlytics */,
 				F1B000000000000000003004 /* FirebasePerformance */,
 				C1A000000000000000003001 /* Clarity */,
-				041D585F300EFD09008ACB6B /* LicenseList */,
 			);
 			productName = Rodi;
 			productReference = 042A22C62FEE58B100DB67F4 /* Rodi.app */;
@@ -330,7 +329,6 @@
 				04CA50662FF8E67A003FCF19 /* XCRemoteSwiftPackageReference "NSObject-Rx" */,
 				F1B000000000000000002001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				C1A000000000000000002001 /* XCRemoteSwiftPackageReference "clarity-apps" */,
-				041D585E300EFD09008ACB6B /* XCRemoteSwiftPackageReference "LicenseList" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 042A22C72FEE58B100DB67F4 /* Products */;

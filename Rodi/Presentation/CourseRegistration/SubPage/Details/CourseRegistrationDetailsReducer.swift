@@ -6,6 +6,7 @@ struct CourseRegistrationDetailsReducer: Reducer {
         var context: CourseRegistrationDetailsContext?
         var loadState: CourseRegistrationDetailsLoadState = .idle
         var draft = CourseRegistrationDetailsDraft()
+        var initialCategoryCodes: Set<String> = []
         var loadRevision = 0
         var isDiscardConfirmationPresented = false
         var isSubmitting = false
@@ -33,6 +34,13 @@ struct CourseRegistrationDetailsReducer: Reducer {
                 !spec.required || !trimmed(value).isEmpty
             }
             return hasRequiredInputs && trimmed(draft.description).count >= 10
+        }
+
+        var isDirty: Bool {
+            draft.selectedCategoryCodes != initialCategoryCodes
+                || !draft.selectedPracticeTypeCodes.isEmpty
+                || !draft.caution.isEmpty
+                || !draft.description.isEmpty
         }
 
         private func trimmed(_ value: String) -> String {
@@ -87,6 +95,10 @@ struct CourseRegistrationDetailsReducer: Reducer {
             switch result {
             case .success(let form):
                 state.loadState = .loaded(form)
+                if let initialCategory = form.practiceType.categories.first {
+                    state.draft.selectedCategoryCodes = [initialCategory.code]
+                    state.initialCategoryCodes = [initialCategory.code]
+                }
             case .failure:
                 state.loadState = .failed
             }
@@ -102,13 +114,9 @@ struct CourseRegistrationDetailsReducer: Reducer {
                 return .none
             }
 
-            if state.draft.selectedCategoryCodes.contains(category.code) {
-                state.draft.selectedCategoryCodes.remove(category.code)
-                let categoryTypeCodes = Set(category.practiceTypes.map(\.code))
-                state.draft.selectedPracticeTypeCodes.removeAll { categoryTypeCodes.contains($0) }
-            } else {
-                state.draft.selectedCategoryCodes.insert(category.code)
-            }
+            guard state.draft.selectedCategoryCodes != [category.code] else { return .none }
+            state.draft.selectedCategoryCodes = [category.code]
+            state.draft.selectedPracticeTypeCodes.removeAll()
 
         case .practiceTypeTapped(let practiceTypeCode):
             guard case let .loaded(form) = state.loadState,
@@ -143,7 +151,7 @@ struct CourseRegistrationDetailsReducer: Reducer {
 
         case .backTapped:
             guard !state.isSubmitting else { return .none }
-            if state.draft.isDirty {
+            if state.isDirty {
                 state.isDiscardConfirmationPresented = true
             } else {
                 return finishBack(state: &state)
@@ -384,12 +392,6 @@ struct CourseRegistrationDetailsDraft: Equatable {
     var caution = ""
     var description = ""
 
-    var isDirty: Bool {
-        !selectedCategoryCodes.isEmpty
-            || !selectedPracticeTypeCodes.isEmpty
-            || !caution.isEmpty
-            || !description.isEmpty
-    }
 }
 
 struct CourseRegistrationAlertToastState: Equatable {

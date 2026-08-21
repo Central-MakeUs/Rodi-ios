@@ -5,7 +5,6 @@
 
 import ImageIO
 import SwiftUI
-import UIKit
 
 struct OnboardingAnalysisDialog: View {
     var body: some View {

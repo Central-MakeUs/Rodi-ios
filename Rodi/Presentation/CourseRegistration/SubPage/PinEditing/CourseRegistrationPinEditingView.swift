@@ -45,7 +45,7 @@ struct CourseRegistrationPinEditingView: View {
                     isLeadingEnabled: state.temporaryPlace != nil || canSelectCandidate,
                     leadingAction: { send(state.temporaryPlace == nil ? .selectionTapped : .retryTapped) },
                     trailingTitle: state.isSaving ? "저장 중..." : "완료",
-                    isTrailingEnabled: !state.isSaving,
+                    isTrailingEnabled: state.temporaryPlace != nil && !state.isSaving,
                     trailingAction: { send(.completionTapped(overlayPoints)) }
                 )
             }

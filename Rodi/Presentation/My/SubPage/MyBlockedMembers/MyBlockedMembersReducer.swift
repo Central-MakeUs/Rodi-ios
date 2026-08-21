@@ -208,6 +208,7 @@ private extension MyBlockedMembersReducer {
     func dismissSnackbar(_ message: String) -> Effect<Action> {
         .run { send in
             try? await Task.sleep(for: .seconds(3))
+            guard !Task.isCancelled else { return }
             await send(.snackbarDismissed(message))
         }
         .cancelTask(id: EffectID.snackbar)

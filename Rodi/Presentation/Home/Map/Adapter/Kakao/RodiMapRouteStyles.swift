@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import SwiftUI
 
 #if canImport(KakaoMapsSDK)
 import KakaoMapsSDK
@@ -27,9 +28,9 @@ extension RodiKakaoMapView {
 
         let lineStyle = PerLevelPolylineStyle(
             bodyColor: UIColor(red: 0.337, green: 0.251, blue: 1.0, alpha: 1.0),
-            bodyWidth: 16,
-            strokeColor: UIColor.white.withAlphaComponent(0.85),
-            strokeWidth: 6,
+            bodyWidth: 12,
+            strokeColor: UIColor(RodiColor.primary800),
+            strokeWidth: 2,
             level: 0
         )
         let style = PolylineStyle(styles: [lineStyle])
