@@ -8,8 +8,14 @@
 - 연습 측정 복귀 정책 reducer 병합과 위치 런타임·인증 재시도 분리를 완료했다. 실제 외부 길안내·백그라운드 수동 QA가 다음 작업이다.
 - App Switcher 강제 종료 직전 Live Activity 정리와 콜드 런치 고아 Activity 정리를 구현했다. iOS 16.1 이상 실기기 강제 종료 QA가 남아 있다.
 - Live Activity의 생명주기·상태 변환·갱신 정책·Debug 프리뷰·Widget UI 책임을 분리했다. 코드 기반 기술 블로그 작성과 실기기 UI·종료 흐름 QA가 다음 작업이다.
+- Notion의 Live Activity 기술 블로그 초안에서 Dynamic Island·갱신 정책·종료 정책·iOS 16.1 fallback 설명을 현재 코드 기준으로 퇴고했다. 사진 출처 표기와 다음 코스 판정 목차 작성이 남아 있다.
+- Notion 기술 블로그의 Core Location·Live Activity·코스 판정 설명과 마치며를 현재 구현 기준으로 정리했다. 실주행 검증 목차는 제외하고 임계값을 검증 전 초기 기준으로 명시했다.
 
 ## Recent Work
+- 기술 블로그에서 실주행 검증 목차와 결과표를 제거했다. 60m·150m·40%/5km·GPS 점프 기준은 오판을 줄이기 위한 초기값이며 정량적으로 검증한 최종값이 아님을 본문과 마치며에 명시했다.
+- 기술 블로그에서 사용하지 않는 `CLBackgroundActivitySession` 예시를 제거하고, Live Activity 정보 분리·표시 우선순위·갱신 및 종료 정책을 정리했다.
+- 코스 판정 글에 위치 정확도 60m·수신 시각 15초·polyline 반경 150m·이동 현실성 45m/s와 80m 허용치·완료 거리 40%/5km 상한의 의미를 코드와 함께 정리했다. 순서·방향 완주를 증명하지 않는 한계와 GPS 측정 완료·서버 인증 완료의 경계도 명시했다.
+- Live Activity 기술 블로그의 중복 예시와 인용문 서식을 정리하고, `approachProgress`의 내부 갱신 지표 역할, 위치 수신 중 15초 갱신 기준, 종료 후 30분 UI 유지 정책을 명확히 했다. 충족된 작성 체크리스트는 완료 처리하고 사진 출처 항목은 미완료로 유지했다.
 - Live Activity 책임 분리, 앱 종료 직전 best-effort 정리, 위치·Live Activity 설정, 포트폴리오 백로그를 책임별 커밋으로 분리했다.
 - 기술 블로그 작성 범위를 Core Location·Live Activity 종합 글, Live Activity 종료 실험 글, 실제 오류 중심 Swift 6 Migration 글의 세 편으로 확정했다. GPS 판정은 첫 글에 포함하고 GPS Replay·세션 복구는 독립 글 목록에서 제외했다.
 - `PracticeLiveActivityService`는 ActivityKit 생명주기만 조정하고, 세션 매핑과 15초·3% 갱신 정책은 별도 타입으로 분리했다. 비동기 update/end는 단일 작업 체인으로 직렬화했고 iOS 16.2 `ActivityContent` API와 iOS 16.1 fallback을 함께 유지했다.
