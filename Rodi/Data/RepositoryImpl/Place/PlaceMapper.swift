@@ -15,7 +15,8 @@ nonisolated struct PlaceMapper {
             currentLatitude: query.currentLatitude,
             currentLongitude: query.currentLongitude,
             size: query.size,
-            cursor: query.cursor
+            cursor: query.cursor,
+            practiceTypes: query.practiceTypes.map(\.rawValue)
         )
     }
 
@@ -25,7 +26,8 @@ nonisolated struct PlaceMapper {
             currentLatitude: query.currentLatitude,
             currentLongitude: query.currentLongitude,
             size: query.size,
-            cursor: query.cursor
+            cursor: query.cursor,
+            practiceTypes: query.practiceTypes.map(\.rawValue)
         )
     }
 

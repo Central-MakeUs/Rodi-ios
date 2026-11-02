@@ -118,6 +118,7 @@ private extension HomeReducer {
             state.presentation.isBottomTabBarVisible = visible
         case .searchEntryRequested(let origin):
             state.search = .init()
+            state.search.practiceTypes = state.bottomSheet.filter.appliedSelection.filterTags
             state.presentation.searchOrigin = origin
             state.presentation.isSearchPresented = true
         case .searchSelectionClearRequested:

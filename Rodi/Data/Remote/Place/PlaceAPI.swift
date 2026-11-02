@@ -86,6 +86,9 @@ enum PlaceAPI: TargetType {
             if let cursor = query.cursor, !cursor.isEmpty {
                 parameters["cursor"] = cursor
             }
+            if !query.practiceTypes.isEmpty {
+                parameters["practiceTypes"] = query.practiceTypes.joined(separator: ",")
+            }
             return parameters
         case .search(let query):
             var parameters: Parameters = [
@@ -96,6 +99,9 @@ enum PlaceAPI: TargetType {
             ]
             if let cursor = query.cursor, !cursor.isEmpty {
                 parameters["cursor"] = cursor
+            }
+            if !query.practiceTypes.isEmpty {
+                parameters["practiceTypes"] = query.practiceTypes.joined(separator: ",")
             }
             return parameters
         case .relatedSearch(let query):

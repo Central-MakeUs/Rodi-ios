@@ -110,19 +110,22 @@ struct PlaceListQuery: Equatable {
     let currentLongitude: Double
     let size: Int
     let cursor: String?
+    let practiceTypes: [PlacePracticeType]
 
     init(
         viewport: PlaceViewport,
         currentLatitude: Double,
         currentLongitude: Double,
         size: Int = 20,
-        cursor: String? = nil
+        cursor: String? = nil,
+        practiceTypes: [PlacePracticeType] = []
     ) {
         self.viewport = viewport
         self.currentLatitude = currentLatitude
         self.currentLongitude = currentLongitude
         self.size = size
         self.cursor = cursor
+        self.practiceTypes = practiceTypes
     }
 }
 
@@ -138,19 +141,22 @@ struct PlaceSearchQuery: Equatable {
     let currentLongitude: Double
     let size: Int
     let cursor: String?
+    let practiceTypes: [PlacePracticeType]
 
     init(
         keyword: String,
         currentLatitude: Double,
         currentLongitude: Double,
         size: Int = 20,
-        cursor: String? = nil
+        cursor: String? = nil,
+        practiceTypes: [PlacePracticeType] = []
     ) {
         self.keyword = keyword
         self.currentLatitude = currentLatitude
         self.currentLongitude = currentLongitude
         self.size = size
         self.cursor = cursor
+        self.practiceTypes = practiceTypes
     }
 }
 

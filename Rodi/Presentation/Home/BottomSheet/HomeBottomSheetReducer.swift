@@ -253,6 +253,7 @@ extension HomeBottomSheetReducer {
             if case .delegate(let delegate) = action {
                 return reduceRecommendDelegate(delegate, state: &state)
             }
+            state.recommendList.practiceTypes = state.filter.appliedSelection.filterTags
             return recommendListReducer.reduce(&state.recommendList, with: action).map(Action.recommendList)
 
         case .filter(let action):

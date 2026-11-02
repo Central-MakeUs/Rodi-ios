@@ -19,6 +19,9 @@ struct RecommendListBottomSheetReducer: Reducer {
         var latestViewportCenter: RodiCoordinate?
         var pendingInitialSearchOrigin: RodiCoordinate?
         var requestOrigin: RodiCoordinate?
+        var practiceTypes: [PlacePracticeType] = []
+        /// 다음 페이지는 현재 선택값이 아니라 첫 페이지 요청의 필터를 유지합니다.
+        var requestedPracticeTypes: [PlacePracticeType] = []
         var nextCursor: String?
         var hasNext = false
         var isInitialLoading = false
@@ -178,9 +181,7 @@ extension RecommendListBottomSheetReducer {
 
         case .reloadAfterFilter:
             guard let viewport = state.latestViewport,
-                  let origin = state.requestOrigin ?? state.latestViewportCenter,
-                  !state.isInitialLoading,
-                  !state.isNextPageLoading else { return .none }
+                  let origin = state.requestOrigin ?? state.latestViewportCenter else { return .none }
             return loadFirstPage(viewport: viewport, origin: origin, state: &state, isManualResearch: false)
 
         case .loadNextPage:
@@ -194,7 +195,7 @@ extension RecommendListBottomSheetReducer {
                   !cursor.isEmpty else { return .none }
             state.isNextPageLoading = true
             state.errorMessage = nil
-            return loadPageEffect(viewport: viewport, origin: origin, cursor: cursor, revision: state.requestRevision, isAppending: true, isManualResearch: false)
+            return loadPageEffect(viewport: viewport, origin: origin, cursor: cursor, practiceTypes: state.requestedPracticeTypes, revision: state.requestRevision, isAppending: true, isManualResearch: false)
 
         case .placeListLoadingCancellationRequested:
             return .cancel(id: BottomSheetEffectID.placeListLoading)
@@ -262,13 +263,14 @@ extension RecommendListBottomSheetReducer {
         state.requestOrigin = origin
         state.nextCursor = nil
         state.hasNext = false
-        return loadPageEffect(viewport: viewport, origin: origin, cursor: nil, revision: state.requestRevision, isAppending: false, isManualResearch: isManualResearch)
+        state.requestedPracticeTypes = state.practiceTypes
+        return loadPageEffect(viewport: viewport, origin: origin, cursor: nil, practiceTypes: state.requestedPracticeTypes, revision: state.requestRevision, isAppending: false, isManualResearch: isManualResearch)
     }
 
-    private func loadPageEffect(viewport: PlaceViewport, origin: RodiCoordinate, cursor: String?, revision: Int, isAppending: Bool, isManualResearch: Bool) -> Effect<Action> {
+    private func loadPageEffect(viewport: PlaceViewport, origin: RodiCoordinate, cursor: String?, practiceTypes: [PlacePracticeType], revision: Int, isAppending: Bool, isManualResearch: Bool) -> Effect<Action> {
         let repository = placeRepository
         let access: PlaceListAccess = hasActiveSession() ? .member : .public
-        let query = PlaceListQuery(viewport: viewport, currentLatitude: origin.latitude, currentLongitude: origin.longitude, size: 20, cursor: cursor)
+        let query = PlaceListQuery(viewport: viewport, currentLatitude: origin.latitude, currentLongitude: origin.longitude, size: 20, cursor: cursor, practiceTypes: practiceTypes)
         return .run { send in
             do {
                 if isManualResearch { try await Task.sleep(for: .milliseconds(350)) }

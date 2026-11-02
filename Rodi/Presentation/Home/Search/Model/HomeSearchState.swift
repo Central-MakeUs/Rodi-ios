@@ -46,6 +46,7 @@ struct HomeSearchResultsState {
 
 /// 검색 입력과 독립적인 최근 검색·결과 상태를 조립하는 Feature root 상태다.
 struct HomeSearchState {
+    var practiceTypes: [PlacePracticeType] = []
     var origin: RodiCoordinate = .southKoreaCenter
     var query = ""
     var recent = HomeRecentSearchState()
