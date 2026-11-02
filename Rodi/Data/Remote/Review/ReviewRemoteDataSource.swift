@@ -74,6 +74,14 @@ final class ReviewRemoteDataSource {
         )
     }
 
+    func fetchWritingForm(placeID: Int) async throws(NetworkError) -> ReviewWritingFormResponseDTO {
+        try await ServerResponseHandler.payload(
+            ReviewAPI.writingForm(placeID: placeID),
+            using: networkManager,
+            as: ReviewWritingFormResponseDTO.self
+        )
+    }
+
     func report(
         reviewID: Int,
         request: ReviewReportRequestDTO

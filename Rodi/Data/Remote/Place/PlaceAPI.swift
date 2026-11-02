@@ -8,6 +8,7 @@ import Foundation
 
 enum PlaceAPI: TargetType {
     case coordinates
+    case clusters(PlaceClusterQueryDTO)
     
     case list(PlaceListQueryDTO)
     
@@ -27,7 +28,7 @@ enum PlaceAPI: TargetType {
 
     var method: HTTPMethod {
         switch self {
-        case .coordinates, .list, .authenticatedList, .search, .relatedSearch, .bookmarks, .detail:
+        case .coordinates, .clusters, .list, .authenticatedList, .search, .relatedSearch, .bookmarks, .detail:
             .get
         case .bookmark:
             .post
@@ -40,6 +41,8 @@ enum PlaceAPI: TargetType {
         switch self {
         case .coordinates:
             "/api/v1/places/coordinates"
+        case .clusters:
+            "/api/v1/places/clusters"
         case .list, .authenticatedList:
             "/api/v1/places"
         case .search:
@@ -59,6 +62,17 @@ enum PlaceAPI: TargetType {
 
     var parameters: Parameters? {
         switch self {
+        case .clusters(let query):
+            var parameters: Parameters = [
+                "swLat": query.swLat,
+                "swLng": query.swLng,
+                "neLat": query.neLat,
+                "neLng": query.neLng
+            ]
+            if let types = query.practiceTypes, !types.isEmpty {
+                parameters["practiceTypes"] = types.joined(separator: ",")
+            }
+            return parameters
         case .list(let query), .authenticatedList(let query):
             var parameters: Parameters = [
                 "swLat": query.southWestLatitude,
@@ -105,7 +119,7 @@ enum PlaceAPI: TargetType {
 
     var encodingType: EncodingType {
         switch self {
-        case .list, .authenticatedList, .search, .relatedSearch, .bookmarks:
+        case .clusters, .list, .authenticatedList, .search, .relatedSearch, .bookmarks:
             .url
         default:
             .json
@@ -116,7 +130,7 @@ enum PlaceAPI: TargetType {
         switch self {
         case .authenticatedList, .search, .relatedSearch, .bookmarks, .detail, .bookmark, .unbookmark:
             true
-        case .coordinates, .list:
+        case .coordinates, .clusters, .list:
             false
         }
     }
