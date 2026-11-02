@@ -5,277 +5,57 @@ description: Use this skill when choosing, running, or interpreting iOS performa
 
 # iOS Performance Profiling
 
-## Purpose
-
-Use this skill to choose the right profiling workflow, gather evidence, interpret performance signals, and recommend validation before claiming that an optimization worked.
-
-This skill is a profiling router and evidence workflow. It should not replace more specific skills for launch performance, SwiftUI performance, Swift Concurrency performance, perceived performance, or Swift runtime costs.
-
-## When to use this skill
-
-Use this skill when the task involves:
-
-- choosing an Instruments template or profiling workflow;
-- interpreting traces, screenshots, XCTest metrics, MetricKit payloads, Organizer data, logs, or signposts;
-- diagnosing hangs, animation hitches, CPU spikes, memory growth, leaks, disk I/O, network latency, power usage, or production regressions;
-- designing a before/after measurement plan;
-- adding signposts or performance tests;
-- checking whether a proposed optimization is supported by evidence.
-
-## When not to use this skill
-
-Do not use this skill as the primary skill for:
-
-- app startup architecture or launch-critical work unless the task asks how to profile, measure, or verify launch performance;
-- SwiftUI invalidation, identity, layout, or scrolling fixes unless the task asks which profiling evidence to collect;
-- Swift Concurrency design or actor isolation unless the task asks how to profile task behavior, actor hopping, or executor-related latency;
-- perceived performance, loading states, skeletons, optimistic UI, or feedback design unless the task asks how to validate perceived latency;
-- Swift runtime, ARC, allocation, existential, generic, dispatch, or linking costs unless the task asks how to measure them.
-
-Prefer the more specific skill when the user already knows the domain and needs a fix rather than a measurement workflow.
-
-## Core principle
-
-Evidence before optimization.
-
-Use this loop:
-
-```text
-Symptom -> reproducible scenario -> correct tool -> trace or metric -> hypothesis -> focused fix -> re-measure
-```
-
-Do not claim that a change improved performance unless there is a validation path. If evidence is missing, say what is not proven yet and what should be measured next.
-
-## Capability check
-
-Before recommending or running a real profiling workflow, check what is actually available.
-
-Ask or infer:
-
-- Is there a buildable Xcode project, workspace, scheme, and target?
-- Is profiling possible on a real device, or only in Simulator?
-- Is a Release or release-like configuration available?
-- Is the scenario reproducible with stable data and stable app state?
-- Are Instruments traces, screenshots, MetricKit payloads, Organizer screenshots, logs, or XCTest results available?
-- Can traces or reports be shared as artifacts?
-- Is the task asking for a profiling plan, a code review, or interpretation of existing evidence?
-
-If tooling or artifacts are unavailable, provide a measurement plan instead of pretending to have profiled the app.
-
-## Measurement baseline
-
-Prefer profiling with:
-
-- real device over Simulator for UI, launch, power, memory pressure, thermal behavior, and production-like responsiveness;
-- Release or release-like builds over Debug builds;
-- repeated runs over a single measurement;
-- stable input data and deterministic scenarios;
-- device and OS information included in the report;
-- signposts around app-specific operations when system-level traces are too broad.
-
-Use Simulator only when the question is about relative local investigation and the limitation is clearly stated.
-
-## Tool selection
-
-Choose the tool from the symptom, not from a favorite workflow.
-
-| Symptom or question | Primary tool | Secondary signal |
-|---|---|---|
-| Cold launch, warm launch, first frame, first interaction | App Launch, Time Profiler, XCTest launch metrics | MetricKit, Organizer, signposts |
-| Main-thread hang or freeze | Hangs, Time Profiler | Main Thread Checker, signposts |
-| Animation hitch, scrolling hitch, dropped frames | Animation Hitches, Core Animation, Time Profiler | SwiftUI Instrument, signposts |
-| SwiftUI repeated updates or broad invalidation | SwiftUI Instrument | Time Profiler, signposts |
-| CPU spike or slow operation | Time Profiler | Counters, signposts, XCTest metrics |
-| Memory growth, high allocations, churn | Allocations, VM Tracker | Memory Graph, Leaks, XCTest memory metric |
-| Retain cycle or logical leak | Memory Graph Debugger | Allocations generation analysis |
-| Disk reads/writes, persistence stalls, excessive writes | File Activity, System Trace | MetricKit disk write diagnostics |
-| Slow networking or duplicated requests | Network instrument, URLSession metrics | Signposts, server timing |
-| Battery drain, thermal pressure, wakeups | Energy Log, Power Profiler | MetricKit, Organizer |
-| Production-only regression | MetricKit, Organizer | Local reproduction with Instruments |
-| Regression protection | XCTest metrics | CI history, MetricKit release comparison |
-
-When the signal is app-specific and not visible enough in system instruments, add `os_signpost` or `OSSignposter` around the operation.
-
-## Cross-skill routing
-
-Use this skill to select and validate the profiling path. Route deeper domain reasoning to narrower skills when needed:
-
-- Use `ios-launch-performance` when the evidence points to pre-main work, dyld, static initializers, app initialization, root scene construction, first frame, first interaction, SDK startup, database warmup, or launch-critical dependency chains.
-- Use `swiftui-performance` when the evidence points to broad state reads, unnecessary invalidation, unstable identity, expensive layout, row complexity, scrolling behavior, or repeated body work.
-- Use `swift-concurrency-performance` when the evidence points to task explosions, actor hopping, MainActor bottlenecks, missing cancellation, AsyncSequence pressure, executor behavior, or async work causing UI latency.
-- Use `ios-perceived-performance` when the evidence shows the app is technically doing work, but the user-visible problem is lack of feedback, poor loading states, late progressive rendering, or perceived latency.
-- Use `swift-runtime-performance` when the evidence points to allocation churn, ARC traffic, existentials, generics, dynamic dispatch, copy-on-write, bridging, linking, or runtime-level costs.
-
-Do not duplicate the deep guidance from those skills here.
-
-## Profiling workflow
-
-1. Identify the user-visible symptom.
-2. Define the exact scenario that reproduces it.
-3. Choose the primary profiling tool from the symptom.
-4. Record the device, OS, build configuration, data set, and run count.
-5. Capture the strongest signal: stack, frame hitch, allocation growth, retain path, network waterfall, disk write, wakeup, or production metric.
-6. Separate what the data proves from what it only suggests.
-7. Form one or two ranked hypotheses.
-8. Recommend the smallest focused fix or the next inspection step.
-9. Re-measure with the same scenario.
-10. Suggest a regression guard when the issue is important enough.
-
-## Trace interpretation rules
-
-When reading traces, reports, or screenshots:
-
-- Prefer the strongest signal over a broad list of possible causes.
-- Distinguish local traces from production metrics.
-- Distinguish CPU-bound, blocked, waiting, I/O-bound, memory-pressure, and network-bound symptoms.
-- Check whether the cost is on the user-visible critical path.
-- Treat averages carefully; p95 and p99 often matter more for hangs, launch, and production latency.
-- Do not treat one clean run as proof that the issue is fixed.
-- Do not infer a retain cycle from memory growth alone; inspect ownership paths.
-- Do not infer CPU cost from wall-clock delay alone; the app may be blocked on I/O, locks, network, or the main actor.
-
-## Fix selection rules
-
-Recommend fixes only after connecting them to evidence.
-
-Prefer:
-
-- deferring or removing critical-path work;
-- narrowing repeated work;
-- reducing duplicate requests or duplicate computation;
-- fixing ownership chains instead of adding weak references everywhere;
-- batching disk writes or reducing write amplification;
-- adding cancellation for invisible or obsolete work;
-- using signposts and tests to keep the issue observable.
-
-Avoid:
-
-- broad rewrites without trace evidence;
-- moving work to a background queue without checking whether the UI still awaits it;
-- parallelizing work before understanding dependencies;
-- optimizing code that is not on the critical path;
-- claiming a tool proves something it does not measure.
-
-## Gotchas
-
-- Instruments explains local causes; MetricKit and Organizer identify production signals. Use both when possible.
-- XCTest performance tests are better for regression protection than deep diagnosis.
-- Debug builds can distort CPU, allocation, SwiftUI, and concurrency behavior.
-- Simulator results can mislead for launch, scrolling, memory pressure, power, and thermal behavior.
-- A hang can be a busy main thread, lock contention, synchronous I/O, actor waiting, or a dependency cycle. Do not assume CPU saturation.
-- Memory Graph is usually better than Leaks for retain cycles where objects are still referenced.
-- Allocation spikes are not automatically leaks. Look for growth across generations or retained object graphs.
-- Network waterfalls can explain slow screens even when local CPU traces look clean.
-- Power regressions often come from repeated small work: timers, polling, wakeups, background tasks, sensors, location, or offscreen animations.
-- Do not call an optimization successful without a repeatable before/after measurement.
-
-## References
-
-Read these only when relevant:
-
-- `references/tool-selection.md` — read when the task needs a deeper mapping from symptoms to Instruments templates, MetricKit, XCTest metrics, signposts, or production diagnostics.
-- `references/time-profiler-and-hangs.md` — read when the task involves Time Profiler, Hangs, main-thread freezes, blocked threads, lock contention, synchronous I/O, CPU spikes, or stack interpretation.
-- `references/animation-hitches-and-swiftui.md` — read when the task involves animation hitches, scrolling hitches, dropped frames, Core Animation, SwiftUI Instrument, repeated view updates, frame budget, or UI responsiveness traces.
-- `references/memory-leaks-and-allocations.md` — read when the task involves Allocations, Leaks, Memory Graph Debugger, VM Tracker, memory growth, retain cycles, caches, decoded images, or allocation churn.
-- `references/network-disk-power.md` — read when the task involves slow networking, duplicated requests, caching behavior, disk reads/writes, persistence stalls, excessive logging, background work, wakeups, battery drain, or thermal pressure.
-- `references/xctest-metrickit-organizer.md` — read when the task involves XCTest performance tests, `XCTApplicationLaunchMetric`, CI regression guards, MetricKit payloads, Xcode Organizer, production regressions, device cohorts, p95, or p99.
-- `references/signposts-and-scenarios.md` — read when the task needs a reproducible scenario, signpost instrumentation, signpost naming, custom trace regions, before/after comparison, or a profiling report template.
-
-## Output expectations
-
-For most profiling tasks, respond with:
-
-```text
-## Symptom
-
-...
-
-## Profiling path
-
-Primary:
-Secondary:
-Why this tool:
-
-## What to inspect
-
-...
-
-## Likely hypotheses
-
-1. ...
-2. ...
-
-## Suggested fixes or next steps
-
-...
-
-## Verification
-
-...
-```
-
-For code reviews, respond with:
-
-```text
-## Summary
-
-...
-
-## Findings
-
-### 1. Finding title
-
-Risk:
-Why it matters:
-Suggested change:
-How to verify:
-
-## Profiling checklist
-
-...
-```
-
-For traces, reports, logs, MetricKit payloads, Organizer screenshots, or Instruments screenshots, respond with:
-
-```text
-## What the data shows
-
-...
-
-## Strongest signal
-
-...
-
-## Likely cause
-
-...
-
-## What is not proven yet
-
-...
-
-## Next step
-
-...
-
-## Verification
-
-...
-```
-
-## Final review checklist
-
-Before finalizing a performance answer, check:
-
-- Did you identify the user-visible symptom?
-- Did you choose the tool based on the symptom?
-- Did you state what evidence is available and what is missing?
-- Did you separate local traces from production metrics?
-- Did you account for device, OS, build configuration, data set, and run count?
-- Did you avoid claiming certainty without evidence?
-- Did you recommend real-device Release profiling when relevant?
-- Did you suggest signposts for app-specific operations when useful?
-- Did you propose one focused fix or next inspection step at a time?
-- Did you include a re-measurement step?
-- Did you suggest XCTest, MetricKit, or Organizer for regression protection when appropriate?
-- Did you avoid broad rewrites unless evidence supports them?
+## 목적과 적용 범위
+
+이 Skill은 iOS 성능 증상에 맞는 측정 도구를 선택하고 trace·지표를 해석한다.
+
+- MUST 측정 계획, 도구 선택, 기존 trace 해석 또는 전후 검증이 필요한 요청에 적용한다.
+- MUST NOT 구체적 원인이 알려진 launch·SwiftUI·동시성·체감 속도·runtime 수정에서 기본으로 함께 읽는다. 추가 측정 문제가 있을 때만 적용한다.
+- MUST [AGENTS.md](../../../AGENTS.md)의 변경 권한·지원 OS·보호 영역을 유지한다. 원본 라이선스는 [LICENSE](LICENSE)에 보존한다.
+
+## 측정과 해석 순서
+
+1. MUST 계획·코드 리뷰·실제 측정·기존 증거 해석 중 요청을 구분하고, 사용자 증상과 재현 경로를 정한다.
+2. MUST 실제 project·scheme·build 설정, 연결 기기·OS, 사용할 수 있는 도구·trace·로그를 확인한다. 도구가 없으면 측정 계획과 미확인 사항을 제시한다.
+3. MUST 아래 표에서 가장 직접적인 도구를 고르고 기기·OS·build·데이터·계정/네트워크·반복 횟수를 기록한다.
+4. MUST stack, hitch, allocation·retained graph, I/O, waterfall, wakeup 또는 운영 분포 중 가장 강한 신호를 먼저 해석한다.
+5. MUST 증명된 사실과 가설을 분리하고, 우선 가설 한두 개에 연결되는 최소 변경 또는 다음 조사를 제시한다.
+6. MUST 개선을 주장하려면 같은 시나리오의 전후 재측정 근거를 제시한다. SHOULD 중요 경로에는 XCTest·CI·운영 지표 중 적합한 회귀 감시를 둔다.
+
+## 도구·참고자료 선택
+
+- MUST 현재 시나리오에서 실제 사용할 수 있는 도구를 확인한다. 아래 이름만 보고 설치·OS 지원을 가정하지 않는다.
+- MUST 참고자료 전체를 읽지 않고 필요한 행만 선택한다. 도구 선택 자체가 불명확할 때만 [tool-selection.md](references/tool-selection.md)를 추가한다.
+
+| 증상·목적 | 우선 도구·신호 | 상세 참고자료 |
+| --- | --- | --- |
+| 실행·첫 frame·첫 상호작용 | App Launch, Time Profiler, XCTest launch metric | [tool-selection.md](references/tool-selection.md) |
+| hang·CPU·느린 연산 | Hangs, Time Profiler; 필요 시 Counters·Main Thread Checker | [time-profiler-and-hangs.md](references/time-profiler-and-hangs.md) |
+| animation·scroll hitch, 반복 SwiftUI 갱신 | Animation Hitches·Core Animation·SwiftUI Instrument·Time Profiler | [animation-hitches-and-swiftui.md](references/animation-hitches-and-swiftui.md) |
+| 메모리 증가·allocation churn | Allocations·VM Tracker; 소유 관계는 Memory Graph·Leaks | [memory-leaks-and-allocations.md](references/memory-leaks-and-allocations.md) |
+| disk 지연·쓰기 증폭 | File Activity·System Trace·disk 진단 지표 | [network-disk-power.md](references/network-disk-power.md) |
+| 느린 네트워크·중복 요청 | Network instrument·URLSession metrics·서버 timing | [network-disk-power.md](references/network-disk-power.md) |
+| 배터리·발열·wakeups | Energy Log·Power Profiler·운영 지표 | [network-disk-power.md](references/network-disk-power.md) |
+| 운영에서만 재현·회귀 감시·p95/p99 | MetricKit·Organizer·XCTest·CI 이력 | [xctest-metrickit-organizer.md](references/xctest-metrickit-organizer.md) |
+| 시스템 trace에서 구분 안 되는 앱 고유 작업 | `os_signpost`·`OSSignposter`, 안정적인 재현 시나리오 | [signposts-and-scenarios.md](references/signposts-and-scenarios.md) |
+
+## 오판 방지
+
+- MUST CPU 실행, lock·actor 대기, I/O·network 대기, memory pressure를 구분한다. wall-clock 지연만으로 CPU 병목을 단정하지 않는다.
+- MUST 비용이 사용자 경로를 실제로 지연하는지 확인한다. background로 옮겨도 UI가 그 결과를 기다리면 지연이 남을 수 있다.
+- MUST 메모리 증가·allocation spike만으로 retain cycle을 단정하지 않고 generation·참조 경로를 확인한다. `weak` 일괄 추가를 해결책으로 삼지 않는다.
+- MUST 로컬 trace의 원인 분석, 운영 MetricKit/Organizer의 분포, XCTest 회귀 측정의 역할을 구분한다. 평균만으로 긴 지연을 숨기지 않고 필요한 percentile과 편차를 확인한다.
+- MUST NOT CPU trace가 깨끗하다는 이유로 network 지연을 배제한다. 전력 문제는 timer·polling·sensor·위치·background·offscreen 반복 작업도 확인한다.
+- MUST 변경은 관찰된 근거에 연결한다. 반복 작업·중복 요청 축소, 소유권·취소, disk batching 등을 검토하되 근거 없는 전체 재설계·의존성 미확인 병렬화는 하지 않는다.
+
+## 관련 Skill로 확장하는 조건
+
+- SHOULD 원인이 드러난 뒤 깊은 구현 판단이 필요할 때만 해당 Skill을 추가한다: 실행 필수 의존 경로는 `ios-launch-performance`, invalidation·identity·layout은 `swiftui-performance`, actor·Task·취소는 `swift-concurrency-performance`, 피드백·loading 경험은 `ios-perceived-performance`, ARC·boxing·dispatch·COW는 `swift-runtime-performance`.
+- MUST NOT 관련 Skill을 모두 읽거나 전문 규칙을 이 문서에 복제한다.
+
+## 검증과 보고
+
+- SHOULD 실기기·Release에 가까운 build·안정적인 데이터·반복 측정을 우선한다. Simulator는 상대적 로컬 조사에 사용할 수 있으나 기기 전력·발열·메모리 압박·출시 성능의 증거로 일반화하지 않는다.
+- MUST NOT Debug 결과나 깨끗한 한 번의 실행을 개선 완료로 판단한다.
+- MUST 보고에 증상·측정 조건, 선택한 도구와 이유, 실제 관찰과 가설, 다음 변경/조사, 재측정 결과·미검증을 포함한다. 코드 리뷰는 위험과 검증 방법을, trace 해석은 가장 강한 신호와 증거의 한계를 중심으로 쓴다.
+- MUST NOT 도구·trace가 없는데 프로파일링을 수행했다고 하거나, 측정하지 않은 성능 향상을 보고한다.
