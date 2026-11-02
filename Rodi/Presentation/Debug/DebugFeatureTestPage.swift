@@ -12,6 +12,7 @@ struct DebugFeatureTestPage: View {
     @State private var isMyCoursesPreviewPresented = false
     @State private var isHardWithdrawalConfirmationPresented = false
     @State private var isMandatoryUpdateTestPresented = false
+    @State private var isNicknamePreviewPresented = false
     @State private var isHardWithdrawalSubmitting = false
     @State private var hardWithdrawalErrorMessage: String?
 
@@ -66,6 +67,9 @@ struct DebugFeatureTestPage: View {
                 testButton(title: "강제 업데이트 알림") {
                     isMandatoryUpdateTestPresented = true
                 }
+                testButton(title: "온보딩 닉네임") {
+                    isNicknamePreviewPresented = true
+                }
             }
             .padding(.horizontal, 20)
             .padding(.top, 24)
@@ -94,6 +98,9 @@ struct DebugFeatureTestPage: View {
         }
         .fullScreenCover(isPresented: $isMyCoursesPreviewPresented) {
             DebugMyCoursesPreviewPage()
+        }
+        .fullScreenCover(isPresented: $isNicknamePreviewPresented) {
+            DebugNicknamePreviewPage()
         }
         .overlay {
             ZStack {
@@ -134,6 +141,7 @@ struct DebugFeatureTestPage: View {
                 .frame(height: 56)
                 .background(RodiColor.gray100)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
