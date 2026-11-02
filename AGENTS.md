@@ -74,6 +74,8 @@ xcodebuild -project Rodi.xcodeproj -scheme "Rodi Dev" -configuration Debug -dest
 - MUST 새 프로젝트 문서를 `Docs/` 아래에 한국어로 작성한다. 개인 작업 연속성 기록만 `Handoff/`에 둔다.
 - MUST 규범 문서에서만 `MUST`, `MUST NOT`, `SHOULD`를 사용한다. 배경·예시·과거 기록에는 사용하지 않는다.
 - SHOULD 반복되는 판단을 줄이는 규칙만 가장 좁은 권위 문서에 추가한다.
+- MUST 실행 규칙을 수정한 뒤 관련 지침을 다시 읽고, 이전 대화에 주입된 규칙과 차이가 있으면 현재 요청·적용 가능한 지침을 대조한다. 파일 수정만으로 실행 환경의 지침까지 갱신됐다고 가정하지 않는다.
+- SHOULD 규칙 개편의 실제 효과는 새 작업의 대표 요청으로 확인한다. 현재 작업의 정적 대조를 독립적인 실행 검증으로 보고하지 않는다.
 - MUST NOT 한 번의 선호·사례를 새 skill·문서·전역 규칙으로 일반화한다.
 - MUST 후속 작업자가 이어받아야 할 상태가 바뀐 경우에만 자신의 `Handoff/{GitOwnerName}_HandOff.md`를 갱신한다.
 - MUST 과거 상세 기록은 `Handoff/archive/`로 옮기고, Handoff는 현재 기준 브랜치·커밋·다음 작업·검증 결과만 유지한다.

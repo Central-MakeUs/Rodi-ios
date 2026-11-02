@@ -86,6 +86,20 @@ Resources <──────── App and feature rendering
 - MUST NOT View `body`나 View-local `Task`에 lifecycle-bound I/O와 business decision을 숨긴다.
 - MUST NOT 파일 길이만 줄이기 위한 폴더·Service·child Reducer를 만든다.
 
+### 서버 연결 전 UI 구현
+
+- MUST 실제 제품 화면에서 기존 Domain Entity와 기능 계약을 먼저 확인하고, 새 Entity에는 확정된 제품 개념만 표현한다.
+- MUST NOT 미확정 서버 응답을 추측해 Entity, DTO 또는 endpoint를 미리 만든다.
+- SHOULD 단순 화면에는 mock Entity를 직접 주입하고, 조회·로딩·실패·재시도 상태가 필요하면 기존 Repository 계약의 mock 구현을 주입한다.
+- MUST 날짜 표시, 상대 시간, badge 색상, image 이름 같은 표시 변환을 Presentation에서 처리한다.
+- MUST Entity와 화면 모델 사이에 실제 변환 책임이 있을 때만 Presentation Mapper를 둔다.
+- MUST NOT 변환할 값이 없는데 형식적으로 Mapper를 추가한다.
+- MUST 실제 API 연결 시 Data의 DTO→Entity Mapper와 Repository 구현을 연결하고, 서버 연결 여부와 무관한 화면 계약을 유지한다.
+- MUST 임시 디자인 실험에는 Presentation 표시 모델을 사용할 수 있으며, 실험만을 위해 제품 Domain Entity를 추가하지 않는다.
+- MUST 서버 연결 요청이 없는 구현 결과에 mock data 사용 여부를 명시하고, 이미 연결된 API를 임의로 mock으로 교체하지 않는다.
+
+기본 데이터 흐름은 `mock Entity → 필요한 표시 변환 → 화면`이다. 서버가 연결되면 앞단에 `DTO → Data Mapper → Entity`가 추가된다. Domain은 서버 표현과 독립적인 제품 계약이며, 제품 요구가 바뀌면 함께 변경될 수 있다.
+
 ### Resources
 
 - MUST asset catalog, font, plist와 localization을 실제 target membership과 함께 관리한다.

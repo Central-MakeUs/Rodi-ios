@@ -49,61 +49,26 @@ Rodi는 운전 연습이 막막한 초보 운전자에게 주변 연습 코스�
 
 <br/>
 
-# 폴더 구조
+# 개발 구조
 
-```bash
-|-- Rodi
-    |-- App                         # 앱 진입점, RootView·RootReducer·RootRoute, 의존성 조합
-    |
-    |-- Core                        # 공통 인프라 및 기반 코드
-    |   |-- Analytics               # Firebase Analytics 이벤트 경계
-    |   |-- Architecture            # MVICore
-    |   |-- Components              # 공통 UI 컴포넌트
-    |   |-- Coordinator             # typed NavigationStack 경로 관리
-    |   |-- Extension               # Swift / SwiftUI 공통 Extension
-    |   |-- Network                 # 네트워크 매니저, 인터셉터, Keychain 토큰 저장
-    |   |-- Service                 # Logger, 네트워크·앱 설정 등 공통 서비스
-    |
-    |-- Data                        # 외부/로컬 데이터 구현 레이어
-    |   |-- Local                   # UserDefaults 기반 온보딩 초안, 최근 로그인 제공자 저장
-    |   |-- Remote                  # Auth, Course, Member, Place, Practice, RecentSearch, Review 서버 API 연동 구현
-    |
-    |-- Domain                      # 앱 핵심 도메인 계약 및 모델
-    |   |-- Auth, Member            # 인증, 회원 프로필 및 온보딩 도메인
-    |   |-- Place, Practice, Review # 장소·연습기록·후기 도메인
-    |   |-- Course                  # 사용자 코스 등록·관리 도메인
-    |
-    |-- Presentation                # 화면 및 사용자 인터랙션 레이어
-    |   |-- Home                    # 지도, BottomSheet, Search, 장소 상세
-    |   |-- CourseRegistration      # 사용자 코스 등록, 장소 선택, 핀 수정
-    |   |-- DrivePractice           # 위치 기반 연습 측정과 Live Activity
-    |   |-- Review                  # 후기 작성·수정, 미방문 사유
-    |   |-- Login                   # 소셜 로그인, 둘러보기, 탈퇴 계정 복구
-    |   |-- Onboarding              # 약관, 프로필, 권한 단계
-    |   |-- MainTab                 # 탭 상태와 Feature 간 이동 intent
-    |   |-- My                      # 프로필, 연습기록, 내 게시글, 저장·차단 목록
-    |
-    |-- Resources                   # 앱 리소스
-        |-- Assets.xcassets         # 이미지, 아이콘 에셋
-        |-- Fonts                   # Pretendard 폰트
-        |-- PrivacyInfo.xcprivacy   # 앱 개인정보 매니페스트
+```text
+Rodi/
+  App/           # 앱 시작·의존성 조립
+  Core/          # 공통 기술 기반
+  Data/          # 외부·로컬 데이터 구현
+  Domain/        # 제품 모델·기능 계약
+  Presentation/  # 화면·상태·사용자 상호작용
+  Resources/     # 이미지·폰트·실행 리소스
+RodiTests/       # XCTest
 ```
 
-# 아키텍처
+SwiftUI와 MVI를 기반으로 화면 상태를 관리하며, UIKit 기반 지도 SDK는 Adapter 경계에서 연결합니다. 세부 폴더·상태 소유권·API·저장 정책은 아래 문서와 현재 코드에서 확인합니다.
 
-Rodi는 SwiftUI를 기반으로 하되, 지도 SDK가 UIKit 중심이라는 점을 분리해 다룹니다.
-
-- `RootReducer`와 `RootRoute`는 세션·온보딩·메인 탭의 최상위 전환과 로그인 필요 화면을 관리합니다.
-- `MainTabReducer`는 탭 선택과 Feature 간 intent만 소유하며 Home/My 화면은 탭 전환 뒤에도 유지됩니다.
-- Home은 Map, BottomSheet, Search 영역을 합성하며, 지도 SDK adapter와 화면 상태·API Effect의 책임을 분리합니다.
-- Onboarding은 `NavigationStack` 기반 RouterView 위에서 Login, Terms, Profile, Permission Feature가 각자 입력·검증·비동기 처리를 담당합니다.
-- `AppDependencies`에서 Repository를 한 번 만들고 명시적으로 주입해, View나 Reducer가 전역 container를 직접 참조하지 않습니다.
-- Home/My 탭은 숨겨져도 유지하며, 지도 좌표 요청은 취소와 revision으로 늦은 응답이 최신 상태를 덮지 못하게 합니다.
-- access/refresh token은 하나의 Keychain 세션 레코드로 원자적으로 저장하고 기존 분리 저장값은 첫 읽기 때 이전합니다.
+- [아키텍처와 책임 경계](Docs/Architecture/ARCHITECTURE.md)
+- [UI·Figma 구현](Docs/Guides/UI_FIGMA.md)
+- [API·Swagger 연결](Docs/API/API_SWAGGER.md)
+- [배포·개발 환경 설정](Docs/Release/RELEASE.md)
 
 # 개발 환경
 
-- `Rodi Dev` / Debug: `com.dororong.rodi.dev`, 내부 개발·디버깅·TestFlight 검증
-- `Rodi` / Release: `com.dororong.rodi`, 운영 배포·App Store 제출
-- 환경별 Firebase, Clarity, 앱 아이콘, 표시명, 버전 값은 `Config/Dev.xcconfig`, `Config/Prod.xcconfig`에서 관리합니다.
-- 실제 키와 Firebase plist는 local config 및 Git ignore로 관리합니다.
+`Rodi Dev` / Debug는 개발·내부 검증용, `Rodi` / Release는 운영 배포용입니다. 환경별 실제 설정은 `Config/Dev.xcconfig`·`Config/Prod.xcconfig`, 빌드·업로드 명령은 `fastlane/Fastfile`에서 확인합니다. 실제 키와 Firebase plist는 local config 및 Git ignore로 관리합니다.
