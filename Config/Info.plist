@@ -1,116 +1,107 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
+<dict>
+	<key>APP_STORE_APP_ID</key>
+	<string>$(APP_STORE_APP_ID)</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>ko</string>
+	<key>CFBundleDisplayName</key>
+	<string>$(PRODUCT_DISPLAY_NAME)</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>kakao$(KAKAO_NATIVE_APP_KEY)</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>rodi</string>
+			</array>
+		</dict>
+	</array>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>CLARITY_ENABLED</key>
+	<string>$(CLARITY_ENABLED)</string>
+	<key>CLARITY_LOG_LEVEL</key>
+	<string>$(CLARITY_LOG_LEVEL)</string>
+	<key>CLARITY_PROJECT_ID</key>
+	<string>$(CLARITY_PROJECT_ID)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>KAKAO_NATIVE_APP_KEY</key>
+	<string>$(KAKAO_NATIVE_APP_KEY)</string>
+	<key>KAKAO_REST_API_KEY</key>
+	<string>$(KAKAO_REST_API_KEY)</string>
+	<key>LSApplicationCategoryType</key>
+	<string></string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>kakaomap</string>
+		<string>kakaonavi-sdk</string>
+		<string>kakaokompassauth</string>
+		<string>kakaolink</string>
+	</array>
+	<key>NSLocationTemporaryUsageDescriptionDictionary</key>
 	<dict>
-		<key>APP_STORE_APP_ID</key>
-		<string>$(APP_STORE_APP_ID)</string>
-		<key>CFBundleDevelopmentRegion</key>
-		<string>ko</string>
-		<key>CFBundleDisplayName</key>
-		<string>$(PRODUCT_DISPLAY_NAME)</string>
-		<key>CFBundleExecutable</key>
-		<string>$(EXECUTABLE_NAME)</string>
-		<key>CFBundleIdentifier</key>
-		<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
-		<key>CFBundleInfoDictionaryVersion</key>
-		<string>6.0</string>
-		<key>CFBundleName</key>
-		<string>$(PRODUCT_NAME)</string>
-		<key>CFBundlePackageType</key>
-		<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
-		<key>CFBundleShortVersionString</key>
-		<string>$(MARKETING_VERSION)</string>
-		<key>CFBundleURLTypes</key>
-		<array>
-			<dict>
-				<key>CFBundleTypeRole</key>
-				<string>Editor</string>
-				<key>CFBundleURLSchemes</key>
-				<array>
-					<string>kakao$(KAKAO_NATIVE_APP_KEY)</string>
-				</array>
-			</dict>
-			<dict>
-				<key>CFBundleTypeRole</key>
-				<string>Editor</string>
-				<key>CFBundleURLSchemes</key>
-				<array>
-					<string>rodi</string>
-				</array>
-			</dict>
-		</array>
-		<key>CFBundleVersion</key>
-		<string>$(CURRENT_PROJECT_VERSION)</string>
-		<key>CLARITY_ENABLED</key>
-		<string>$(CLARITY_ENABLED)</string>
-		<key>CLARITY_LOG_LEVEL</key>
-		<string>$(CLARITY_LOG_LEVEL)</string>
-		<key>CLARITY_PROJECT_ID</key>
-		<string>$(CLARITY_PROJECT_ID)</string>
-		<key>ITSAppUsesNonExemptEncryption</key>
-		<false />
-		<key>KAKAO_NATIVE_APP_KEY</key>
-		<string>$(KAKAO_NATIVE_APP_KEY)</string>
-		<key>KAKAO_REST_API_KEY</key>
-		<string>$(KAKAO_REST_API_KEY)</string>
-		<key>LSApplicationQueriesSchemes</key>
-		<array>
-			<string>kakaomap</string>
-			<string>kakaonavi-sdk</string>
-			<string>kakaokompassauth</string>
-			<string>kakaolink</string>
-		</array>
-
-		<!-- 위치 정보 사용 목적 -->
-		<key>NSLocationWhenInUseUsageDescription</key>
-		<string>현재 위치 주변의 운전 연습 장소를 보여주고, 실시간 주행 기록을 확인하기 위해 위치 정보를 사용해요.</string>
-
-		<!-- 정밀 위치 정보 사용 목적 -->
-		<key>NSLocationTemporaryUsageDescriptionDictionary</key>
-		<dict>
-			<key>DrivePractice</key>
-			<string>주행 연습 시 방문 인증과 실시간 주행 기록을 확인하기 위해 정밀한 위치 정보가 필요해요.</string>
-		</dict>
-
-		<!-- 백그라운드 위치 업데이트 사용 목적 -->
-		<key>UIBackgroundModes</key>
-		<array>
-			<string>location</string>
-		</array>
-
-		<!-- Live Activity -->
-		<key>NSSupportsLiveActivities</key>
-		<true />
-
-		<key>RODI_API_BASE_URL</key>
-		<string>$(RODI_API_BASE_URL)</string>
-		<key>RODI_ANALYTICS_ENABLED</key>
-		<string>$(RODI_ANALYTICS_ENABLED)</string>
-		<key>RODI_ENVIRONMENT</key>
-		<string>$(RODI_ENVIRONMENT)</string>
-		<key>UIAppFonts</key>
-		<array>
-			<string>Pretendard-Regular.otf</string>
-			<string>Pretendard-Medium.otf</string>
-			<string>Pretendard-SemiBold.otf</string>
-			<string>Pretendard-Bold.otf</string>
-		</array>
-		<key>UIApplicationSceneManifest</key>
-		<dict>
-			<key>UIApplicationSupportsMultipleScenes</key>
-			<false />
-		</dict>
-		<key>UIApplicationSupportsIndirectInputEvents</key>
-		<true />
-		<key>UILaunchScreen</key>
-		<dict />
-		<key>UISupportedInterfaceOrientations</key>
-		<array>
-			<string>UIInterfaceOrientationPortrait</string>
-		</array>
-		<key>UIUserInterfaceStyle</key>
-		<string>Light</string>
-		<key>LSApplicationCategoryType</key>
-		<string></string>
+		<key>DrivePractice</key>
+		<string>주행 연습 시 방문 인증과 실시간 주행 기록을 확인하기 위해 정밀한 위치 정보가 필요해요.</string>
 	</dict>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>현재 위치 주변의 운전 연습 장소를 보여주고, 실시간 주행 기록을 확인하기 위해 위치 정보를 사용해요.</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
+	<key>RODI_ANALYTICS_ENABLED</key>
+	<string>$(RODI_ANALYTICS_ENABLED)</string>
+	<key>RODI_API_BASE_URL</key>
+	<string>$(RODI_API_BASE_URL)</string>
+	<key>RODI_ENVIRONMENT</key>
+	<string>$(RODI_ENVIRONMENT)</string>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Pretendard-Regular.otf</string>
+		<string>Pretendard-Medium.otf</string>
+		<string>Pretendard-SemiBold.otf</string>
+		<string>Pretendard-Bold.otf</string>
+	</array>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+	</dict>
+	<key>UIApplicationSupportsIndirectInputEvents</key>
+	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
+	<key>UILaunchScreen</key>
+	<dict/>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+	</array>
+	<key>UIUserInterfaceStyle</key>
+	<string>Light</string>
+</dict>
 </plist>

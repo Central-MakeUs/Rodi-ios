@@ -23,7 +23,14 @@ final class AppDependencies {
     let levelUpPresentationStore: LevelUpPresentationStore
 
     init() {
-        let tokenStore = KeychainTokenStore()
+        let backend = AppBackendConfiguration.current
+        let tokenStore = KeychainTokenStore(service: backend.tokenService)
+        DevelopmentServerMigration.runIfNeeded(
+            configuration: backend,
+            legacyTokenStore: KeychainTokenStore(service: backend.bundleIdentifier),
+            tokenStore: tokenStore,
+            clearServerState: { DevelopmentServerMigration.clearServerState() }
+        )
         let recentLoginProviderStore = RecentLoginProviderStore()
         let drivePracticeService = DrivePracticeService.shared
         let unauthenticatedNetworkManager = NetworkManager()

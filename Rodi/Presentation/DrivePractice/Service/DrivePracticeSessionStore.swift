@@ -12,7 +12,11 @@ struct DrivePracticeSessionStore {
         static let activeSession = "rodi.practiceTracking.activeSession"
     }
 
-    private let persistence = UserDefaultsCodableStore<DrivePracticeSession>(key: Key.activeSession)
+    private let persistence: UserDefaultsCodableStore<DrivePracticeSession>
+
+    init(userDefaults: UserDefaults = .standard) {
+        persistence = UserDefaultsCodableStore(key: Key.activeSession, userDefaults: userDefaults)
+    }
 
     func load() -> DrivePracticeSession? {
         do {

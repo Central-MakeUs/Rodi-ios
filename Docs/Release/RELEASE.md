@@ -14,12 +14,20 @@
 | Bundle ID | `com.dororong.rodi.dev` | `com.dororong.rodi` |
 | 표시명 / 아이콘 | `Rodi Dev` / `AppIconDev` | `Rodi` / `AppIcon` |
 | 환경값 | `RODI_ENVIRONMENT=dev` | `RODI_ENVIRONMENT=prod` |
+| API URL | `https://dev-api.stillstar.store` | `https://api.stillstar.store` |
 | 배포 | 로컬, Dev TestFlight | TestFlight, App Store |
 | 업데이트 검사 | 비활성 | 활성 |
 
-두 xcconfig의 API URL은 현재 동일한 운영 endpoint를 가리킨다. Dev에서도 테스트 계정을
-사용하고 탈퇴·복구처럼 서버 상태를 오래 남기는 검증을 운영 사용자 계정으로 수행하지 않는다.
-API URL이 비어 있으면 운영으로 fallback하지 않으며, 환경별 버전과 build number는 xcconfig가 원본이다.
+MUST Dev 테스트에는 개발 서버의 테스트 계정을 사용한다. 운영 JWT·회원·장소·연습 ID를 개발 서버로 이관하지 않는다.
+MUST API URL이 비어 있거나 환경·Bundle ID·HTTPS host가 다르면 앱 조립 및 Fastlane 배포 검증에서 중단하며, 다른 서버로 fallback하지 않는다.
+환경별 버전과 build number는 xcconfig가 원본이다.
+
+### 기존 Dev 설치본 전환
+
+- MUST `DevelopmentServerMigration`을 인증 요청·측정 복원 전에 실행한다. 최초 전환에서 기존 Dev 토큰과 새 Dev 토큰 저장소, 연습 세션·측정·온보딩 초안·완료 상태·최근 로그인 방식·레벨업 표시 이력을 정리하고 기존 Dev Live Activity 종료를 요청한다.
+- MUST Dev token service에 Bundle ID와 개발 서버 host를 사용하고 Prod token service는 기존 Bundle ID 기준을 유지한다. 전체 UserDefaults 또는 Prod 저장소를 삭제하지 않는다.
+- 초기화 표식은 Dev 앱에만 기록하며 이후 실행의 새 로그인은 유지한다. 검색 기록·길안내 앱 선택은 보존한다.
+- MUST `API-004`와 `QA-048` 검증 전에는 Dev의 `RODI_BACKEND_COMPATIBILITY_VERIFIED = NO`를 유지한다. `dev_beta`는 이 값이 `YES`가 아니면 archive·업로드 전에 중단한다. 검증 없이 flag만 변경하지 않는다.
 
 ## Local Configuration And Firebase
 
@@ -101,6 +109,7 @@ bundle exec fastlane prod_beta
 - `dev_beta`와 `prod_beta`는 각 App Store Connect build train의 다음 번호를 계산해 archive에만
   주입하고 TestFlight에 업로드한다. 프로젝트 파일의 build number를 변경하지 않는다.
 - 두 beta lane 모두 해당 환경 local secrets의 App Store app ID와 API key가 필요하다.
+- MUST `build_dev`, `archive_prod`, 두 beta lane에서 최종 Xcode 설정의 앱 Bundle ID·환경·API host를 검증한다. local xcconfig override도 같은 검증을 받는다.
 - `BUILD_NUMBER=...` 방식은 현재 lane 계약이 아니다. 번호 정책을 바꾸려면 Fastfile부터 수정한다.
 
 ## Required Update
