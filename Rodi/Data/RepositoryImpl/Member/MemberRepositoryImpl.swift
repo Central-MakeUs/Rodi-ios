@@ -55,6 +55,9 @@ final class MemberRepositoryImpl: MemberRepository {
         return response.nickname
     }
 
+    func fetchOnboardingForm() async throws(NetworkError) -> MemberOnboardingForm {
+        try MemberOnboardingFormMapper.map(await remoteDataSource.fetchOnboardingForm())
+    }
 
     func updatePlaceFilterTags(_ tags: [PlacePracticeType]) async throws(NetworkError) {
         try await remoteDataSource.updateFilterTags(

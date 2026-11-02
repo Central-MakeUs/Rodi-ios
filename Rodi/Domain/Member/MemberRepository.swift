@@ -36,6 +36,9 @@ protocol MemberRepository {
     /// 온보딩에서 수집한 운전 경험과 선호 정보를 제출한다.
     func submitOnboarding(_ submission: MemberOnboardingSubmission) async throws(NetworkError)
 
+    /// 현재 서버가 제공하는 운전 경험·선호 입력 정의를 조회한다.
+    func fetchOnboardingForm() async throws(NetworkError) -> MemberOnboardingForm
+
     /// 코스 등록 방법 튜토리얼 완료 상태를 서버에 저장한다.
     func completeCourseTutorial() async throws(NetworkError) -> CourseTutorialCompletion
 }

@@ -14,6 +14,8 @@ struct OnboardingSession: Equatable {
     var mode: Mode?
     var agreedTerms: Set<TermsAgreement>
     var nickname: String?
+    // 폼은 세션 메모리에서만 공유하며 기존 초안 저장 형식에는 넣지 않습니다.
+    var form: MemberOnboardingForm?
     var drivingExperience: OnboardingDrivingExperience?
     var preferences: OnboardingDrivingPreferences?
     var drivingGoal: String?

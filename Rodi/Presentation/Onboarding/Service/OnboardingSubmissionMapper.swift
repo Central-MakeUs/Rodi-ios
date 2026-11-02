@@ -43,7 +43,7 @@ enum OnboardingSubmissionMapper {
     }
 }
 
-private extension LicenseDrivingPeriod {
+extension LicenseDrivingPeriod {
     var memberDrivingPeriod: MemberOnboardingSubmission.DrivingPeriod {
         switch self {
         case .lessThanOneMonth: .underOneMonth
@@ -57,7 +57,7 @@ private extension LicenseDrivingPeriod {
     }
 }
 
-private extension RecentDrivingFrequency {
+extension RecentDrivingFrequency {
     var memberRecentFrequency: MemberOnboardingSubmission.RecentFrequency {
         switch self {
         case .almostNever: .rarely
@@ -69,7 +69,7 @@ private extension RecentDrivingFrequency {
     }
 }
 
-private extension RoadDrivingExperience {
+extension RoadDrivingExperience {
     var memberRoadExperience: MemberOnboardingSubmission.RoadExperience {
         switch self {
         case .none: .none
@@ -80,7 +80,7 @@ private extension RoadDrivingExperience {
     }
 }
 
-private extension SoloDrivingRange {
+extension SoloDrivingRange {
     var memberSoloDrivingRange: MemberOnboardingSubmission.SoloDrivingRange {
         switch self {
         case .nearHome: .nearHome
@@ -91,7 +91,7 @@ private extension SoloDrivingRange {
     }
 }
 
-private extension SoloParkingLevel {
+extension SoloParkingLevel {
     var memberSoloParkingLevel: MemberOnboardingSubmission.SoloParkingLevel {
         switch self {
         case .none: .none
@@ -102,7 +102,7 @@ private extension SoloParkingLevel {
     }
 }
 
-private extension PracticeSituation {
+extension PracticeSituation {
     var placePracticeType: PlacePracticeType {
         switch self {
         case .uTurn: .uTurn
@@ -122,7 +122,7 @@ private extension PracticeSituation {
     }
 }
 
-private extension VehicleType {
+extension VehicleType {
     var memberCarType: MemberOnboardingSubmission.CarType {
         switch self {
         case .compact: .light

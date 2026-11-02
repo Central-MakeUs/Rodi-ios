@@ -67,6 +67,7 @@ private struct ReviewRepositoryStub: ReviewRepository {
 }
 
 private struct MemberRepositoryStub: MemberRepository {
+    func fetchOnboardingForm() async throws(NetworkError) -> MemberOnboardingForm { fatalError() }
     func fetchMyProfile() async throws(NetworkError) -> MemberProfile { fatalError() }
     func withdraw() async throws(NetworkError) {}
     func hardWithdraw() async throws(NetworkError) {}
