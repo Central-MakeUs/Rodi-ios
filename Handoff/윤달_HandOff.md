@@ -2,10 +2,9 @@
 
 ## Current
 
-- 기준 저장소·브랜치: 현재 작업 저장소의 `dev`
-- 기준 커밋: `416cefa5a34e9441280e456fd1405fd47e04e1c9`
-- 작성일: 2026-09-05
-- 현재 작업: 활성 작업 문서 정비와 AI 탐색 범위 개선
+- 기준: `refactor/1.4.5-nickname-edit` · `8306505` (문서 커밋 직전) · 2026-11-02
+- 상태: 지침·서버 환경 분리·Data API·닉네임·온보딩·장소 필터를 책임별 커밋으로 반영했다. 후기 계약 호환성과 인증된 응답·실기기 검증은 미완료다. 기존 `PracticeLiveActivityService.swift` 사용자 변경은 커밋에서 제외하고 작업 트리에 보존했다.
+- 기존 변경: `Docs/Architecture/ARCHITECTURE.md`의 서버 없는 UI 기준과 Figma 구현 규칙을 보존했다.
 
 ## Recent Work
 - 브랜치: `refactor/1.4.4-live-activity`
@@ -27,17 +26,17 @@
 - `PracticeLiveActivityService`는 ActivityKit 생명주기만 조정하고, 세션 매핑과 15초·3% 갱신 정책은 별도 타입으로 분리했다. 비동기 update/end는 단일 작업 체인으로 직렬화했고 iOS 16.2 `ActivityContent` API와 iOS 16.1 fallback을 함께 유지했다.
 - Lock Screen·Dynamic Island 콘텐츠와 경로 진행 컴포넌트를 Widget 진입점에서 분리했다. 표시 결과는 유지하면서 phase 문자열 비교와 미사용 attributes·content state·asset을 정리했다.
 - 개발용 Live Activity 세션 fixture를 Debug 영역으로 이동하고 갱신 정책 XCTest를 추가했다.
-- `Docs/Portfolio/FEATURE_EXPLORATION_BACKLOG.md`에 코스 진입·완료 시 Live Activity와 함께 중요 상태를 알리는 로컬 알림 TODO를 추가하고, 권한 거부·중복 알림 방지 검증을 명시했다.
-- 확정 로드맵과 분리된 `Docs/Portfolio/FEATURE_EXPLORATION_BACKLOG.md`를 추가해 TTS, CarPlay, watchOS·WatchConnectivity, WidgetKit, 광고·결제, 대규모 목록·이미지 캐시·미디어 탐색 항목과 구현 전 확인 기준을 기록했다.
+- 과거 `FEATURE_EXPLORATION_BACKLOG.md`(현재 `Docs/TODO.md`에 통합)에 코스 진입·완료 시 Live Activity와 함께 중요 상태를 알리는 로컬 알림 TODO를 추가하고, 권한 거부·중복 알림 방지 검증을 명시했다.
+- 확정 로드맵과 분리된 과거 `FEATURE_EXPLORATION_BACKLOG.md`(현재 `Docs/TODO.md`에 통합)를 추가해 TTS, CarPlay, watchOS·WatchConnectivity, WidgetKit, 광고·결제, 대규모 목록·이미지 캐시·미디어 탐색 항목과 구현 전 확인 기준을 기록했다.
 - 기술 블로그 백로그에 Swift 6가 데이터 레이스를 컴파일 단계에서 진단하게 된 배경부터 격리·소유권·컴파일러 보장의 한계까지 연결하는 Migration 글의 제목과 대주제 목차를 추가했다.
 - 기술 블로그 백로그에 GPS 오차를 걸러 polyline 진행률을 계산하는 글과 앱 재실행 시 주행 세션을 상태별로 복구하는 글의 작성 방향·검증 근거를 추가했다.
-- 기술 블로그 소재와 검증 상태를 모아 관리하는 `Docs/Portfolio/TECH_BLOG_BACKLOG.md`를 추가했다. 현재 주행 추적 글, Live Activity 강제 종료 글, GPS Replay 글감을 근거·검증 상태와 함께 기록했다.
+- 기술 블로그 소재와 검증 상태를 모아 관리하는 과거 `TECH_BLOG_BACKLOG.md`(현재 `Docs/TODO.md`에 통합)를 추가했다. 현재 주행 추적 글, Live Activity 강제 종료 글, GPS Replay 글감을 근거·검증 상태와 함께 기록했다.
 - `applicationWillTerminate` 에서 `Task.detached` 종료 작업을 최대 2초만 대기해 Rodi Live Activity를 즉시 종료하도록 연결했다. iOS 16.1은 기존 `end` API, 16.2 이상은 `ActivityContent` 오버로드로 분기했고, 프로세스 재실행 시 이전 sessionID의 Activity를 재개 선택 전에 정리하도록 보완했다.
 - DrivePractice Service·Adapter 각 파일에 소유 책임과 비소유 책임을 설명하는 타입 주석을 추가했다.
 - `DrivePracticeService`에서 인증 재시도 Task를 `DrivePracticeCertificationService`로, Core Location delegate·background activity session을 `DrivePracticeLocationAdapter`로 분리했다. 세션 정책·경로 판정·Live Activity 호출은 root service에 유지했고 인증 성공 revision, 취소·request ID 계약을 보존했다.
 - `PracticeTracking` feature를 `DrivePractice`로 개명했다. 폴더·View·Reducer·Service·세션 모델과 Root/Home 의존성, 위치 권한 purpose key, 문서 경로를 함께 정리했고 기존 UserDefaults 키·analytics raw value는 호환성을 위해 유지했다.
 - `PracticeReturnReducer`를 `PracticeTrackingReducer`에 흡수해 단일 사용 child State·Action·Delegate 중계를 제거했다. 앱 복귀·측정 연속·방문 기록·후기 권유 정책과 기존 debug Effect의 request revision·취소 계약은 root reducer에 유지했다.
-- 홈 지도 재검색 버튼 누락을 수정했다. 추천 목록 로딩 중 사용자 viewport 이동은 버튼 표시 상태를 먼저 전달한 뒤 기존 목록 요청을 취소하며, 동일 순서를 검증하는 reducer XCTest를 추가했다. GPS·네트워크 주행 시나리오와 테스트 범위를 `Docs/Guides/GPS_REPLAY_TESTING.md`로 정리했다.
+- 홈 지도 재검색 버튼 누락을 수정했다. 추천 목록 로딩 중 사용자 viewport 이동은 버튼 표시 상태를 먼저 전달한 뒤 기존 목록 요청을 취소하며, 동일 순서를 검증하는 reducer XCTest를 추가했다. GPS·네트워크 주행 시나리오와 테스트 범위는 현재 `Docs/Tests/GPS_REPLAY_TESTING.md`에서 확인한다.
 - 홈 지도 viewport 이동 뒤 재검색 버튼이 누락될 수 있는 P0 QA 이슈를 등록했다. 로딩 취소 경로의 표시 상태 미전파와 Kakao camera callback의 사용자 이동 오분류 위험을 원인으로 기록했으며, iOS 16.1~26 실기기·reducer 회귀 검증을 다음 작업으로 남겼다.
 - `RodiKakaoMapView`의 configuration·lifecycle·render recovery·카메라·마커·경로·chrome·사용자 위치 extension 구현을 한 파일로 통합하고 파생 파일 11개를 삭제했다. 내부는 `MARK`로 구획했으며 Rodi Dev Debug build를 통과했다.
 - `KakaoMapContainerView`의 nested `Coordinator`를 같은 파일로 합치고 분리된 `KakaoMapCoordinator.swift`를 삭제했다. Rodi Dev Debug build를 통과했다.
@@ -101,26 +100,36 @@
 - Presentation 잔여 P1·P2 5건을 모두 완료 처리했다. `HomeMapReducer` 분리, 길안내 child proxy 제거, Login·Onboarding 화면 크기 의존 제거, 장문 파일 재감사를 마쳤고 Dev Debug build·RodiTests 8건·`git diff --check`를 다시 통과했다. 실기기 지도·외부 길안내·SE/대형 기기 UI 검증만 남았다.
 - 코드리뷰 P2-CR-4에 2,001개 좌표 경로 매칭 XCTest metric과 1,000개 marker progressive snapshot 계약 테스트를 추가했다. marker batch의 사전 prefix 배열 생성을 제거해 peak allocation을 낮췄고, Simulator metric은 20회 매칭 평균 0.006초·추가 physical memory 평균 약 262KB였다. 연결된 iPhone은 secure connection 오류로 실기기 계측을 시작하지 못해 재측정이 남았다.
 
-- AGENTS와 분야별 활성 문서의 중복 규칙과 오래된 기준을 정리했다.
-- 2026-08-19~20 리팩터링·코드리뷰 기록과 이전 HandOff 상세 내역을 Archive로 이동해, 현재 작업 상태와 과거 근거를 분리했다.
-- 문서 탐색의 확장·종료 조건, skill 선택 경계와 결과 품질 측정 기준을 추가했다.
-- API 전체 인벤토리를 Archive에 보존하고, endpoint 검증 기록은 API 가이드에 통합했다.
-- 결함·검증·구조 개선·API 계약·기능 후보·글쓰기 작업을 `Docs/TODO.md`의 단일 상태 원본으로 통합했다.
-- Architecture에 Layer 계약과 한국어 코드 주석 기준을 합치고, API 연결 기록은 API 가이드에 흡수했다.
-- 발표·회고 자료 3개를 Archive로 옮기고 GPS 테스트 가이드를 `Docs/Tests/`로 이동해 활성 Docs를 7개로 유지했다.
-- AGENTS의 문서 안내를 단일 표로 합치고 Archive·Handoff·TODO 탐색 조건과 UI 가이드의 불일치 판단 기준을 맞췄다.
+- Figma 계획의 근거 판정, Skill의 선택적 참고자료 로딩, TODO·README를 정비했다.
+- AI 성능 검증에 사용했던 임시 UI 실험 코드·에셋·테스트·작업 상태 기록을 제거했다.
+- Dev의 공유·로컬 API 주소를 개발 서버로 전환하고 시작 시 설정 검증·Dev 전용 세션 정리·token service 분리·Fastlane 환경 검증을 추가했다. Prod token service와 기존 Live Activity 파일의 사용자 변경은 보존했다.
+- 온보딩 폼·닉네임 사용 가능 여부·정렬 태그·후기 폼·지도 클러스터 API의 Target·DTO·RemoteDataSource를 추가했다. Repository·Mapper·Domain·Presentation·기존 호출부는 연결하지 않았다. 상세 상태는 [API 가이드](../Docs/API/API_SWAGGER.md)의 각 endpoint 행에서 확인한다.
+- 온보딩 닉네임 화면에 마이페이지 수정 안내(gray500·body3Medium)를 추가하고 Debug 테스트 목록에 같은 View를 사용하는 `온보딩 닉네임` 미리보기를 연결했다. 샘플은 `로디`이며 다음 버튼은 실제 온보딩에 연결하지 않는다.
+- 마이페이지 닉네임 버튼·수정 route와 MyNickname View/Reducer를 추가했다. nickname만 보내는 PATCH를 Domain·Repository까지 연결했고, 성공 시 다른 프로필 값은 보존한 채 닉네임만 갱신한다. 사용 가능 여부 GET은 호출하지 않는다. 입력 규칙·중복 요청·취소·늦은 응답 방어와 인라인 서버 오류 표시를 추가했다.
+- 후속 승인으로 온보딩은 Swagger 기준 Domain·Mapper·Repository·화면 연결을 구현했다. 기존 UI·초안 저장·제출 형식·레벨 계산을 유지하며 실제 응답 확인은 앱 로그인 뒤로 이동했다. Dev 속성 누락은 Prod 값으로 채우지 않는다.
+- 장소 목록·검색 Query·DTO·Mapper·API에 `practiceTypes`를 연결했다. 홈 적용 필터와 목록의 첫 페이지 조건을 전달하며 기존 회원 설정 저장·자동완성·지역 이동 동작은 유지한다. 실제 검증 범위는 `QA-051`에서 관리한다.
 
 ## Next
 
-- [TODO](../Docs/TODO.md)의 대상 ID를 기준으로 다음 작업을 선택하고, 완료된 항목은 검증 뒤 삭제한다.
+- 다음 작업의 원본은 [TODO](../Docs/TODO.md)의 `API-004`, `QA-048`, `QA-049`, `QA-050`, `QA-051`, 기존 `TEST-002`다.
 
 ## Verification
 
-- `bash Scripts/validate_documentation.sh`에서 Markdown 106개 링크와 폐기 문서 참조 검사를 통과했다.
-- `git diff --check`를 통과했다.
-- 이동 문서의 본문·TODO ID 보존과 UI·API·Reducer·배포·GPS 요청 5종의 문서 선택 규칙을 정적으로 확인했다. 실제 AI 작업의 토큰 사용량·결과 품질은 측정하지 않았다.
-- 이번 작업은 문서·문서 검사 스크립트·Handoff만 변경하므로 Xcode build와 실기기 QA는 실행하지 않았다.
+- 이번 작업은 `quick_validate.py`(변경 Skill 3개), `bash Scripts/validate_documentation.sh`, `git diff --check`를 통과했다. Skill 형식 검사는 PyYAML이 있는 임시 가상환경에서 실행했다.
+- 원문·축약본의 대표 시나리오를 정적으로 대조하고 참고자료·라이선스·자동 선택 설정, 기존 TODO 내용·상태, 앱 코드·에셋의 보존을 확인했다. 독립 실행 품질·토큰 절감은 아직 측정하지 않았다.
+- 임시 UI 실험의 이름·노드 ID·코드·에셋·테스트·작업 상태 참조가 남지 않았는지 정적으로 확인했다.
+- 서버 분리: Dev Debug·Prod Release generic simulator build와 Dev `build-for-testing` 성공. 생성 앱의 Bundle ID·API URL·Firebase Bundle ID·Kakao scheme 매칭 확인. 공개 좌표 GET 성공, token 없는 회원 GET은 401. 실제 인증·실기기 QA는 미실행.
+- `ruby fastlane/tests/backend_environment_test.rb`: 4건·15 assertion 통과. `ruby -c fastlane/Fastfile`, 문서 검사와 `git diff --check` 통과.
+- `xcodebuild -project Rodi.xcodeproj -scheme "Rodi Dev" -configuration Debug -destination "platform=iOS Simulator,id=43C0F947-7ECD-4BE7-B633-5529ABAD52A2" -destination-timeout 10 -only-testing:RodiTests/BackendEnvironmentTests -quiet test`: exit 70. CoreSimulator 1171.7.0 / Xcode 요구 1174.9.2 불일치로 실행 대상을 찾지 못함. Swift 테스트 7개는 컴파일만 검증했다.
+- 커밋·푸시는 수행하지 않았다.
+- 사용자의 종료 요청으로 추가 빌드·테스트를 중단했다. 위 결과는 종료 요청 전에 확보한 결과이며 전체 전환 검증 완료를 뜻하지 않는다.
+- 이후 Data API 추가 요청에서 승인된 `xcodebuild -project Rodi.xcodeproj -scheme "Rodi Dev" -configuration Debug -destination "generic/platform=iOS Simulator" -quiet build`가 성공했다. Swift 구문·문서 링크·`git diff --check` 통과. 이 작업에서는 자동 테스트·앱 실행·인증된 API 및 쓰기 호출을 수행하지 않았다.
+- 닉네임 안내·Debug 미리보기 변경 후 같은 Dev Debug build 성공. Swift 구문·문서 링크·`git diff --check` 통과. 자동 테스트·앱 실행·스크린샷·실제 시각 검증은 생략했다.
+- 닉네임 수정 변경 후 `xcodebuild -project Rodi.xcodeproj -scheme "Rodi Dev" -configuration Debug -destination "generic/platform=iOS Simulator" -quiet build` 성공. 최초 컴파일의 오류 타입 변환을 수정한 뒤 재빌드했다. 문서 링크·에셋 참조·`git diff --check` 정적 검사 통과. 자동 테스트·앱 실행·실제 PATCH·스크린샷은 수행하지 않았다.
+- 온보딩 폼 사전 점검: Dev·Prod 각각 token 없는 GET의 401·`AUTH_401_6`만 확인했다. 인증된 정상 응답·폼 decoding·UI 연결은 미검증이다. 이 작업에서는 문서만 갱신했으며 빌드·자동 테스트·온보딩 POST·커밋·푸시는 수행하지 않았다.
+- 온보딩 연결 중간 버전: `xcodebuild -project Rodi.xcodeproj -scheme "Rodi Dev" -configuration Debug -destination "generic/platform=iOS Simulator" -quiet build` 성공. `xcodebuild -project Rodi.xcodeproj -scheme "Rodi Dev" -configuration Debug -destination "platform=iOS Simulator,id=DC2BA25C-B591-44F5-BBF4-EA1C88363D79" -destination-timeout 15 -only-testing:RodiTests/OnboardingFormTests -quiet test`는 12건 통과했다. 사용자 테스트 생략 요청 이후 캐시 복귀·레이아웃·검증 보완분은 Swift 구문·정적 검사만 수행했다. 최종 재빌드·재테스트와 수동 앱 로그인·실제 온보딩 GET/POST·실기기 확인은 수행하지 않았다.
+- 후속 장소 `practiceTypes` 연결 후 같은 Dev Debug generic simulator build 성공. 이 빌드는 앞선 온보딩 최종 보완분도 포함한다. 문서 검사·`git diff --check` 통과. 자동 테스트·앱 실행·인증된 API 호출·커밋·푸시는 생략했다.
 
 ## Archive
 
-- 이전 상세 기록: [윤달 HandOff 2026-09-05](archive/윤달_HandOff_2026-09-05.md)
+- [이전 기록과 정비 직전 스냅샷](archive/윤달_HandOff_2026-09-05.md)
