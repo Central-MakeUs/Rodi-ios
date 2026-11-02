@@ -1,6 +1,10 @@
 import Foundation
 
 nonisolated enum MemberMapper {
+    static func nicknameUpdateRequest(from nickname: String) -> MemberNicknameUpdateRequestDTO {
+        .init(nickname: nickname)
+    }
+
     static func drivingGoalRequest(
         from drivingGoal: String
     ) -> MemberDrivingGoalUpdateRequestDTO {

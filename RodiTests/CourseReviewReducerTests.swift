@@ -74,6 +74,7 @@ private struct MemberRepositoryStub: MemberRepository {
     func fetchBlockedMembers(query: BlockedMemberQuery) async throws(NetworkError) -> BlockedMemberPage { fatalError() }
     func unblock(memberID: Int) async throws(NetworkError) {}
     func updateDrivingGoal(_ drivingGoal: String) async throws(NetworkError) {}
+    func updateNickname(_ nickname: String) async throws(NetworkError) -> String { nickname }
     func updatePlaceFilterTags(_ tags: [PlacePracticeType]) async throws(NetworkError) {}
     func submitOnboarding(_ submission: MemberOnboardingSubmission) async throws(NetworkError) {}
     func completeCourseTutorial() async throws(NetworkError) -> CourseTutorialCompletion { fatalError() }

@@ -67,6 +67,15 @@ final class MemberRemoteDataSource {
         try await ServerResponseHandler.empty(MemberAPI.updateDrivingGoal(request), using: networkManager)
     }
 
+    func updateNickname(
+        _ request: MemberNicknameUpdateRequestDTO
+    ) async throws(NetworkError) -> MemberNicknameUpdateResponseDTO {
+        try await ServerResponseHandler.payload(
+            MemberAPI.updateNickname(request),
+            using: networkManager,
+            as: MemberNicknameUpdateResponseDTO.self
+        )
+    }
     
     func updateFilterTags(_ request: MemberPlaceFilterTagsUpdateRequestDTO) async throws(NetworkError) {
         try await ServerResponseHandler.empty(MemberAPI.updatePlaceFilterTags(request), using: networkManager)

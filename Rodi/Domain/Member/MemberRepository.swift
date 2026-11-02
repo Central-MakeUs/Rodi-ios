@@ -27,6 +27,9 @@ protocol MemberRepository {
     /// 마이페이지에서 운전 목표를 부분 수정한다.
     func updateDrivingGoal(_ drivingGoal: String) async throws(NetworkError)
 
+    /// 닉네임을 수정하고 서버가 확정한 현재 닉네임을 반환한다.
+    func updateNickname(_ nickname: String) async throws(NetworkError) -> String
+
     /// 홈 추천 목록의 연습유형 정렬 필터를 전체 교체한다.
     func updatePlaceFilterTags(_ tags: [PlacePracticeType]) async throws(NetworkError)
 

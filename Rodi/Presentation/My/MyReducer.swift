@@ -36,6 +36,7 @@ struct MyReducer: Reducer {
         case profileLoaded(ProfileLoadResult, requestID: Int)
         case levelUpDialogConfirmed
         case drivingGoalUpdated(MemberProfile)
+        case nicknameUpdated(String)
         case logoutConfirmed
         case withdrawalConfirmed
         case sessionEnded(SessionEndReason)
@@ -179,6 +180,22 @@ extension MyReducer {
             state.profile = profile
             state.profileErrorMessage = nil
             return presentSnackbar("운전 목표를 수정했어요.", state: &state)
+
+        case .nicknameUpdated(let nickname):
+            guard let profile = state.profile else { return .none }
+            state.profile = MemberProfile(
+                nickname: nickname,
+                level: profile.level,
+                recommendationTags: profile.recommendationTags,
+                drivingGoal: profile.drivingGoal,
+                savedPlaceCount: profile.savedPlaceCount,
+                levelProgress: profile.levelProgress
+            )
+            // 저장 전에 시작한 프로필 조회가 이전 닉네임으로 덮어쓰지 않게 합니다.
+            state.profileRequestID += 1
+            state.isLoadingProfile = false
+            state.profileErrorMessage = nil
+            return .cancel(id: EffectID.profile)
 
         case .logoutConfirmed:
             return logout(state: &state)

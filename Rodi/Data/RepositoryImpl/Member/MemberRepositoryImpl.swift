@@ -48,6 +48,14 @@ final class MemberRepositoryImpl: MemberRepository {
         )
     }
 
+    func updateNickname(_ nickname: String) async throws(NetworkError) -> String {
+        let response = try await remoteDataSource.updateNickname(
+            MemberMapper.nicknameUpdateRequest(from: nickname)
+        )
+        return response.nickname
+    }
+
+
     func updatePlaceFilterTags(_ tags: [PlacePracticeType]) async throws(NetworkError) {
         try await remoteDataSource.updateFilterTags(
             MemberMapper.placeFilterTagsRequest(from: tags)

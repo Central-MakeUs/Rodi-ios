@@ -80,6 +80,7 @@ struct MyView: View {
                 errorMessage: store.state.profileErrorMessage,
                 openSettings: { router.push(.settings) },
                 openDrivingGoal: { router.push(.drivingGoal) },
+                openNickname: { router.push(.nickname) },
                 openSavedPlaces: { router.push(.savedPlaces) },
                 openPracticeRecords: { router.push(.practiceRecords) },
                 openMyPosts: { router.push(.myPosts) },
@@ -95,8 +96,12 @@ struct MyView: View {
                 confirmLevelUp: { store.send(.levelUpDialogConfirmed) }
             )
             .navigationDestination(for: MyRoute.self) { route in
-                destinationView(for: route)
-                    .background(RodiInteractivePopGestureEnabler())
+                if case .nickname = route {
+                    destinationView(for: route)
+                } else {
+                    destinationView(for: route)
+                        .background(RodiInteractivePopGestureEnabler())
+                }
             }
         }
         .rodiSnackbar(message: store.state.snackbarMessage)
@@ -138,6 +143,14 @@ private extension MyView {
                 initialDrivingGoal: store.state.profile?.drivingGoal ?? "",
                 memberRepository: destinationDependencies.memberRepository,
                 onUpdated: { store.send(.drivingGoalUpdated($0)) },
+                backAction: { router.pop() }
+            )
+
+        case .nickname:
+            MyNicknameView(
+                initialNickname: store.state.profile?.nickname ?? "",
+                memberRepository: destinationDependencies.memberRepository,
+                onUpdated: { store.send(.nicknameUpdated($0)) },
                 backAction: { router.pop() }
             )
             
