@@ -1,6 +1,25 @@
 import Foundation
 
 nonisolated enum CourseMapper {
+    static func reportForm(from dto: ReportFormResponseDTO) throws(NetworkError) -> CourseReportForm {
+        guard dto.questionID == "courseIssues", dto.type == "MULTI_SELECT", dto.required,
+              !dto.options.isEmpty,
+              Set(dto.options.map(\.code)).count == dto.options.count,
+              dto.options.allSatisfy({
+                  !$0.code.isEmpty && $0.requiresTextInput == ($0.code == "OTHER")
+                      && ($0.textInputMaxLength.map { $0 > 0 } ?? true)
+              }) else { throw .decodingFail }
+
+        return .init(
+            title: dto.title,
+            description: dto.description,
+            options: dto.options.sorted { $0.order < $1.order }.map {
+                .init(code: $0.code, label: $0.label, textInputPlaceholder: $0.textInputPlaceholder,
+                      textInputMaxLength: $0.textInputMaxLength)
+            }
+        )
+    }
+
     static func registrationForm(
         from dto: CourseRegistrationFormResponseDTO
     ) -> CourseRegistrationForm {

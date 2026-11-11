@@ -16,6 +16,8 @@ struct HomeReducer: Reducer {
         let practiceRepository: PracticeRepository
         let recentSearchRepository: RecentSearchRepository
         let reviewRepository: ReviewRepository
+        let courseRepository: CourseRepository
+        let isCourseReportingEnabled: Bool
         let memberRepository: MemberRepository
         let practiceMeasurementStore: PracticeMeasurementStoring
         let drivePracticeService: DrivePracticeService
@@ -68,6 +70,8 @@ struct HomeReducer: Reducer {
                 placeRepository: dependencies.placeRepository,
                 practiceRepository: dependencies.practiceRepository,
                 reviewRepository: dependencies.reviewRepository,
+                courseRepository: dependencies.courseRepository,
+                isCourseReportingEnabled: dependencies.isCourseReportingEnabled,
                 memberRepository: dependencies.memberRepository,
                 practiceMeasurementStore: dependencies.practiceMeasurementStore,
                 drivePracticeService: dependencies.drivePracticeService,

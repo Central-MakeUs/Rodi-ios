@@ -40,6 +40,24 @@ final class ReviewAndCourseReportDTOTests: XCTestCase {
         XCTAssertEqual(mapped[.courseIssues]?.isVisible(for: true), false)
     }
 
+    func testCourseReportFormAndSubmissionUseCourseRoutesAndWireKeys() throws {
+        let json = """
+        {"questionId":"courseIssues","type":"MULTI_SELECT","title":"코스 문제","required":true,
+         "options":[{"code":"OTHER","label":"기타","order":1,"requiresTextInput":true}]}
+        """
+        let form = try JSONDecoder().decode(ReportFormResponseDTO.self, from: Data(json.utf8))
+        XCTAssertEqual(form.questionID, "courseIssues")
+        XCTAssertEqual(form.options.first?.requiresTextInput, true)
+
+        let target = CourseAPI.report(courseID: 42, request: .init(courseIssues: ["OTHER"], detail: "테스트"))
+        XCTAssertEqual(CourseAPI.reportForm.path, "/api/v1/courses/report-form")
+        XCTAssertEqual(target.path, "/api/v1/courses/42/report")
+        XCTAssertTrue(target.requiresAuthentication)
+        let payload = try jsonObject(from: XCTUnwrap(target.body))
+        XCTAssertEqual(payload["courseIssues"] as? [String], ["OTHER"])
+        XCTAssertEqual(payload["detail"] as? String, "테스트")
+    }
+
     func testReviewRequestSupportsBothEvaluationBranchesWithoutExtraKeys() throws {
         let encoder = JSONEncoder()
         let recommended = ReviewRequestDTO(

@@ -237,4 +237,6 @@ private struct CourseRepositoryStub: CourseRepository {
     func register(_ submission: CourseRegistrationSubmission) async throws(NetworkError) -> CourseRegistrationResult { fatalError() }
     func fetchMyCourses(query: MyCourseQuery) async throws(NetworkError) -> MyCoursePage { fatalError() }
     func deleteMyCourse(courseID: Int64) async throws(NetworkError) {}
+    func fetchReportForm() async throws(NetworkError) -> CourseReportForm { throw .decodingFail }
+    func report(courseID: Int64, submission: CourseReportSubmission) async throws(NetworkError) { throw .encodingFail }
 }

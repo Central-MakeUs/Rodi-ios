@@ -39,4 +39,19 @@ final class CourseRemoteDataSource {
             using: networkManager
         )
     }
+
+    func fetchReportForm() async throws(NetworkError) -> ReportFormResponseDTO {
+        try await ServerResponseHandler.payload(
+            CourseAPI.reportForm,
+            using: networkManager,
+            as: ReportFormResponseDTO.self
+        )
+    }
+
+    func report(courseID: Int64, request: CourseReportRequestDTO) async throws(NetworkError) {
+        try await ServerResponseHandler.empty(
+            CourseAPI.report(courseID: courseID, request: request),
+            using: networkManager
+        )
+    }
 }

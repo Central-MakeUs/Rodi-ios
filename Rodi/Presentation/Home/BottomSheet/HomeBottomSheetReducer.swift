@@ -34,6 +34,8 @@ struct HomeBottomSheetReducer: Reducer {
         let placeRepository: PlaceRepository
         let practiceRepository: PracticeRepository
         let reviewRepository: ReviewRepository
+        let courseRepository: CourseRepository
+        let isCourseReportingEnabled: Bool
         let memberRepository: MemberRepository
         let practiceMeasurementStore: PracticeMeasurementStoring
         let drivePracticeService: DrivePracticeService
@@ -107,6 +109,8 @@ struct HomeBottomSheetReducer: Reducer {
             memberRepository: dependencies.memberRepository,
             practiceRepository: dependencies.practiceRepository,
             reviewRepository: dependencies.reviewRepository,
+            courseRepository: dependencies.courseRepository,
+            isCourseReportingEnabled: dependencies.isCourseReportingEnabled,
             practiceMeasurementStore: dependencies.practiceMeasurementStore,
             drivePracticeService: dependencies.drivePracticeService,
             routeGuidanceService: dependencies.routeGuidanceService,
@@ -209,7 +213,9 @@ extension HomeBottomSheetReducer {
             let detailAction: Action = detail.type == .course
                 ? .courseDetail(.present(detail, source: "home"))
                 : .parkingDetail(.present(detail, source: "home"))
-            return actions([
+            let closeReport: [Action] = state.courseDetail.courseReport.courseID == nil
+                ? [] : [.courseDetail(.courseReport(.reset))]
+            return actions(closeReport + [
                 detailAction,
                 .delegate(.mapPlaceResolved(detail)),
                 .placeDetailPresentationFinished(id: detail.id)

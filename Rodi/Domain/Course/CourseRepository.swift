@@ -5,4 +5,6 @@ protocol CourseRepository {
     func register(_ submission: CourseRegistrationSubmission) async throws(NetworkError) -> CourseRegistrationResult
     func fetchMyCourses(query: MyCourseQuery) async throws(NetworkError) -> MyCoursePage
     func deleteMyCourse(courseID: Int64) async throws(NetworkError)
+    func fetchReportForm() async throws(NetworkError) -> CourseReportForm
+    func report(courseID: Int64, submission: CourseReportSubmission) async throws(NetworkError)
 }

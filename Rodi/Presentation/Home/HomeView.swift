@@ -47,6 +47,8 @@ struct HomeView: View {
                     practiceRepository: dependencies.practiceRepository,
                     recentSearchRepository: dependencies.recentSearchRepository,
                     reviewRepository: dependencies.reviewRepository,
+                    courseRepository: dependencies.courseRepository,
+                    isCourseReportingEnabled: dependencies.isCourseReportingEnabled,
                     memberRepository: dependencies.memberRepository,
                     practiceMeasurementStore: dependencies.practiceMeasurementStore,
                     drivePracticeService: dependencies.drivePracticeService

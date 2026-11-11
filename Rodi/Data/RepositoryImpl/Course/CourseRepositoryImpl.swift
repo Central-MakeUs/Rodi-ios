@@ -33,4 +33,14 @@ final class CourseRepositoryImpl: CourseRepository {
         try await remoteDataSource.deleteMyCourse(courseID: courseID)
     }
 
+    func fetchReportForm() async throws(NetworkError) -> CourseReportForm {
+        try CourseMapper.reportForm(from: await remoteDataSource.fetchReportForm())
+    }
+
+    func report(courseID: Int64, submission: CourseReportSubmission) async throws(NetworkError) {
+        try await remoteDataSource.report(
+            courseID: courseID,
+            request: .init(courseIssues: submission.issueCodes, detail: submission.detail)
+        )
+    }
 }

@@ -1,7 +1,10 @@
 import SwiftUI
 
 struct CourseDetailExpandedPage: View {
+    private enum DropdownAnchor { case courseActions }
+
     @State private var activeReviewDropdown: CourseReviewDropdown?
+    @State private var isCourseMenuPresented = false
 
     let state: CourseDetailBottomSheetReducer.State
     let send: (CourseDetailBottomSheetReducer.Action) -> Void
@@ -21,7 +24,9 @@ private extension CourseDetailExpandedPage {
     @ViewBuilder
     func page(detail: PlaceDetail) -> some View {
         Group {
-            if state.reviews.route == .report {
+            if state.courseReport.courseID != nil {
+                CourseReportPage(state: state.courseReport, send: { send(.courseReport($0)) })
+            } else if state.reviews.route == .report {
                 CourseReviewReportPage(
                     state: state.reviews.report,
                     send: { send(.reviews(.report($0))) }
@@ -39,6 +44,12 @@ private extension CourseDetailExpandedPage {
                 activeDropdown: $activeReviewDropdown,
                 send: { send(.reviews($0)) }
             )
+            if isCourseMenuPresented, let anchor = anchors[DropdownAnchor.courseActions] {
+                courseMenuOverlay(anchor: anchor)
+            }
+        }
+        .onChange(of: detail.id) { _ in
+            isCourseMenuPresented = false
         }
         .overlay {
             if state.reviews.block.isConfirmationPresented {
@@ -141,12 +152,71 @@ private extension CourseDetailExpandedPage {
 
             Spacer(minLength: 0)
 
-            Color.clear
-                .frame(width: 44, height: 44)
-                .accessibilityHidden(true)
+            if state.isCourseReportingEnabled {
+                Button {
+                    activeReviewDropdown = nil
+                    isCourseMenuPresented.toggle()
+                } label: {
+                    Image("ic_more_horizontal")
+                        .renderingMode(.template)
+                        .resizable()
+                        .scaledToFit()
+                        .foregroundStyle(RodiColor.black)
+                        .frame(width: 24, height: 24)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("코스 더보기")
+                .anchorPreference(key: RodiDropdownAnchorPreferenceKey.self, value: .bounds) {
+                    [DropdownAnchor.courseActions: $0]
+                }
+            } else {
+                Color.clear
+                    .frame(width: 44, height: 44)
+                    .accessibilityHidden(true)
+            }
         }
         .frame(maxWidth: .infinity)
         .frame(height: 56)
+    }
+
+    func courseMenuOverlay(anchor: Anchor<CGRect>) -> some View {
+        GeometryReader { proxy in
+            let trigger = proxy[anchor]
+            ZStack(alignment: .topTrailing) {
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture { isCourseMenuPresented = false }
+                    .accessibilityHidden(true)
+
+                Button {
+                    isCourseMenuPresented = false
+                    send(.courseReportTapped)
+                } label: {
+                    Text("신고하기")
+                        .rodiTypography(.body1Medium)
+                        .foregroundStyle(RodiColor.gray800)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 10)
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .background {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(RodiColor.white)
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 8)
+                        .strokeBorder(RodiColor.gray300, lineWidth: 1)
+                        .allowsHitTesting(false)
+                }
+                .padding(.top, trigger.maxY)
+                .padding(.trailing, proxy.size.width - trigger.maxX + 16)
+                .accessibilityAction(.escape) { isCourseMenuPresented = false }
+            }
+        }
     }
 
     var backButton: some View {
