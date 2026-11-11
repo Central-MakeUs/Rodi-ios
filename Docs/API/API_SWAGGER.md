@@ -130,14 +130,18 @@ traceId: String?
 | 2026-11-02 | Dev·Prod | GET `/api/v1/members/nickname/availability` | MemberAPI → MemberNicknameAvailabilityQueryDTO·ResponseDTO → MemberRemoteDataSource | schema 대조; 30일 제한의 `nicknameChangeableAt` 포함 | Data 준비 완료 / Domain·Presentation 미연결 / 실행 미검증 |
 | 2026-11-02 | Dev·Prod | PATCH `/api/v1/members/me` (닉네임) | MemberAPI → MemberNicknameUpdateRequestDTO·ResponseDTO → MemberRemoteDataSource → MemberMapper·MemberRepositoryImpl → MemberRepository → MyNicknameReducer | schema·정적 경로 대조; nickname만 전송, 확정 nickname 반환·nullable nicknameChangeableAt 수신 | 연결됨 / 실제 PATCH·인증·UI 실행 미검증 |
 | 2026-11-02 | Dev·Prod | PUT `/api/v1/members/me/sort-tags` | MemberAPI → MemberSortTagsUpdateRequestDTO → MemberRemoteDataSource | schema 대조; JSON body·빈 성공 응답 | Data 준비 완료 / Domain·Presentation 미연결 / 실행 미검증 |
-| 2026-11-02 | Dev만 | GET `/api/v1/places/{placeId}/review-form` | ReviewAPI → ReviewWritingFormResponseDTO → ReviewRemoteDataSource | schema 대조; Prod 명세에는 없음 | Data 준비 완료 / Domain·Presentation 미연결 / 실행 미검증 |
+| 2026-11-11 | Dev만 | GET `/api/v1/places/{placeId}/review-form` | ReviewAPI → DTO·RemoteDataSource → ReviewMapper·ReviewRepository → ReviewWritingReducer | `showWhen`·코스 문제 선택지·직접 입력 규칙 대조; Prod에는 호출하지 않음 | 연결됨 / 인증된 실행 미검증 |
+| 2026-11-11 | Dev만 | GET `/api/v1/courses/report-form` | CourseRemoteDataSource → CourseMapper·CourseRepository → CourseReportReducer | `FormResponse` 공유 schema와 복수 선택·기타 입력 계약 대조 | 연결됨 / 인증된 실행 미검증 |
+| 2026-11-11 | Dev만 | POST `/api/v1/courses/{courseId}/report` | CourseReportReducer → CourseRepository → CourseReportRequestDTO·CourseRemoteDataSource | `courseIssues`·`detail` JSON 및 빈 성공 응답 schema 대조 | 연결됨 / 실제 제출 미실행 |
 | 2026-11-02 | Dev·Prod | GET `/api/v1/places/clusters` | PlaceAPI → PlaceClusterQueryDTO·ResponseDTO → PlaceRemoteDataSource | schema 대조; 공개 GET·콤마 형식 유형 query | Data 준비 완료 / Domain·Presentation 미연결 / 실행 미검증 |
 | 2026-11-02 | Dev·Prod | GET `/api/v1/places` | Home 적용 필터 → PlaceListQuery → PlaceMapper → PlaceListQueryDTO → PlaceAPI | `practiceTypes` 콤마 query, 빈 배열 생략; 첫 페이지 조건을 페이지네이션에 유지 | 연결됨 / 실제 필터 결과·totalCount 검증 대기 (`QA-051`) |
 | 2026-11-02 | Dev·Prod | GET `/api/v1/places/search` | HomeSearchState → PlaceSearchQuery → PlaceMapper → PlaceSearchQueryDTO → PlaceAPI | `practiceTypes` 콤마 query, 빈 배열 생략; 검색 진입 시 적용 필터 snapshot 사용 | 요청 경로 반영 / 실제 검색 실행 검증 대기 (`QA-051`) |
 
-2026-11-02 명세 대조에서 Dev에만 `GET /api/v1/places/{placeId}/review-form`이 존재한다. Dev 비추천 작성·수정은 `courseIssues`를 요구하고, 상세의 `difficulty`·`congestion`은 null일 수 있다. 현행 앱은 해당 사유 필드 없이 요청하고 두 응답 필드를 non-optional로 해석한다. 후기 요약의 `levelReviewCount`도 Dev에서는 난이도를 평가한 후기만 센다. 후기 폼의 Data 경로만 준비했으며 기존 작성·수정·상세 계약은 변경하지 않았다. [TODO](../TODO.md)의 `API-004` 호환성 차단은 유지한다.
+2026-11-11 Dev 후기 작성·수정은 서버 폼을 조회하고 기존 두 페이지에 문항·선택지·입력 제약을 반영한다. 추천은 난이도·혼잡도, 비추천은 코스 문제 1개 이상과 선택에 따른 직접 입력을 검증한다. 비추천 사유는 후기 POST·PUT의 `courseIssues`·`courseIssueDetail`로만 보내며, 별도 코스 신고를 중복 제출하지 않고 공개 코스 상세에도 표시하지 않는다. 본인 후기 수정은 기존 상세 응답의 저장 값으로 초기화한다. Prod는 폼 미제공이 확인되어 기존 흐름을 유지하고, Dev의 폼 조회 실패 시 Prod 계약이나 하드코딩 폼으로 대체하지 않는다. [TODO](../TODO.md)의 `API-004` 호환성 차단은 유지한다.
 
-Dev `OnboardingFormResponse.steps`와 `ReviewFormResponse.steps`가 같은 `Step`·`Question` schema를 참조하지만 온보딩에 필요한 `skippable`·`maxSelect`·`exclusive` 등이 명세에서 빠져 있다. 인증된 실제 폼 응답 없이 서버 구현 오류로 확정하지 않는다. 그 외 endpoint의 정규화한 operation 정의와 공유 schema는 두 서버 간 동일했다. 두 서버에 공통인 신규 온보딩·닉네임·정렬·필터 기능은 이번 환경 전환에서 연결하지 않았다.
+Dev Debug 빌드와 후기·코스 신고 합성 DTO XCTest 4건을 통과했다. 실제 인증 응답과 제출은 검증하지 않았다.
+
+2026-11-02 조회 당시 Dev `OnboardingFormResponse.steps`와 `ReviewFormResponse.steps`가 같은 `Step`·`Question` schema를 참조해 온보딩에 필요한 `skippable`·`maxSelect`·`exclusive` 등이 명세에서 빠져 있었다. 2026-11-11 조회한 후기 작성 폼은 별도의 `ReviewFormStep`·`ReviewFormQuestion`을 참조한다. 온보딩 실제 응답과 누락 규칙은 별도 확인 대상이다.
 
 후속 승인으로 온보딩은 실제 응답 확보 전 Swagger 기준 연결을 구현하고, 인증된 응답 확인은 앱 로그인 뒤로 이동했다. 폼의 문구·순서·선택지·필수·조건부 노출·단독 선택·후속 생략·상한·추가 정보 건너뛰기를 연결했다. DTO는 Dev 명세에 없는 속성도 수신할 수 있지만 `skippable` 또는 순위 문항의 `maxSelect` 등 해석에 필요한 값이 실제로 없거나 코드·제출 제약이 호환되지 않으면 오류·재시도 화면을 표시한다. 기존 하드코딩 폼과 다른 환경의 값으로 대체하지 않는다. 레벨 계산·기존 제출 형식·초안 저장 형식은 유지한다. 정상 응답 fixture는 아직 없으며 합성 입력 검증을 실제 서버 검증으로 간주하지 않는다.
 
