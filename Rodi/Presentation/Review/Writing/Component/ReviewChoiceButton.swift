@@ -17,6 +17,7 @@ struct ReviewChoiceButton: View {
                     RoundedRectangle(cornerRadius: 8)
                         .stroke(isSelected ? RodiColor.primary : RodiColor.gray300, lineWidth: 1)
                 }
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .frame(maxWidth: .infinity, minHeight: 44)

@@ -55,6 +55,7 @@ final class CourseReviewReducerTests: XCTestCase {
 }
 
 private struct ReviewRepositoryStub: ReviewRepository {
+    func fetchWritingForm(placeID: Int) async throws(NetworkError) -> ReviewWritingForm { fatalError() }
     func create(placeID: Int, submission: PlaceReviewSubmission) async throws(NetworkError) {}
     func fetchDetail(reviewID: Int) async throws(NetworkError) -> ReviewDetail { fatalError() }
     func update(reviewID: Int, submission: PlaceReviewSubmission) async throws(NetworkError) {}

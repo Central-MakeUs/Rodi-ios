@@ -88,11 +88,13 @@ enum ReviewPracticeMethod: String, CaseIterable, Equatable, Hashable {
 
 struct PlaceReviewSubmission: Equatable {
     let isRecommended: Bool
-    let difficulty: ReviewDifficulty
-    let congestion: ReviewCongestion
+    let difficulty: ReviewDifficulty?
+    let congestion: ReviewCongestion?
     let practiceMethod: ReviewPracticeMethod
     let content: String?
     let caution: String?
+    let courseIssues: [String]?
+    let courseIssueDetail: String?
 }
 
 struct ReviewDetail: Equatable {
@@ -100,8 +102,10 @@ struct ReviewDetail: Equatable {
     let placeID: Int
     let placeName: String
     let isRecommended: Bool
-    let difficulty: ReviewDifficulty
-    let congestion: ReviewCongestion
+    let difficulty: ReviewDifficulty?
+    let congestion: ReviewCongestion?
+    let courseIssues: [String]?
+    let courseIssueDetail: String?
     let practiceMethod: ReviewPracticeMethod
     let content: String?
     let caution: String?

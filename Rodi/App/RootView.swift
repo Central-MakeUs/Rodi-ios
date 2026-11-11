@@ -25,7 +25,8 @@ struct RootView: View {
         let reviewFlowReducer = ReviewFlowFactory.make(
             placeRepository: dependencies.placeRepository,
             practiceRepository: dependencies.practiceRepository,
-            reviewRepository: dependencies.reviewRepository
+            reviewRepository: dependencies.reviewRepository,
+            usesServerReviewForm: AppEnvironment.current == .development
         )
 
         let drivePracticeReducer = DrivePracticeReducer(

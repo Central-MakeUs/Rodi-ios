@@ -47,9 +47,23 @@ private extension ReviewView {
             switch state.writing.page {
             case .hidden:
                 EmptyView()
-            case .loading:
-                ProgressView()
-                    .tint(RodiColor.primary)
+            case .loading, .loadFailed:
+                VStack {
+                    ReviewFormHeader(
+                        title: "후기 남기기",
+                        showsBack: false,
+                        closeAction: { send(.writing(.closeTapped)) }
+                    )
+                    Spacer()
+                    if case .loadFailed(let message) = state.writing.page {
+                        RodiRetryView(message: message) { send(.writing(.retryLoading)) }
+                            .padding(.horizontal, 16)
+                    } else {
+                        ProgressView().tint(RodiColor.primary)
+                            .accessibilityLabel("후기 폼을 불러오는 중")
+                    }
+                    Spacer()
+                }
             case .first:
                 ReviewFormPageOneView(
                     state: state.writing,

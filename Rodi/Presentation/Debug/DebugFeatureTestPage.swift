@@ -13,6 +13,7 @@ struct DebugFeatureTestPage: View {
     @State private var isHardWithdrawalConfirmationPresented = false
     @State private var isMandatoryUpdateTestPresented = false
     @State private var isNicknamePreviewPresented = false
+    @State private var isReviewWritingPreviewPresented = false
     @State private var isHardWithdrawalSubmitting = false
     @State private var hardWithdrawalErrorMessage: String?
 
@@ -58,6 +59,9 @@ struct DebugFeatureTestPage: View {
                     reviewPromptAction()
                     dismiss()
                 }
+                testButton(title: "후기 작성 폼 미리보기 (서버 저장 없음)") {
+                    isReviewWritingPreviewPresented = true
+                }
                 testButton(title: "등록한 코스") {
                     isMyCoursesPreviewPresented = true
                 }
@@ -101,6 +105,9 @@ struct DebugFeatureTestPage: View {
         }
         .fullScreenCover(isPresented: $isNicknamePreviewPresented) {
             DebugNicknamePreviewPage()
+        }
+        .fullScreenCover(isPresented: $isReviewWritingPreviewPresented) {
+            DebugReviewWritingPreviewPage()
         }
         .overlay {
             ZStack {

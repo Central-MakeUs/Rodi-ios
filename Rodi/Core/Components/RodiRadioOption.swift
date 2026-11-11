@@ -3,6 +3,7 @@ import SwiftUI
 struct RodiRadioOption: View {
     let title: String
     let isSelected: Bool
+    var labelTypography: RodiTypography = .body1Medium
     let action: () -> Void
 
     var body: some View {
@@ -26,14 +27,13 @@ struct RodiRadioOption: View {
                 .frame(width: 24, height: 24)
 
                 Text(title)
-                    .rodiTypography(.body1Medium)
+                    .rodiTypography(labelTypography)
                     .foregroundStyle(RodiColor.black)
             }
-            .frame(maxWidth: .infinity, minHeight: 24, alignment: .leading)
+            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
         .accessibilityLabel(title)
         .accessibilityValue(isSelected ? "선택됨" : "선택 안 됨")
         .accessibilityAddTraits(isSelected ? .isSelected : [])

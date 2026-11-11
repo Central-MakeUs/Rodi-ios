@@ -11,14 +11,18 @@ enum ReviewFlowFactory {
     static func make(
         placeRepository: PlaceRepository,
         practiceRepository: PracticeRepository,
-        reviewRepository: ReviewRepository
+        reviewRepository: ReviewRepository,
+        usesServerReviewForm: Bool
     ) -> ReviewFlowCoordinatorReducer {
         let reviewReducer = ReviewReducer(
             promptService: ReviewPromptService(
                 placeRepository: placeRepository,
                 practiceRepository: practiceRepository
             ),
-            writingService: ReviewWritingService(reviewRepository: reviewRepository),
+            writingService: ReviewWritingService(
+                reviewRepository: reviewRepository,
+                usesServerForm: usesServerReviewForm
+            ),
             skipReasonService: ReviewSkipReasonService(practiceRepository: practiceRepository)
         )
 

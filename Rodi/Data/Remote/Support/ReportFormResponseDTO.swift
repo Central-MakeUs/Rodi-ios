@@ -1,12 +1,12 @@
 import Foundation
 
-struct ReviewReportFormResponseDTO: Decodable {
+struct ReportFormResponseDTO: Decodable {
     let questionID: String
     let type: String
     let title: String
     let description: String?
     let required: Bool
-    let options: [ReviewReportOptionDTO]
+    let options: [FormOptionDTO]
 
     private enum CodingKeys: String, CodingKey {
         case questionID = "questionId"
@@ -18,7 +18,7 @@ struct ReviewReportFormResponseDTO: Decodable {
     }
 }
 
-struct ReviewReportOptionDTO: Decodable {
+struct FormOptionDTO: Decodable {
     let code: String
     let label: String
     let order: Int

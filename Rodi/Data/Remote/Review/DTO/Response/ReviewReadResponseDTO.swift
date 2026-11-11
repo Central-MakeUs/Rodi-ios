@@ -5,8 +5,10 @@ struct ReviewDetailResponseDTO: Decodable {
     let placeId: Int64
     let placeName: String
     let isRecommended: Bool
-    let difficulty: String
-    let congestion: String
+    let difficulty: String?
+    let congestion: String?
+    let courseIssues: [String]?
+    let courseIssueDetail: String?
     let practiceMethod: String
     let content: String?
     let caution: String?

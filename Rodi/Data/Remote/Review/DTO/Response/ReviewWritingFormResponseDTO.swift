@@ -21,16 +21,7 @@ struct ReviewWritingFormQuestionDTO: Decodable {
     let placeholder: String?
     let maxLength: Int?
     let showWhen: ReviewWritingFormConditionDTO?
-    let options: [ReviewWritingFormOptionDTO]?
-}
-
-struct ReviewWritingFormOptionDTO: Decodable {
-    let code: String
-    let label: String
-    let order: Int
-    let requiresTextInput: Bool
-    let textInputPlaceholder: String?
-    let textInputMaxLength: Int?
+    let options: [FormOptionDTO]?
 }
 
 struct ReviewWritingFormConditionDTO: Decodable {
