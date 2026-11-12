@@ -36,6 +36,9 @@ final class HomeSearchReducerTests: XCTestCase {
 }
 
 private struct PlaceRepositoryStub: PlaceRepository {
+    func fetchClusters(query: PlaceClusterQuery) async throws(NetworkError) -> PlaceClusterResult {
+        .init(places: [], levels: [])
+    }
     func fetchCoordinates() async throws(NetworkError) -> [PlaceCoordinate] { [] }
     func fetchPlaces(query: PlaceListQuery, access: PlaceListAccess) async throws(NetworkError) -> PlaceCursorPage { .init(items: [], hasNext: false, nextCursor: nil, totalCount: 0) }
     func searchPlaces(query: PlaceSearchQuery) async throws(NetworkError) -> PlaceCursorPage { .init(items: [], hasNext: false, nextCursor: nil, totalCount: 0) }

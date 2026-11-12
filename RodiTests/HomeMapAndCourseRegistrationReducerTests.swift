@@ -3,6 +3,122 @@ import XCTest
 
 @MainActor
 final class HomeMapAndCourseRegistrationReducerTests: XCTestCase {
+    private let clusterViewport = PlaceViewport(
+        southWestLatitude: 37, southWestLongitude: 126,
+        northEastLatitude: 38, northEastLongitude: 127
+    )
+
+    func testClusterAndSortTagRequestContracts() throws {
+        let filtered = PlaceAPI.clusters(PlaceMapper.clusterQuery(from: .init(
+            viewport: clusterViewport, practiceTypes: [.parking]
+        )))
+        XCTAssertEqual(filtered.path, "/api/v1/places/clusters")
+        XCTAssertFalse(filtered.requiresAuthentication)
+        XCTAssertEqual(filtered.parameters?["practiceTypes"] as? String, "PARKING")
+        let unfiltered = PlaceAPI.clusters(PlaceMapper.clusterQuery(from: .init(
+            viewport: clusterViewport, practiceTypes: []
+        )))
+        XCTAssertNil(unfiltered.parameters?["practiceTypes"])
+
+        for tags: [PlacePracticeType] in [[.parking], []] {
+            let api = MemberAPI.updateSortTags(MemberMapper.sortTagsRequest(from: tags))
+            XCTAssertEqual(api.path, "/api/v1/members/me/sort-tags")
+            XCTAssertEqual(api.method.rawValue, "PUT")
+            XCTAssertTrue(api.requiresAuthentication)
+            let json = try JSONDecoder().decode([String: [String]].self, from: XCTUnwrap(api.body))
+            XCTAssertEqual(json, ["sortTags": tags.map(\.rawValue)])
+        }
+    }
+
+    func testServerMarkerLevelsBoundsAndStaleResponses() {
+        let reducer = HomeMapReducer(dependencies: .init(
+            placeRepository: HomeMapPlaceRepositoryStub(), hasActiveSession: { false }
+        ))
+        var state = HomeMapState()
+        let result = PlaceClusterResult(
+            places: [.init(id: 7, type: .parking, name: "주차장", address: "서울", latitude: 37.5, longitude: 126.5)],
+            levels: [
+                .init(minLongitudeSpan: 0, maxLongitudeSpan: 1, clusters: [], placeIDs: [7]),
+                .init(minLongitudeSpan: 1, maxLongitudeSpan: nil, clusters: [
+                    .init(latitude: 37.5, longitude: 126.5, count: 2, bounds: clusterViewport)
+                ], placeIDs: [])
+            ]
+        )
+        XCTAssertEqual(result.levelIndex(for: 0.999), 0)
+        XCTAssertEqual(result.levelIndex(for: 1), 1)
+        XCTAssertEqual(result.levelIndex(for: 100), 1)
+        let query = PlaceClusterQuery(viewport: clusterViewport, practiceTypes: [.parking])
+        _ = reducer.reduce(&state, with: .clusterQueryRequested(query, listRevision: 1))
+        _ = reducer.reduce(&state, with: .clusterQueryRequested(query, listRevision: 2))
+        _ = reducer.reduce(&state, with: .serviceOutput(.clustersLoaded(result, revision: 1)))
+        XCTAssertTrue(state.markers.isEmpty)
+        _ = reducer.reduce(&state, with: .serviceOutput(.clustersLoaded(result, revision: 2)))
+        XCTAssertEqual(state.markers.map(\.kind), [.cluster])
+        guard let markerID = state.markers.first?.id else { return XCTFail("서버 클러스터가 필요합니다.") }
+        _ = reducer.reduce(&state, with: .markerTapped(markerID))
+        guard case let .cluster(coordinates) = state.cameraFocus else { return XCTFail("범위 맞춤이 필요합니다.") }
+        XCTAssertEqual(coordinates, [
+            .init(latitude: 37, longitude: 126), .init(latitude: 38, longitude: 127)
+        ])
+        let closer = PlaceViewport(southWestLatitude: 37.4, southWestLongitude: 126.4,
+                                   northEastLatitude: 37.6, northEastLongitude: 126.6)
+        _ = reducer.reduce(&state, with: .viewportChanged(center: coordinates[0], zoomLevel: 12,
+                                                         viewport: closer, isUserInitiated: true))
+        XCTAssertEqual(state.clusterRequestRevision, 2)
+        XCTAssertEqual(state.markers.map(\.id), ["parking-7"])
+        _ = reducer.reduce(&state, with: .clusterQueryRequested(query, listRevision: 3))
+        _ = reducer.reduce(&state, with: .serviceOutput(.clusterLoadFailed(revision: 3)))
+        XCTAssertEqual(state.markers.map(\.id), ["parking-7"])
+        XCTAssertTrue(state.isResearchButtonVisible)
+    }
+
+    func testFirstValidViewportUsesSameFilterForMapAndList() async {
+        let reducer = RecommendListBottomSheetReducer(
+            placeRepository: HomeMapPlaceRepositoryStub(), hasActiveSession: { false }
+        )
+        var state = RecommendListBottomSheetReducer.State()
+        state.practiceTypes = [.parking]
+        let center = RodiCoordinate(latitude: 37.5, longitude: 126.5)
+        let invalid = PlaceViewport(southWestLatitude: 38, southWestLongitude: 126,
+                                    northEastLatitude: 37, northEastLongitude: 127)
+        _ = reducer.reduce(&state, with: .viewportChanged(viewport: invalid, center: center, isUserInitiated: false))
+        XCTAssertEqual(state.requestRevision, 0)
+        let effect = reducer.reduce(&state, with: .viewportChanged(
+            viewport: clusterViewport, center: center, isUserInitiated: false
+        ))
+        XCTAssertEqual(state.requestedPracticeTypes, [.parking])
+        guard case let .run(_, task) = effect.caseOf else { return XCTFail("첫 페이지 요청이 필요합니다.") }
+        var query: PlaceClusterQuery?
+        await task { action in
+            if case let .delegate(.firstPageRequested(snapshot, _)) = action { query = snapshot }
+        }
+        XCTAssertEqual(query, .init(viewport: clusterViewport, practiceTypes: [.parking]))
+    }
+
+    func testRegionReloadUsesSettledViewportRatherThanPreviousViewport() async {
+        let reducer = RecommendListBottomSheetReducer(
+            placeRepository: HomeMapPlaceRepositoryStub(), hasActiveSession: { false }
+        )
+        var state = RecommendListBottomSheetReducer.State()
+        let origin = RodiCoordinate(latitude: 37.5, longitude: 126.5)
+        state.latestViewport = .init(southWestLatitude: 34, southWestLongitude: 128,
+                                     northEastLatitude: 35, northEastLongitude: 129)
+        _ = reducer.reduce(&state, with: .regionViewportReloadStarted(origin: origin))
+        XCTAssertEqual(state.firstPageRevision, 0)
+        let effect = reducer.reduce(&state, with: .reloadAfterRegionViewport(
+            viewport: clusterViewport, origin: origin
+        ))
+        guard case let .run(_, task) = effect.caseOf else { return XCTFail("이동 완료 후 조회가 필요합니다.") }
+        var query: PlaceClusterQuery?
+        await task { action in
+            if case let .delegate(.firstPageRequested(snapshot, _)) = action { query = snapshot }
+        }
+        XCTAssertEqual(query?.viewport, clusterViewport)
+        guard case .none = reducer.reduce(&state, with: .reloadAfterRegionViewport(
+            viewport: clusterViewport, origin: origin
+        )).caseOf else { return XCTFail("같은 이동 완료 신호를 중복 처리하면 안 됩니다.") }
+    }
+
     func testUserViewportChangeDuringInitialLoadingShowsResearchButtonBeforeCancelling() async {
         let reducer = RecommendListBottomSheetReducer(
             placeRepository: HomeMapPlaceRepositoryStub(),
@@ -71,7 +187,6 @@ final class HomeMapAndCourseRegistrationReducerTests: XCTestCase {
         let item = RodiCourseItem(placeCoordinate: place)
         let marker = try! XCTUnwrap(item.mapMarker)
         var state = HomeMapState()
-        state.mapItems = [item]
         state.markers = [marker]
         state.cameraTarget = .southKoreaCenter
         state.cameraFocus = .koreaOverview
@@ -222,6 +337,9 @@ private extension HomeMapAndCourseRegistrationReducerTests {
 }
 
 private struct HomeMapPlaceRepositoryStub: PlaceRepository {
+    func fetchClusters(query: PlaceClusterQuery) async throws(NetworkError) -> PlaceClusterResult {
+        .init(places: [], levels: [])
+    }
     func fetchCoordinates() async throws(NetworkError) -> [PlaceCoordinate] { [] }
     func fetchPlaces(query: PlaceListQuery, access: PlaceListAccess) async throws(NetworkError) -> PlaceCursorPage { .init(items: [], hasNext: false, nextCursor: nil, totalCount: 0) }
     func searchPlaces(query: PlaceSearchQuery) async throws(NetworkError) -> PlaceCursorPage { .init(items: [], hasNext: false, nextCursor: nil, totalCount: 0) }
