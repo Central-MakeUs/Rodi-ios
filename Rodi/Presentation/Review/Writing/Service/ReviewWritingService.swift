@@ -1,6 +1,8 @@
 import Foundation
 
 protocol ReviewWritingServicing {
+    var usesServerForm: Bool { get }
+    func fetchWritingForm(placeID: Int) async throws -> ReviewWritingForm
     func fetchReviewDetail(reviewID: Int) async throws -> ReviewDetail
     func createReview(placeID: Int, submission: PlaceReviewSubmission) async throws
     func updateReview(reviewID: Int, submission: PlaceReviewSubmission) async throws
@@ -8,9 +10,15 @@ protocol ReviewWritingServicing {
 
 struct ReviewWritingService: ReviewWritingServicing {
     private let reviewRepository: ReviewRepository
+    let usesServerForm: Bool
 
-    init(reviewRepository: ReviewRepository) {
+    init(reviewRepository: ReviewRepository, usesServerForm: Bool) {
         self.reviewRepository = reviewRepository
+        self.usesServerForm = usesServerForm
+    }
+
+    func fetchWritingForm(placeID: Int) async throws -> ReviewWritingForm {
+        try await reviewRepository.fetchWritingForm(placeID: placeID)
     }
 
     func fetchReviewDetail(reviewID: Int) async throws -> ReviewDetail {

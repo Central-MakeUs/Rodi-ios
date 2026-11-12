@@ -60,6 +60,7 @@ struct ReviewScaleSelector<Value: CaseIterable & ReviewScaleOption>: View where
     Value.AllCases: RandomAccessCollection, Value.AllCases.Element == Value {
     let title: String
     let selected: Value?
+    var serverOptions: [(value: Value, label: String)]?
     let action: (Value) -> Void
 
     var body: some View {
@@ -75,15 +76,15 @@ struct ReviewScaleSelector<Value: CaseIterable & ReviewScaleOption>: View where
 // MARK: - Component
 private extension ReviewScaleSelector {
 
-    var options: [Value] {
-        Array(Value.allCases)
+    var options: [(value: Value, label: String)] {
+        serverOptions ?? Value.allCases.map { ($0, $0.title) }
     }
 
     var scaleTrack: some View {
         ReviewScaleTrackLayout {
             ForEach(0..<ReviewScaleMetrics.maximumOptionCount, id: \.self) { index in
                 if index < options.count {
-                    scaleOption(value: options[index], index: index)
+                    scaleOption(value: options[index].value, label: options[index].label, index: index)
                 } else {
                     Color.clear
                         .frame(maxWidth: .infinity)
@@ -93,7 +94,7 @@ private extension ReviewScaleSelector {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    func scaleOption(value: Value, index: Int) -> some View {
+    func scaleOption(value: Value, label: String, index: Int) -> some View {
         Button(action: { action(value) }) {
             ZStack(alignment: .top) {
                 HStack(spacing: 0) {
@@ -112,7 +113,7 @@ private extension ReviewScaleSelector {
                         }
                         .frame(width: ReviewScaleMetrics.indicatorSize, height: ReviewScaleMetrics.indicatorSize)
 
-                    Text(value.title)
+                    Text(label)
                         .rodiTypography(.caption1Medium)
                         .foregroundStyle(RodiColor.gray800)
                         .multilineTextAlignment(.center)
@@ -124,7 +125,7 @@ private extension ReviewScaleSelector {
         }
         .buttonStyle(.plain)
         .frame(minHeight: 44)
-        .accessibilityLabel(value.title)
+        .accessibilityLabel(label)
         .accessibilityValue(selected == value ? "선택됨" : "선택 안 됨")
         .accessibilityAddTraits(selected == value ? .isSelected : [])
     }

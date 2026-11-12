@@ -6,12 +6,13 @@ enum CourseAPI: TargetType {
     case register(CourseRegisterRequestDTO)
     case myCourses(MyCourseListQueryDTO)
     case deleteMyCourse(courseID: Int64)
+    case reportForm
+    case report(courseID: Int64, request: CourseReportRequestDTO)
 
     var method: HTTPMethod {
         switch self {
-        case .registrationForm: .get
-        case .register: .post
-        case .myCourses: .get
+        case .registrationForm, .myCourses, .reportForm: .get
+        case .register, .report: .post
         case .deleteMyCourse: .delete
         }
     }
@@ -22,6 +23,8 @@ enum CourseAPI: TargetType {
         case .register: "/api/v1/courses"
         case .myCourses: "/api/v1/members/me/courses"
         case .deleteMyCourse(let courseID): "/api/v1/courses/\(courseID)"
+        case .reportForm: "/api/v1/courses/report-form"
+        case .report(let courseID, _): "/api/v1/courses/\(courseID)/report"
         }
     }
 
@@ -45,16 +48,16 @@ enum CourseAPI: TargetType {
 
     var body: Data? {
         switch self {
-        case .registrationForm: nil
+        case .registrationForm, .myCourses, .deleteMyCourse, .reportForm: nil
         case .register(let request): requestToBody(request)
-        case .myCourses, .deleteMyCourse: nil
+        case .report(_, let request): requestToBody(request)
         }
     }
 
     var encodingType: EncodingType {
         switch self {
-        case .registrationForm, .myCourses, .deleteMyCourse: .url
-        case .register: .json
+        case .registrationForm, .myCourses, .deleteMyCourse, .reportForm: .url
+        case .register, .report: .json
         }
     }
 

@@ -31,10 +31,10 @@ struct HomePracticeFilterView: View {
                         }
                     }
 
-                    if selection.showsPracticeTypeOptions {
+                    if selection.showsPracticeTypeOptions, let category = selection.category {
                         filterSection(title: "연습유형") {
                             RodiChipFlow {
-                                ForEach(selection.category.options) { option in
+                                ForEach(category.options) { option in
                                     RodiSelectionChip(
                                         title: option.title,
                                         isSelected: selection.selectedTypes.contains(option.type),

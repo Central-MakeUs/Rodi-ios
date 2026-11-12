@@ -1,22 +1,22 @@
 # RODI Architecture
 
 이 문서는 RODI의 레이어, MVI, feature 배치와 책임 경계를 설명하며, 구체적인 화면 수치나 일시적인 구현 상태는 현재 코드에서 확인한다.
-문서와 코드가 다르면 현재 코드를 기준으로 판단하고 같은 작업에서 문서를 바로잡는다.
+현재 동작은 live code로 확인한다. 이 문서가 정의한 의도와 코드가 다르면 구현 결함인지 문서 drift인지 먼저 판정하고, 코드를 현재 설계의 근거로 자동 승격하지 않는다.
 
 ## Layer Structure
 
 현재 top-level은 `App`, `Core`, `Presentation`, `Data`, `Domain`, `Resources`이며 세부 경로는 live filesystem에서 확인한다.
 
-각 레이어의 상세 MUST/MUST NOT과 감사 기준은 아래 Layer 문서를 원본으로 사용한다. 이 문서는 전체 의존성 방향과 공통 원칙만 유지하며, 같은 규칙을 Layer 문서에 반복하지 않는다.
+레이어별 고유 계약도 이 문서에서 관리한다. 세부 경로와 현재 구현은 live filesystem에서 확인한다.
 
-| Layer | 목적 | 상세 규칙 |
-| --- | --- | --- |
-| App | 앱 조립과 시작 수명 관리 | [Layers/APP.md](Layers/APP.md) |
-| Core | 여러 feature가 공유하는 기술 기반 | [Layers/CORE.md](Layers/CORE.md) |
-| Data | 외부·로컬 데이터를 Domain 계약으로 변환 | [Layers/DATA.md](Layers/DATA.md) |
-| Domain | 제품 언어와 비즈니스 계약 유지 | [Layers/DOMAIN.md](Layers/DOMAIN.md) |
-| Presentation | 화면 렌더링·사용자 상호작용·상태 전이 | [Layers/PRESENTATION.md](Layers/PRESENTATION.md) |
-| Resources | 실행 리소스 관리 | [Layers/RESOURCES.md](Layers/RESOURCES.md) |
+| Layer | 목적 |
+| --- | --- |
+| App | 앱 조립과 시작 수명 관리 |
+| Core | 여러 feature가 공유하는 기술 기반 |
+| Data | 외부·로컬 데이터를 Domain 계약으로 변환 |
+| Domain | 제품 언어와 비즈니스 계약 유지 |
+| Presentation | 화면 렌더링·사용자 상호작용·상태 전이 |
+| Resources | 실행 리소스 관리 |
 
 ### Global Dependency Direction
 
@@ -34,6 +34,80 @@ Resources <──────── App and feature rendering
 - MUST keep `AppDependencies` as the one composition point that knows both Data implementations and Domain contracts.
 - MUST NOT create a dependency cycle between top-level layers.
 - SHOULD move cross-feature code to Core only after at least two top-level features have a real shared need.
+
+## Layer Contracts
+
+### App
+
+- MUST `RodiApp`, AppDelegate, Root, scene lifecycle과 `AppDependencies` 조립을 App에 둔다.
+- MUST SDK·폰트·logging 초기화 순서와 환경 분기를 App에서 명시하고, 동일 dependency graph를 feature에 생성자로 전달한다.
+- MUST Root가 인증·온보딩·메인 route와 feature root 조립만 소유하게 한다.
+- SHOULD lifecycle event를 typed Action으로 전달하고, feature async work·취소·재시도는 해당 Reducer 또는 Service가 소유하게 한다.
+- MUST NOT Feature UI·세부 상태 전이·DTO·Mapper·제품 I/O를 App에 둔다.
+- MUST NOT lifecycle callback에 임의의 `Task`를 추가해 feature I/O를 직접 실행하거나 feature마다 전역 graph를 만든다.
+
+### Core
+
+- MUST `MVICore`, 공통 Network·Logger·Coordinator·design-system Component와 여러 Feature가 관찰하는 system monitor만 Core에 둔다.
+- MUST 공통 Component를 두 개 이상의 top-level Feature가 실제로 사용하는지 확인한다.
+- MUST Core API가 제품 Feature의 구체 타입 대신 일반 typed value 또는 protocol을 사용하게 한다.
+- MUST NOT 코스·후기·회원·연습기록 정책, Feature route 또는 단일 Feature 전용 Component·Service를 Core에 둔다.
+- MUST NOT Core가 Presentation·Data의 구체 Feature 타입을 import하거나 App lifecycle 설정을 소유하게 한다.
+- MUST `Rodi/Core/Architecture/MVICore`, `Rodi/Core/Coordinator`, `Rodi/Core/Network` 변경에 [AGENTS.md](../../AGENTS.md)의 보호 영역 승인을 적용한다.
+
+### Data
+
+- MUST API Target, Request·Response DTO, RemoteDataSource, Mapper와 RepositoryImpl을 resource 경계에 둔다.
+- MUST DTO의 optional, wrapper, raw value, 숫자 타입, cursor와 인증 요구를 Swagger·실제 응답에 맞춘다.
+- MUST RepositoryImpl이 Domain 입력을 wire DTO로 바꾸고, 외부 결과를 Domain 값 또는 typed error로 변환해 반환하게 한다.
+- MUST 공통 응답 wrapper와 서버 날짜 parsing을 기존 `Data/Remote/Support`, `Data/RepositoryImpl/Support` 경계에서 일관되게 처리한다.
+- MUST `Data/Local`에는 payload·key·encoding 같은 저장 표현만 두고, 화면 session·route·복원 정책은 Feature가 소유하게 한다.
+- MUST NOT DTO·DataSource·NetworkManager·SDK 타입을 Domain 또는 Presentation에 노출한다.
+- MUST NOT Swagger가 제공하지 않은 화면 문구·색상·layout을 DTO에 추가한다. 서버 제공 label·placeholder·form metadata는 wire format과 제품 의미의 경계를 명시한다.
+- MUST API 변경 기록과 미해결 계약을 [API_SWAGGER.md](../API/API_SWAGGER.md)와 [TODO.md](../TODO.md)의 해당 ID에 반영한다.
+
+### Domain
+
+- MUST 앱에서 사용하는 제품 entity, value·query·submission, repository protocol과 순수 policy를 Domain에 둔다.
+- MUST Repository protocol을 endpoint가 아니라 앱 기능 관점의 계약으로 정의한다.
+- SHOULD 서버 field 이름과 제품 의미가 다르면 Mapper에서 바꾸고 Domain 이름을 raw field에 맞추지 않는다.
+- SHOULD 독립적으로 재사용되는 제품 규칙이 확인된 경우에만 UseCase 또는 Policy를 추가한다.
+- MUST NOT DTO, HTTP status·wrapper, DataSource·RepositoryImpl, SwiftUI·UIKit·외부 SDK를 Domain에 노출한다.
+- MUST NOT 화면 문구·색상·padding·loading·navigation route를 Domain에 둔다. 서버 form metadata가 제품 입력 계약에 필요하면 wire field와 제품 정책의 소유 경계를 명시한다.
+
+### Presentation
+
+- MUST View가 State를 렌더링하고 사용자·runtime event를 Action으로 전달하게 한다.
+- MUST Reducer가 상태 전이, Effect orchestration, 취소·중복 요청·stale response 판단을 소유하게 한다.
+- MUST Feature Service·Adapter가 Store·Reducer State·SwiftUI View를 소유하지 않게 한다.
+- MUST child가 typed Delegate로 필요한 결과만 부모에 전달하고 sibling State·Action에 직접 접근하지 않게 한다.
+- MUST selectable row·tile·card·container의 전체 영역을 같은 primary action에 연결한다.
+- MUST NOT DTO·NetworkManager·API Target·DataSource·RepositoryImpl을 View 또는 Reducer에서 직접 사용한다.
+- MUST NOT View `body`나 View-local `Task`에 lifecycle-bound I/O와 business decision을 숨긴다.
+- MUST NOT 파일 길이만 줄이기 위한 폴더·Service·child Reducer를 만든다.
+
+### 서버 연결 전 UI 구현
+
+- MUST 실제 제품 화면에서 기존 Domain Entity와 기능 계약을 먼저 확인하고, 새 Entity에는 확정된 제품 개념만 표현한다.
+- MUST NOT 미확정 서버 응답을 추측해 Entity, DTO 또는 endpoint를 미리 만든다.
+- SHOULD 단순 화면에는 mock Entity를 직접 주입하고, 조회·로딩·실패·재시도 상태가 필요하면 기존 Repository 계약의 mock 구현을 주입한다.
+- MUST 날짜 표시, 상대 시간, badge 색상, image 이름 같은 표시 변환을 Presentation에서 처리한다.
+- MUST Entity와 화면 모델 사이에 실제 변환 책임이 있을 때만 Presentation Mapper를 둔다.
+- MUST NOT 변환할 값이 없는데 형식적으로 Mapper를 추가한다.
+- MUST 실제 API 연결 시 Data의 DTO→Entity Mapper와 Repository 구현을 연결하고, 서버 연결 여부와 무관한 화면 계약을 유지한다.
+- MUST 임시 디자인 실험에는 Presentation 표시 모델을 사용할 수 있으며, 실험만을 위해 제품 Domain Entity를 추가하지 않는다.
+- MUST 서버 연결 요청이 없는 구현 결과에 mock data 사용 여부를 명시하고, 이미 연결된 API를 임의로 mock으로 교체하지 않는다.
+
+기본 데이터 흐름은 `mock Entity → 필요한 표시 변환 → 화면`이다. 서버가 연결되면 앞단에 `DTO → Data Mapper → Entity`가 추가된다. Domain은 서버 표현과 독립적인 제품 계약이며, 제품 요구가 바뀌면 함께 변경될 수 있다.
+
+### Resources
+
+- MUST asset catalog, font, plist와 localization을 실제 target membership과 함께 관리한다.
+- MUST asset 이름을 화면 위치가 아닌 안정적인 의미로 짓고, Figma export의 scale·투명 여백·rendering mode를 확인한다.
+- MUST app과 extension에 필요한 resource의 target 경계를 명확히 유지한다.
+- SHOULD 미사용·중복·과도한 image·font·framework를 release 전에 점검한다.
+- MUST NOT 제품 로직·Swift·Markdown·임시 screenshot·key·token을 Resources에 둔다.
+- MUST NOT Figma 임시 URL, 기기 bezel·status bar·home indicator를 앱 resource로 추가한다.
 
 ## Composition Root
 
@@ -125,7 +199,7 @@ Feature root는 진입 View·Reducer와 화면 조립만 담당한다. MUST NOT 
 - `SubView`: 단일 상위 View의 시각 분해가 필요할 때만 가장 가까운 화면 아래에 둔다. feature 최상위 분류로 사용하지 않으며, 작은 분해는 같은 파일의 `private extension`과 `// MARK: -`를 우선한다.
 - 독립 State·Action·Reducer 또는 행동 계약을 가진 영역은 `Section` 같은 범용 폴더 대신 `Review`, `Search`, `Map`처럼 실제 기능 이름의 직접 폴더로 둔다.
 
-다단계 Review flow는 `Flow/ReviewFlowFactory`가 Review 전용 reducer·service를 조립하고, `Flow/ReviewFlowCoordinatorReducer`가 전역 진입 출처·완료 갱신·Snackbar를 중재한다. `ReviewReducer`는 `Prompt`·`Writing`·`SkipReason` named child feature 전환과 최종 Delegate를 중재하고, `ReviewView`는 현재 child State만 전달해 조립한다. 앱 복귀 뒤 측정 continuation·방문 기록·후기 권유는 `PracticeTrackingReducer`의 child인 `PracticeReturnReducer`가 소유한다. Review와 PracticeTracking은 서로의 State를 읽지 않고 typed Delegate를 Root가 중계한다. Review root에는 `ReviewView`와 `ReviewReducer`만 둔다. 각 단계 화면은 named child feature의 `SubPage`, 공통 dialog·header·scaffold는 Review 또는 PracticeTracking `Component`, 표시 모델은 해당 named feature의 `Model`, repository를 사용하는 요청은 해당 named feature의 `Service`에 둔다. 빈 폴더를 미리 만들지 않는다. 한 feature 내부 공유는 가장 가까운 공통 부모의 `Shared`에 두고, 최소 두 top-level feature에서 재사용되는 것이 확인된 뒤 Core로 올린다.
+다단계 Review flow는 `Flow/ReviewFlowFactory`가 Review 전용 reducer·service를 조립하고, `Flow/ReviewFlowCoordinatorReducer`가 전역 진입 출처·완료 갱신·Snackbar를 중재한다. `ReviewReducer`는 `Prompt`·`Writing`·`SkipReason` named child feature 전환과 최종 Delegate를 중재하고, `ReviewView`는 현재 child State만 전달해 조립한다. 앱 복귀 뒤 측정 continuation·방문 기록·후기 권유는 `DrivePracticeReducer`가 직접 소유한다. Review와 DrivePractice는 서로의 State를 읽지 않고 typed Delegate를 Root가 중계한다. Review root에는 `ReviewView`와 `ReviewReducer`만 둔다. 각 단계 화면은 named child feature의 `SubPage`, 공통 dialog·header·scaffold는 Review 또는 DrivePractice `Component`, 표시 모델은 해당 named feature의 `Model`, repository를 사용하는 요청은 해당 named feature의 `Service`에 둔다. 빈 폴더를 미리 만들지 않는다. 한 feature 내부 공유는 가장 가까운 공통 부모의 `Shared`에 두고, 최소 두 top-level feature에서 재사용되는 것이 확인된 뒤 Core로 올린다.
 
 ## UIKit And Kakao Boundary
 
@@ -137,8 +211,7 @@ Feature root는 진입 View·Reducer와 화면 조립만 담당한다. MUST NOT 
 
 ## View And Reducer File Style
 
-큰 파일은 역할별 별도 `+Map.swift`, `+BottomSheet.swift`로 쪼개기보다 같은 파일의
-extension과 `// MARK: -`로 먼저 구획한다.
+하나의 책임 안에서 helper와 표시 구획만 길어진 파일은 같은 파일의 extension과 `// MARK: -`로 정리할 수 있다. 독립 State·Action·Effect·수명주기 또는 화면 계약이 확인된 책임은 extension으로 숨기지 않고 child reducer, SubPage, Component, Service 또는 Adapter로 분리한다. 파일 줄 수만으로 두 방식 중 하나를 선택하지 않는다.
 
 ```swift
 struct FeatureView: View { /* properties, body */ }
@@ -157,3 +230,37 @@ extension FeatureReducer { }
 ```
 
 작은 파일에 extension이나 MARK를 억지로 추가하지 않는다. 접근 제어는 protocol requirement와 실제 호출 범위에 맞추며, 단지 convention을 맞추려고 넓히거나 좁히지 않는다.
+
+## Refactoring Triggers
+
+- MUST Data 구현이나 `NetworkManager`를 직접 사용하는 Presentation을 Domain contract 주입으로 바꾼다.
+- MUST 독립 화면 단계 세 개 이상의 State·Action·Effect를 root가 소유하면 child Reducer와 typed Delegate를 검토한다.
+- MUST 일부 의존성만 쓰는 Reducer에 전체 `AppDependencies`를 전달하지 않고 feature 범위 계약으로 줄인다.
+- MUST Debug 화면·테스트 API를 제품 UI와 분리하고 Release 제외 조건을 유지한다.
+- SHOULD 하나의 View 또는 Reducer가 독립 UI 책임이나 Effect 군을 함께 가진 채 500줄 이상이면 실제 책임 단위 분리를 검토한다.
+- SHOULD callback·state가 많아 호출 누락 위험이 생기면 typed route·delegate payload로 묶는다.
+- MUST 구조 변경과 사용자 기능·문구·Figma·Swagger 계약 변경을 같은 커밋에 섞지 않는다.
+- MUST 확인된 구조 개선과 검증 대기는 [TODO.md](../TODO.md)에 기록하고, 완료되면 항목을 삭제한다.
+
+## Korean Code Comments
+
+주석은 코드 동작을 번역하는 대신 다른 코드가 안전하게 사용하기 위해 필요한 책임·경계와 코드만으로 알기 어려운 이유를 설명한다.
+
+### `///` 문서화 주석
+
+- MUST Repository protocol, 외부 통신·SDK Service, feature 간 Reducer·Route·Delegate처럼 외부 계약을 이해해야 하는 대상에만 필요성을 검토한다.
+- MUST 역할·단위·실패 조건·부작용이 이름만으로 불명확한 public API의 입력과 출력을 설명한다.
+- SHOULD 인증 필요 여부, DTO 변환 의미와 부모가 해석할 child Delegate 결과를 설명한다.
+- MUST NOT `public`이라는 이유만으로 모든 타입에 주석을 달거나 DTO property를 한국어로 반복한다.
+- MUST NOT 쉽게 바뀌는 UI 수치·문구·구현 순서를 외부 계약처럼 기록한다.
+
+### `//` 구현 주석
+
+- SHOULD 상태 전환 순서, Effect 취소·중복 방지·재시도, 좌표·거리·시간 단위 변환, UIKit·SDK bridge와 예외 처리의 이유가 불명확할 때만 작성한다.
+- SHOULD 성능·배터리·메모리를 위한 구현 판단에는 확인한 문제와 유지할 제약을 함께 적는다.
+- MUST 새 주석을 한국어로 간결하게 작성하되 타입명·endpoint·SDK 이름은 원문을 유지할 수 있다.
+- MUST NOT 함수·변수 이름을 되풀이하거나 `VStack`, padding, 색상·폰트 같은 단순 배치를 설명한다.
+- MUST NOT 책임자·완료 조건 없는 TODO, 추측성 메모, 구현 변경 시 쉽게 낡는 주석을 남긴다.
+- MUST NOT 자동 생성 코드나 외부 package·SDK source를 주석 추가 대상으로 삼는다.
+
+리팩터링을 마칠 때 View·Reducer·Data·Domain의 실제 책임, async owner·취소 경계와 주석의 현재성을 함께 확인한다.

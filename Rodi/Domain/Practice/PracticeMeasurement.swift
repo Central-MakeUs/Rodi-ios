@@ -62,7 +62,6 @@ struct PracticeMeasurement: Codable, Equatable, Identifiable {
 
     var isReviewEligible: Bool {
         status == .certified
-            || (mode == .routeOnly && status == .awaitingReturn && lastRodiInactiveAt != nil)
     }
 }
 

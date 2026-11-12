@@ -75,7 +75,7 @@ extension FilterBottomSheetReducer {
             RodiAnalytics.track(.practiceFilterOpened(presentation: "bottom_sheet"))
 
         case .dismiss:
-            state.isApplying = false
+            guard !state.isApplying else { return .none }
             state.isPresented = false
             state.draftSelection = state.appliedSelection
             return .send(.delegate(.dismissed))
@@ -108,7 +108,7 @@ extension FilterBottomSheetReducer {
             state.draftSelection = selection
             state.isApplying = false
             filterStore.save(selection)
-            RodiAnalytics.track(.practiceFilterApplied(category: selection.category.rawValue, selectedTagCount: selection.filterTags.count, isAll: selection.isAllSelected))
+            RodiAnalytics.track(.practiceFilterApplied(category: selection.category?.rawValue ?? "none", selectedTagCount: selection.filterTags.count, isAll: selection.isAllSelected))
             return .send(.delegate(.applied))
 
         case .authenticationRequired:

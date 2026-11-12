@@ -19,13 +19,20 @@ final class AppDependencies {
     let courseRepository: CourseRepository
     let recentLoginProviderStore: RecentLoginProviderStore
     let practiceMeasurementStore: PracticeMeasurementStoring
-    let practiceTrackingService: PracticeTrackingService
+    let drivePracticeService: DrivePracticeService
     let levelUpPresentationStore: LevelUpPresentationStore
 
     init() {
-        let tokenStore = KeychainTokenStore()
+        let backend = AppBackendConfiguration.current
+        let tokenStore = KeychainTokenStore(service: backend.tokenService)
+        DevelopmentServerMigration.runIfNeeded(
+            configuration: backend,
+            legacyTokenStore: KeychainTokenStore(service: backend.bundleIdentifier),
+            tokenStore: tokenStore,
+            clearServerState: { DevelopmentServerMigration.clearServerState() }
+        )
         let recentLoginProviderStore = RecentLoginProviderStore()
-        let practiceTrackingService = PracticeTrackingService.shared
+        let drivePracticeService = DrivePracticeService.shared
         let unauthenticatedNetworkManager = NetworkManager()
         let authRemoteDataSource = AuthRemoteDataSource(
             networkManager: unauthenticatedNetworkManager
@@ -44,7 +51,7 @@ final class AppDependencies {
         self.tokenStore = tokenStore
         self.recentLoginProviderStore = recentLoginProviderStore
         practiceMeasurementStore = PracticeMeasurementStore()
-        self.practiceTrackingService = practiceTrackingService
+        self.drivePracticeService = drivePracticeService
         levelUpPresentationStore = LevelUpPresentationStore(tokenStore: tokenStore)
 
         authRepository = AuthRepositoryImpl(
@@ -53,28 +60,35 @@ final class AppDependencies {
             tokenRefresher: tokenRefresher,
             recentLoginProviderStore: recentLoginProviderStore
         )
+
         memberRepository = MemberRepositoryImpl(
             remoteDataSource: MemberRemoteDataSource(networkManager: authenticatedNetworkManager)
         )
+
         placeRepository = PlaceRepositoryImpl(
             remoteDataSource: PlaceRemoteDataSource(
                 publicNetworkManager: unauthenticatedNetworkManager,
                 authenticatedNetworkManager: authenticatedNetworkManager
             )
         )
+
         practiceRepository = PracticeRepositoryImpl(
             remoteDataSource: PracticeRemoteDataSource(networkManager: authenticatedNetworkManager)
         )
+
         reviewRepository = ReviewRepositoryImpl(
             remoteDataSource: ReviewRemoteDataSource(networkManager: authenticatedNetworkManager)
         )
+
         recentSearchRepository = RecentSearchRepositoryImpl(
             remoteDataSource: RecentSearchRemoteDataSource(networkManager: authenticatedNetworkManager)
         )
+
         courseRepository = CourseRepositoryImpl(
             remoteDataSource: CourseRemoteDataSource(networkManager: authenticatedNetworkManager)
         )
-        practiceTrackingService.configure(
+
+        drivePracticeService.configure(
             practiceRepository: practiceRepository,
             measurementStore: practiceMeasurementStore
         )

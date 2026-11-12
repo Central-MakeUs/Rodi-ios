@@ -9,6 +9,7 @@ import Foundation
 struct OnboardingProfileReducer: Reducer {
     struct State {
         enum Screen { case nickname, drivingExperience, drivingPreference }
+        enum FormLoadState: Equatable { case idle, loading, loaded, failed(String) }
         enum Presentation: Equatable {
             case analyzing(OnboardingProfileAnalysisPresentation)
             case analysisComplete(OnboardingProfileAnalysisPresentation)
@@ -23,6 +24,9 @@ struct OnboardingProfileReducer: Reducer {
         var drivingGoal: String
         var presentation: Presentation?
         var transition: OnboardingTransition?
+        var formLoadState: FormLoadState = .idle
+        var requestID = 0
+        var isActive = true
 
         init(session: OnboardingSession, screen: Screen) {
             self.screen = screen
@@ -31,33 +35,49 @@ struct OnboardingProfileReducer: Reducer {
             drivingExperience = session.drivingExperience ?? .init()
             preferences = session.preferences ?? .init()
             drivingGoal = session.drivingGoal ?? ""
+            if session.form != nil { formLoadState = .loaded }
         }
 
         var canProceedFromNickname: Bool { !nickname.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        var formAnswers: [MemberOnboardingForm.Field: [String]] {
+            OnboardingFormAnswerAdapter.values(experience: drivingExperience, preferences: preferences, goal: drivingGoal)
+        }
+        var formStep: MemberOnboardingForm.Step? {
+            session.form?.step(isExperience: screen == .drivingExperience)
+        }
+        var visibleQuestions: [MemberOnboardingForm.Question] {
+            guard let form = session.form, let step = formStep else { return [] }
+            return form.visibleQuestions(in: step, answers: formAnswers)
+        }
+        var canProceedFromForm: Bool {
+            guard formLoadState == .loaded, presentation == nil, let form = session.form, let step = formStep else { return false }
+            if screen == .drivingPreference, let experience = form.step(isExperience: true),
+               !form.canProceed(in: experience, answers: formAnswers) { return false }
+            return form.canProceed(in: step, answers: formAnswers)
+        }
     }
 
     enum Action {
+        case appeared
+        case sessionRestored(OnboardingSession)
+        case disappeared
+        case retryFormTapped
+        case formLoaded(Result<MemberOnboardingForm, NetworkError>, requestID: Int)
+        case selectFormOption(MemberOnboardingForm.Field, String)
         case nicknameChanged(String)
         case nicknameNextTapped
-        case selectLicenseDrivingPeriod(LicenseDrivingPeriod)
-        case selectRecentDrivingFrequency(RecentDrivingFrequency)
-        case toggleRoadDrivingExperience(RoadDrivingExperience)
-        case selectSoloDrivingRange(SoloDrivingRange)
-        case selectSoloParkingLevel(SoloParkingLevel)
         case drivingExperienceNextTapped
-        case togglePracticeSituation(PracticeSituation)
-        case selectVehicleType(VehicleType)
         case drivingGoalChanged(String)
         case preferenceSkipTapped
         case preferenceNextTapped
         case analysisConfirmed
-        case submissionCompleted(SubmissionOutcome)
+        case submissionCompleted(SubmissionOutcome, requestID: Int)
         case dismissSnackbar
         case backTapped
         case transitionConsumed
     }
 
-    private enum EffectID { case submission, snackbar }
+    private enum EffectID { case work, snackbar }
     private let memberRepository: MemberRepository
 
     init(memberRepository: MemberRepository) {
@@ -66,6 +86,65 @@ struct OnboardingProfileReducer: Reducer {
 
     func reduce(_ state: inout State, with action: Action) -> Effect<Action> {
         switch action {
+        case .sessionRestored(let session):
+            guard !state.isActive else { return .none }
+            let cachedForm = session.form ?? state.session.form
+            state.session = session
+            state.session.form = cachedForm
+            state.nickname = session.nickname ?? ""
+            state.drivingExperience = session.drivingExperience ?? .init()
+            state.preferences = session.preferences ?? .init()
+            state.drivingGoal = session.drivingGoal ?? ""
+            state.formLoadState = cachedForm == nil ? .idle : .loaded
+            if cachedForm != nil { applyAnswers(state.formAnswers, state: &state) }
+
+        case .appeared:
+            state.isActive = true
+            guard state.screen != .nickname, !state.session.isGuest,
+                  state.formLoadState == .idle else { return .none }
+            return loadForm(state: &state)
+
+        case .retryFormTapped:
+            guard state.isActive, state.screen != .nickname, !state.session.isGuest,
+                  case .failed = state.formLoadState else { return .none }
+            return loadForm(state: &state)
+
+        case .formLoaded(let result, let requestID):
+            guard state.isActive, state.requestID == requestID, state.formLoadState == .loading else { return .none }
+            switch result {
+            case .success(let form):
+                state.session.form = form
+                state.formLoadState = .loaded
+                applyAnswers(state.formAnswers, state: &state)
+            case .failure(.cancel): state.formLoadState = .idle
+            case .failure(let error):
+                state.formLoadState = .failed(Self.formErrorMessage(error))
+            }
+
+        case .disappeared:
+            state.isActive = false
+            state.requestID += 1
+            if state.formLoadState == .loading { state.formLoadState = .idle }
+            if case .analyzing = state.presentation { state.presentation = nil }
+            return .cancel(id: EffectID.work)
+
+        case .selectFormOption(let field, let code):
+            guard state.isActive, state.presentation == nil,
+                  let question = state.visibleQuestions.first(where: { $0.id == field }),
+                  let option = question.options.first(where: { $0.id == code }) else { return .none }
+            var answers = state.formAnswers
+            var values = answers[field] ?? []
+            if question.kind == .single { values = [code] }
+            else if values.contains(code) { values.removeAll { $0 == code } }
+            else if option.exclusive { values = [code] }
+            else {
+                values.removeAll { value in question.options.contains { $0.id == value && $0.exclusive } }
+                guard question.maxSelect.map({ values.count < $0 }) ?? true else { return .none }
+                values.append(code)
+            }
+            answers[field] = values
+            applyAnswers(answers, state: &state)
+
         case .nicknameChanged(let nickname):
             state.nickname = nickname
 
@@ -75,36 +154,34 @@ struct OnboardingProfileReducer: Reducer {
             track("nickname", session: state.session)
             state.transition = .init(updatedSession: state.session, navigation: .push(.drivingExperience))
 
-        case .selectLicenseDrivingPeriod(let period): state.drivingExperience.licenseDrivingPeriod = period
-        case .selectRecentDrivingFrequency(let frequency): state.drivingExperience.recentDrivingFrequency = frequency
-        case .toggleRoadDrivingExperience(let experience): toggleRoadDrivingExperience(experience, answers: &state.drivingExperience)
-        case .selectSoloDrivingRange(let range): state.drivingExperience.soloDrivingRange = range
-        case .selectSoloParkingLevel(let level): state.drivingExperience.soloParkingLevel = level
-
         case .drivingExperienceNextTapped:
-            guard state.drivingExperience.canProceed else { return .none }
-            state.session.drivingExperience = state.drivingExperience
+            guard state.canProceedFromForm else { return .none }
+            state.session = currentSession(state)
             track("driving_experience", session: state.session)
             state.transition = .init(updatedSession: state.session, navigation: .push(.optionalDrivingPreference))
 
-        case .togglePracticeSituation(let situation):
-            if let index = state.preferences.selectedPracticeSituations.firstIndex(of: situation) {
-                state.preferences.selectedPracticeSituations.remove(at: index)
-            } else if state.preferences.selectedPracticeSituations.count < 3 {
-                state.preferences.selectedPracticeSituations.append(situation)
-            }
-
-        case .selectVehicleType(let type): state.preferences.vehicleType = type
-        case .drivingGoalChanged(let goal): state.drivingGoal = goal
+        case .drivingGoalChanged(let goal):
+            guard state.presentation == nil, state.visibleQuestions.contains(where: { $0.id == .drivingGoal }) else { return .none }
+            var answers = state.formAnswers
+            answers[.drivingGoal] = [goal]
+            applyAnswers(answers, state: &state)
 
         case .preferenceSkipTapped:
-            return submit(session: completedSession(state: state, drivingGoal: ""), state: &state)
+            guard state.formLoadState == .loaded, state.screen == .drivingPreference,
+                  state.formStep?.skippable == true, state.presentation == nil,
+                  let form = state.session.form, let experience = form.step(isExperience: true),
+                  form.canProceed(in: experience, answers: state.formAnswers) else { return .none }
+            var session = currentSession(state)
+            session.preferences = .init()
+            session.drivingGoal = ""
+            return submit(session: session, state: &state)
 
         case .preferenceNextTapped:
-            guard state.preferences.canProceed else { return .none }
+            guard state.canProceedFromForm else { return .none }
             return submit(session: completedSession(state: state, drivingGoal: state.drivingGoal), state: &state)
 
-        case .submissionCompleted(let outcome):
+        case .submissionCompleted(let outcome, let requestID):
+            guard state.isActive, state.requestID == requestID else { return .none }
             return finishSubmission(outcome, state: &state)
 
         case .analysisConfirmed:
@@ -115,6 +192,7 @@ struct OnboardingProfileReducer: Reducer {
             if case .snackbar = state.presentation { state.presentation = nil }
 
         case .backTapped:
+            guard state.presentation == nil else { return .none }
             state.transition = .init(updatedSession: currentSession(state), navigation: .pop)
 
         case .transitionConsumed:
@@ -125,6 +203,36 @@ struct OnboardingProfileReducer: Reducer {
 }
 
 private extension OnboardingProfileReducer {
+    func loadForm(state: inout State) -> Effect<Action> {
+        state.formLoadState = .loading
+        state.requestID += 1
+        let requestID = state.requestID
+        let repository = memberRepository
+        return .run { send in
+            let result: Result<MemberOnboardingForm, NetworkError>
+            do { result = .success(try await repository.fetchOnboardingForm()) }
+            catch let error as NetworkError { result = .failure(error) }
+            catch { result = .failure(.unknown(errorCode: "onboarding_form")) }
+            guard !Task.isCancelled else { return }
+            await send(.formLoaded(result, requestID: requestID))
+        }.cancelTask(id: EffectID.work)
+    }
+
+    func applyAnswers(_ answers: [MemberOnboardingForm.Field: [String]], state: inout State) {
+        guard let form = state.session.form else { return }
+        let sanitized = OnboardingFormAnswerAdapter.sanitized(answers, form: form)
+        OnboardingFormAnswerAdapter.apply(sanitized, experience: &state.drivingExperience, preferences: &state.preferences, goal: &state.drivingGoal)
+    }
+
+    static func formErrorMessage(_ error: NetworkError) -> String {
+        switch error {
+        case .networkUnavailable, .timeOut: "네트워크 연결을 확인해주세요."
+        case .apiError(_, let message, _): message
+        case .decodingFail: "온보딩 질문 정보를 확인할 수 없어요. 잠시 후 다시 시도해주세요."
+        default: "온보딩 질문을 불러오지 못했어요. 다시 시도해주세요."
+        }
+    }
+
     func currentSession(_ state: State) -> OnboardingSession {
         var session = state.session
         session.nickname = state.nickname
@@ -151,6 +259,8 @@ private extension OnboardingProfileReducer {
         state.presentation = .analyzing(.init(result: analysis, recentFrequency: experience.recentDrivingFrequency))
         track("optional_driving_preference", session: session)
         let repository = memberRepository
+        state.requestID += 1
+        let requestID = state.requestID
 
         return .run { send in
             let startedAt = Date()
@@ -166,8 +276,8 @@ private extension OnboardingProfileReducer {
             let remaining = max(0, 3 - Date().timeIntervalSince(startedAt))
             if remaining > 0 { try? await Task.sleep(nanoseconds: UInt64(remaining * 1_000_000_000)) }
             guard !Task.isCancelled else { return }
-            await send(.submissionCompleted(outcome))
-        }.cancelTask(id: EffectID.submission)
+            await send(.submissionCompleted(outcome, requestID: requestID))
+        }.cancelTask(id: EffectID.work)
     }
 
     func finishSubmission(_ outcome: SubmissionOutcome, state: inout State) -> Effect<Action> {
@@ -192,9 +302,8 @@ private extension OnboardingProfileReducer {
         case .httpStatusCode(let code) where code >= 500,
              .apiError(_, _, let code?) where code >= 500:
             .failed("서버 오류가 발생했어요. 잠시 후 다시 시도해 주세요.")
-        case .httpStatusCode(let code) where (400..<500).contains(code),
-             .apiError(_, _, let code?) where (400..<500).contains(code):
-            .completed
+        case .apiError(_, let message, _):
+            .failed(message)
         default:
             .failed("온보딩 정보를 저장하지 못했어요. 다시 시도해 주세요.")
         }
@@ -204,20 +313,6 @@ private extension OnboardingProfileReducer {
         RodiAnalytics.track(.onboardingStepCompleted(step: step, entryMode: session.entryMode))
     }
 
-    func toggleRoadDrivingExperience(_ experience: RoadDrivingExperience, answers: inout OnboardingDrivingExperience) {
-        if experience == .none {
-            answers.selectedRoadDrivingExperiences = answers.selectedRoadDrivingExperiences == [.none] ? [] : [.none]
-        } else if let index = answers.selectedRoadDrivingExperiences.firstIndex(of: experience) {
-            answers.selectedRoadDrivingExperiences.remove(at: index)
-        } else {
-            answers.selectedRoadDrivingExperiences.removeAll { $0 == .none }
-            answers.selectedRoadDrivingExperiences.append(experience)
-        }
-        if !answers.selectedRoadDrivingExperiences.contains(.soloPractice) {
-            answers.soloDrivingRange = nil
-            answers.soloParkingLevel = nil
-        }
-    }
 }
 
 struct OnboardingProfileAnalysisPresentation: Equatable {

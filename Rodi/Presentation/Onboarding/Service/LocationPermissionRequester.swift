@@ -10,7 +10,7 @@ final class LocationPermissionRequester: NSObject, CLLocationManagerDelegate {
 
     private let manager = CLLocationManager()
 
-    override init() {
+    private override init() {
         super.init()
         manager.delegate = self
     }
@@ -26,15 +26,20 @@ final class LocationPermissionRequester: NSObject, CLLocationManagerDelegate {
         switch manager.authorizationStatus {
         case .authorizedAlways, .authorizedWhenInUse:
             status = "authorized"
+            
         case .denied:
             status = "denied"
+            
         case .restricted:
             status = "restricted"
+            
         case .notDetermined:
             return
+            
         @unknown default:
             status = "unknown"
         }
+        
         RodiAnalytics.track(.locationPermissionResult(status: status))
     }
 }

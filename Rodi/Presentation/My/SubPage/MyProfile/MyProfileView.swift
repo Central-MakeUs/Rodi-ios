@@ -11,7 +11,9 @@ struct MyProfileView: View {
     let hasCompletedInitialLoad: Bool
     let errorMessage: String?
     let openSettings: () -> Void
+    let openHomeFilterRecovery: () -> Void
     let openDrivingGoal: () -> Void
+    let openNickname: () -> Void
     let openSavedPlaces: () -> Void
     let openPracticeRecords: () -> Void
     let openMyPosts: () -> Void
@@ -78,9 +80,13 @@ struct MyProfileView: View {
 
     private var header: some View {
         ZStack {
-            Text("마이페이지")
-                .rodiTypography(.headline1)
-                .foregroundStyle(RodiColor.black)
+            if AppEnvironment.current == .development {
+                title
+                    .contentShape(Rectangle())
+                    .onTapGesture(count: 5, perform: openHomeFilterRecovery)
+            } else {
+                title
+            }
 
             HStack {
                 Spacer()
@@ -98,10 +104,16 @@ struct MyProfileView: View {
         .padding(.horizontal, 16)
     }
 
+    private var title: some View {
+        Text("마이페이지")
+            .rodiTypography(.headline1)
+            .foregroundStyle(RodiColor.black)
+    }
+
     @ViewBuilder
     private var profileSection: some View {
         if let profile {
-            MyProfileCard(profile: profile, openDrivingGoal: openDrivingGoal)
+            MyProfileCard(profile: profile, openDrivingGoal: openDrivingGoal, openNickname: openNickname)
                 .padding(.top, 16)
         } else if isLoading || !hasCompletedInitialLoad {
             MyProfileSkeleton()
@@ -203,6 +215,7 @@ private struct MyProfileSkeleton: View {
 private struct MyProfileCard: View {
     let profile: MemberProfile
     let openDrivingGoal: () -> Void
+    let openNickname: () -> Void
 
     @State private var hasPlayedEntrance = false
     @State private var cardOpacity = 0.0
@@ -217,7 +230,20 @@ private struct MyProfileCard: View {
             HStack(alignment: .top, spacing: 16) {
                 RodiLevelProfileImage(level: profile.level, size: 90, backgroundColor: RodiColor.primary100, cornerRadius: 8, imageOffsetY: 10)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(profile.nickname).rodiTypography(.body1SemiBold).foregroundStyle(RodiColor.black).lineLimit(1)
+                    Button(action: openNickname) {
+                        HStack(spacing: 8) {
+                            Text(profile.nickname)
+                                .rodiTypography(.body1SemiBold)
+                                .foregroundStyle(RodiColor.black)
+                                .lineLimit(1)
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(RodiColor.gray700)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("닉네임 수정, \(profile.nickname)")
                     Text("레벨").rodiTypography(.caption1Medium).foregroundStyle(RodiColor.gray700).padding(.top, 8)
                     HStack(spacing: 8) {
                         Text(profile.level.displayName)

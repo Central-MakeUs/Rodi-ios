@@ -99,7 +99,7 @@ struct RodiCourseItem: Decodable, Identifiable {
 }
 
 extension RodiCourseItem {
-    /// `/places/coordinates`의 경량 마커 응답을 홈 지도용 모델로 변환한다.
+    /// 장소 좌표를 홈 지도에서 사용하는 기존 표시 모델로 변환한다.
     /// 상세 정보는 이후 `/places/{id}` 응답으로 보강한다.
     init(placeCoordinate: PlaceCoordinate) {
         id = placeCoordinate.id

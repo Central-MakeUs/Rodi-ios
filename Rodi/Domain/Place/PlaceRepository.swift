@@ -6,6 +6,9 @@
 import Foundation
 
 protocol PlaceRepository {
+    /// 조회 범위의 장소와 경도 폭별 서버 클러스터를 반환합니다.
+    func fetchClusters(query: PlaceClusterQuery) async throws(NetworkError) -> PlaceClusterResult
+
     /// 지도 마커와 클라이언트 클러스터링용 전체 경량 좌표 목록입니다. 공개 API입니다.
     func fetchCoordinates() async throws(NetworkError) -> [PlaceCoordinate]
 

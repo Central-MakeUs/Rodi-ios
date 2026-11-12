@@ -1,5 +1,9 @@
 # SwiftUI Review
 
+이 문서의 일부 기준은 `ui-ux-pro-max-skill`의 SwiftUI guideline dataset을 RODI의 iOS 16.1·MVICore 환경에 맞게 검토한 것이다.
+
+원본: <https://github.com/nextlevelbuilder/ui-ux-pro-max-skill/blob/8a1a6d857332da32252d77365da90c3f6293b47b/cli/assets/data/stacks/swiftui.csv>
+
 ## Review in This Order
 
 1. Confirm that the change matches the requested UI and existing Rodi component behavior.
@@ -12,6 +16,7 @@ Follow `Docs/Architecture/ARCHITECTURE.md` for MVI ownership and foldering; do n
 
 ## Preserve Identity
 
+- View가 소유하는 `ObservableObject`는 `@StateObject`, 외부에서 주입받는 객체는 `@ObservedObject`로 수명을 표현한다.
 - Give dynamic elements stable, domain-derived identifiers.
 - Avoid indices and `\.self` for mutable or duplicate collections.
 - Avoid `AnyView` and unnecessary conditional branches that replace the underlying view type.
@@ -26,6 +31,8 @@ Follow `Docs/Architecture/ARCHITECTURE.md` for MVI ownership and foldering; do n
 - Avoid starting duplicate effects from repeated appearance callbacks; preserve the reducer's lifecycle and cancellation contract.
 - Prefer concrete views, `Group`, generics, and existing components over type erasure.
 - Extract UI only when it clarifies ownership or reuse; follow Rodi's same-file extension and feature conventions from active Docs.
+- Repeated modifier groups become a Component or modifier only after real duplication or an independent interaction contract is confirmed.
+- Do not introduce caching or performance changes without a reproducible symptom or measurement plan.
 
 ## Check Accessibility
 
@@ -42,6 +49,7 @@ Follow `Docs/Architecture/ARCHITECTURE.md` for MVI ownership and foldering; do n
 - Inspect loading, empty, error, and success rendering rather than only the populated happy path.
 - Check disabled, selected, pressed, and in-progress interaction states where applicable.
 - Verify compact and large devices, safe areas, keyboard overlap, and repeated navigation.
+- For input or animation changes, verify `@FocusState`, keyboard dismissal, Dynamic Type, and Reduce Motion where they affect the requested behavior.
 
 ## Report Findings
 

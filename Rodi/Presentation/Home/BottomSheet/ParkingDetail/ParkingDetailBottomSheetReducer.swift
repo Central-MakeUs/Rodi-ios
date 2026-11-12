@@ -48,7 +48,7 @@ struct ParkingDetailBottomSheetReducer: Reducer {
 
     private let placeRepository: PlaceRepository
     private let practiceMeasurementStore: PracticeMeasurementStoring
-    private let practiceTrackingService: PracticeTrackingService
+    private let drivePracticeService: DrivePracticeService
     private let hasActiveSession: () -> Bool
     private let routeGuidanceReducer: RouteGuidanceReducer
     private let onDelegate: (Delegate) -> Void
@@ -56,18 +56,18 @@ struct ParkingDetailBottomSheetReducer: Reducer {
     init(placeRepository: PlaceRepository,
          memberRepository: MemberRepository,
          practiceMeasurementStore: PracticeMeasurementStoring,
-         practiceTrackingService: PracticeTrackingService,
+         drivePracticeService: DrivePracticeService,
          routeGuidanceService: RouteGuidanceService,
          hasActiveSession: @escaping () -> Bool,
          onDelegate: @escaping (Delegate) -> Void = { _ in }) {
         self.placeRepository = placeRepository
         self.practiceMeasurementStore = practiceMeasurementStore
-        self.practiceTrackingService = practiceTrackingService
+        self.drivePracticeService = drivePracticeService
         self.hasActiveSession = hasActiveSession
         routeGuidanceReducer = .init(
             flowService: .init(
                 memberRepository: memberRepository,
-                practiceTrackingService: practiceTrackingService,
+                drivePracticeService: drivePracticeService,
                 directionsService: .init(),
                 routeGuidanceService: routeGuidanceService
             ),
@@ -109,7 +109,7 @@ extension ParkingDetailBottomSheetReducer {
                 externalHandoffAt: .now,
                 status: mode == .gpsTracking ? .tracking : .awaitingReturn
             ))
-            practiceTrackingService.synchronizeCompletedSessionCertificationIfNeeded()
+            drivePracticeService.synchronizeCompletedSessionCertificationIfNeeded()
 
         case let .openFinished(result, measurementID):
             if case .openedApp = result {

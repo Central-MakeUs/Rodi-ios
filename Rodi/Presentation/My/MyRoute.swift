@@ -8,6 +8,7 @@ import Foundation
 enum MyRoute: Route {
     case settings
     case drivingGoal
+    case nickname
     case savedPlaces
     case practiceRecords
     case myPosts
@@ -25,6 +26,7 @@ enum MyRoute: Route {
         switch self {
         case .settings: "my.settings"
         case .drivingGoal: "my.drivingGoal"
+        case .nickname: "my.nickname"
         case .savedPlaces: "my.savedPlaces"
         case .practiceRecords: "my.practiceRecords"
         case .myPosts: "my.posts"

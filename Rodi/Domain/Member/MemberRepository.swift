@@ -27,11 +27,17 @@ protocol MemberRepository {
     /// 마이페이지에서 운전 목표를 부분 수정한다.
     func updateDrivingGoal(_ drivingGoal: String) async throws(NetworkError)
 
+    /// 닉네임을 수정하고 서버가 확정한 현재 닉네임을 반환한다.
+    func updateNickname(_ nickname: String) async throws(NetworkError) -> String
+
     /// 홈 추천 목록의 연습유형 정렬 필터를 전체 교체한다.
     func updatePlaceFilterTags(_ tags: [PlacePracticeType]) async throws(NetworkError)
 
     /// 온보딩에서 수집한 운전 경험과 선호 정보를 제출한다.
     func submitOnboarding(_ submission: MemberOnboardingSubmission) async throws(NetworkError)
+
+    /// 현재 서버가 제공하는 운전 경험·선호 입력 정의를 조회한다.
+    func fetchOnboardingForm() async throws(NetworkError) -> MemberOnboardingForm
 
     /// 코스 등록 방법 튜토리얼 완료 상태를 서버에 저장한다.
     func completeCourseTutorial() async throws(NetworkError) -> CourseTutorialCompletion

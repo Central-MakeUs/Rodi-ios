@@ -9,9 +9,11 @@ struct HomeFeatureDependencies {
     let practiceRepository: PracticeRepository
     let recentSearchRepository: RecentSearchRepository
     let reviewRepository: ReviewRepository
+    let courseRepository: CourseRepository
+    let isCourseReportingEnabled: Bool
     let memberRepository: MemberRepository
     let practiceMeasurementStore: PracticeMeasurementStoring
-    let practiceTrackingService: PracticeTrackingService
+    let drivePracticeService: DrivePracticeService
     let snackbarService: SnackbarService
 
     init(appDependencies: AppDependencies) {
@@ -20,9 +22,11 @@ struct HomeFeatureDependencies {
         practiceRepository = appDependencies.practiceRepository
         recentSearchRepository = appDependencies.recentSearchRepository
         reviewRepository = appDependencies.reviewRepository
+        courseRepository = appDependencies.courseRepository
+        isCourseReportingEnabled = AppEnvironment.current == .development
         memberRepository = appDependencies.memberRepository
         practiceMeasurementStore = appDependencies.practiceMeasurementStore
-        practiceTrackingService = appDependencies.practiceTrackingService
+        drivePracticeService = appDependencies.drivePracticeService
         snackbarService = appDependencies.snackbarService
     }
 }

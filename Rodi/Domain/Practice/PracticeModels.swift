@@ -34,9 +34,10 @@ struct MyPracticeItem: Equatable, Identifiable {
     let hasReview: Bool
     let isDeleted: Bool
 
-    /// 주차 연습은 후기를 지원하지 않는다. 서버가 내려주는 연습 유형을 기준으로 표시한다.
+    /// 서버 계약상 주차장은 연습 유형을 `PARKING` 하나만 내려준다.
+    /// 코스도 주차 유형을 포함할 수 있으므로 포함 여부로 장소 종류를 판단하면 안 된다.
     var isParkingPractice: Bool {
-        practiceTypes.contains(PlacePracticeType.parking.rawValue)
+        practiceTypes == [PlacePracticeType.parking.rawValue]
     }
 }
 

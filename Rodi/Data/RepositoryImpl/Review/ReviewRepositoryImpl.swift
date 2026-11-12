@@ -7,6 +7,10 @@ final class ReviewRepositoryImpl: ReviewRepository {
         self.remoteDataSource = remoteDataSource
     }
 
+    func fetchWritingForm(placeID: Int) async throws(NetworkError) -> ReviewWritingForm {
+        try ReviewMapper.writingForm(from: await remoteDataSource.fetchWritingForm(placeID: placeID))
+    }
+
     func create(placeID: Int, submission: PlaceReviewSubmission) async throws(NetworkError) {
         try await remoteDataSource.create(placeID: placeID, request: .init(submission))
     }

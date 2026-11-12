@@ -12,6 +12,8 @@ struct CourseDetailBottomSheetReducer: Reducer {
         var presentation: Presentation = .sheet
         var isRouteTimelineExpanded = false
         var reviews = CourseReviewReducer.State()
+        var courseReport = CourseReportReducer.State()
+        var isCourseReportingEnabled = false
         var routeGuidance = RouteGuidanceReducer.State()
 
         var routeGuidancePresentation: RouteGuidanceFlowPresentation? {
@@ -46,16 +48,20 @@ struct CourseDetailBottomSheetReducer: Reducer {
         case collapseRequested
         case routeTimelineToggled
         case reviews(CourseReviewReducer.Action)
+        case courseReportTapped
+        case courseReport(CourseReportReducer.Action)
         case delegate(Delegate)
     }
     enum Delegate { case dismissed, routeOverlayChanged(RodiRouteOverlay?), requestAuthentication, showSnackbar(String), reviewWritingRequested(ReviewWriteRequest), reviewEditingRequested(Int) }
     private let placeRepository: PlaceRepository
     private let practiceMeasurementStore: PracticeMeasurementStoring
-    private let practiceTrackingService: PracticeTrackingService
+    private let drivePracticeService: DrivePracticeService
     private let hasActiveSession: () -> Bool
     private let directionsService: KakaoDirectionsService
     private let routeGuidanceReducer: RouteGuidanceReducer
     private let reviewsReducer: CourseReviewReducer
+    private let courseReportReducer: CourseReportReducer
+    private let isCourseReportingEnabled: Bool
     private let onDelegate: (Delegate) -> Void
 
     init(
@@ -63,8 +69,10 @@ struct CourseDetailBottomSheetReducer: Reducer {
         memberRepository: MemberRepository,
         practiceRepository: PracticeRepository,
         reviewRepository: ReviewRepository,
+        courseRepository: CourseRepository,
+        isCourseReportingEnabled: Bool,
         practiceMeasurementStore: PracticeMeasurementStoring,
-        practiceTrackingService: PracticeTrackingService,
+        drivePracticeService: DrivePracticeService,
         routeGuidanceService: RouteGuidanceService,
         hasActiveSession: @escaping () -> Bool,
         directionsService: KakaoDirectionsService = .init(),
@@ -72,13 +80,15 @@ struct CourseDetailBottomSheetReducer: Reducer {
     ) {
         self.placeRepository = placeRepository
         self.practiceMeasurementStore = practiceMeasurementStore
-        self.practiceTrackingService = practiceTrackingService
+        self.drivePracticeService = drivePracticeService
         self.hasActiveSession = hasActiveSession
         self.directionsService = directionsService
+        self.isCourseReportingEnabled = isCourseReportingEnabled
+        courseReportReducer = .init(repository: courseRepository, hasActiveSession: hasActiveSession)
         routeGuidanceReducer = .init(
             flowService: .init(
                 memberRepository: memberRepository,
-                practiceTrackingService: practiceTrackingService,
+                drivePracticeService: drivePracticeService,
                 directionsService: directionsService,
                 routeGuidanceService: routeGuidanceService
             ),
@@ -96,13 +106,14 @@ extension CourseDetailBottomSheetReducer {
         switch action {
         case .present(let detail, _):
             guard detail.type == .course else { return .none }
-            state = .init(detail: detail)
+            state = .init(detail: detail, isCourseReportingEnabled: isCourseReportingEnabled)
             RodiAnalytics.track(.placeDetailOpened(source: "home", placeType: detail.type.rawValue))
             return configureRoute(for: .init(placeDetail: detail), state: &state)
         case .dismiss:
             guard state.detail != nil else { return .none }
             state = .init()
             return .run { send in
+                await send(.courseReport(.reset))
                 await send(.cancelRoadRouteLoading)
                 await send(.routeGuidanceDismissed)
                 await send(.reviews(.report(.reset)))
@@ -113,6 +124,7 @@ extension CourseDetailBottomSheetReducer {
         case .reset:
             state = .init()
             return .run { send in
+                await send(.courseReport(.reset))
                 await send(.cancelRoadRouteLoading)
                 await send(.routeGuidanceDismissed)
                 await send(.reviews(.report(.reset)))
@@ -170,11 +182,31 @@ extension CourseDetailBottomSheetReducer {
             return reviewsReducer.reduce(&state.reviews, with: .start(placeID: placeID)).map(Action.reviews)
         case .collapseRequested:
             guard state.presentation == .expandedDetail else { return .none }; state.presentation = .sheet
+            if state.courseReport.courseID != nil {
+                return courseReportReducer.reduce(&state.courseReport, with: .reset).map(Action.courseReport)
+            }
         case .routeTimelineToggled:
             guard state.presentation == .expandedDetail else { return .none }; state.isRouteTimelineExpanded.toggle()
         case .reviews(let child):
             if case .delegate(let delegate) = child { return reduceReviewsDelegate(delegate, state: &state) }
             return reviewsReducer.reduce(&state.reviews, with: child).map(Action.reviews)
+        case .courseReportTapped:
+            guard state.isCourseReportingEnabled, state.presentation == .expandedDetail,
+                  state.reviews.route == .preview, let detail = state.detail else { return .none }
+            return courseReportReducer
+                .reduce(&state.courseReport, with: .start(courseID: Int64(detail.id)))
+                .map(Action.courseReport)
+        case .courseReport(let child):
+            switch child {
+            case .start:
+                return .none
+            case .delegate(.requestAuthentication):
+                return .send(.delegate(.requestAuthentication))
+            case .delegate(.showSnackbar(let message)):
+                return .send(.delegate(.showSnackbar(message)))
+            default:
+                return courseReportReducer.reduce(&state.courseReport, with: child).map(Action.courseReport)
+            }
         case .delegate(let delegate): onDelegate(delegate)
         }
         return .none
@@ -209,7 +241,7 @@ private extension CourseDetailBottomSheetReducer {
                 externalHandoffAt: .now,
                 status: mode == .gpsTracking ? .tracking : .awaitingReturn
             ))
-            practiceTrackingService.synchronizeCompletedSessionCertificationIfNeeded()
+            drivePracticeService.synchronizeCompletedSessionCertificationIfNeeded()
 
         case let .openFinished(result, measurementID):
             if case .openedApp = result {

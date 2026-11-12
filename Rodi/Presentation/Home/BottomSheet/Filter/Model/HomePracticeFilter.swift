@@ -62,40 +62,86 @@ struct HomePracticeFilterOption: Identifiable, Equatable {
 }
 
 struct HomePracticeFilterSelection: Codable, Equatable {
-    var category: HomePracticeCategory = .basicDriving
+    var category: HomePracticeCategory?
     var selectedTypes: [PlacePracticeType] = []
-    var isAllSelected = false
 
     static let `default` = Self()
 
     var filterTags: [PlacePracticeType] {
-        if category == .parking { return [.parking] }
         return selectedTypes
     }
 
     var showsPracticeTypeOptions: Bool {
-        category != .parking
+        guard let category else { return false }
+        return !category.options.isEmpty
+    }
+
+    var isAllSelected: Bool {
+        guard let category, !category.options.isEmpty else { return false }
+        return category.options.allSatisfy { selectedTypes.contains($0.type) }
     }
 
     mutating func selectCategory(_ category: HomePracticeCategory) {
+        if self.category == category {
+            if category == .parking {
+                toggleParking()
+            }
+            self.category = nil
+            return
+        }
+
         self.category = category
-        selectedTypes = []
-        isAllSelected = false
+        if category == .parking, !selectedTypes.contains(.parking) {
+            selectedTypes.append(.parking)
+        }
     }
 
     mutating func toggleType(_ type: PlacePracticeType) {
-        guard category != .parking else { return }
+        guard let category, category != .parking else { return }
         if let index = selectedTypes.firstIndex(of: type) {
             selectedTypes.remove(at: index)
         } else {
             selectedTypes.append(type)
         }
-        isAllSelected = selectedTypes.count == category.options.count
     }
 
     mutating func selectAll() {
-        guard category != .parking else { return }
-        selectedTypes = category.options.map(\.type)
-        isAllSelected = true
+        guard let category, category != .parking else { return }
+        for type in category.options.map(\.type) where !selectedTypes.contains(type) {
+            selectedTypes.append(type)
+        }
+    }
+
+    private mutating func toggleParking() {
+        if let index = selectedTypes.firstIndex(of: .parking) {
+            selectedTypes.remove(at: index)
+        } else {
+            selectedTypes.append(.parking)
+        }
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case category
+        case selectedTypes
+    }
+
+    init() {
+        category = nil
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let legacyCategory = try container.decodeIfPresent(HomePracticeCategory.self, forKey: .category)
+        selectedTypes = try container.decodeIfPresent([PlacePracticeType].self, forKey: .selectedTypes) ?? []
+        if legacyCategory == .parking, !selectedTypes.contains(.parking) {
+            selectedTypes.append(.parking)
+        }
+        category = nil
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(category, forKey: .category)
+        try container.encode(selectedTypes, forKey: .selectedTypes)
     }
 }

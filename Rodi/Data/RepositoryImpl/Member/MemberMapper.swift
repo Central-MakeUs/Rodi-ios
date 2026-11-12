@@ -1,16 +1,18 @@
 import Foundation
 
 nonisolated enum MemberMapper {
+    static func nicknameUpdateRequest(from nickname: String) -> MemberNicknameUpdateRequestDTO {
+        .init(nickname: nickname)
+    }
+
     static func drivingGoalRequest(
         from drivingGoal: String
     ) -> MemberDrivingGoalUpdateRequestDTO {
         .init(drivingGoal: drivingGoal)
     }
 
-    static func placeFilterTagsRequest(
-        from tags: [PlacePracticeType]
-    ) -> MemberPlaceFilterTagsUpdateRequestDTO {
-        .init(filterTags: tags.map(\.rawValue))
+    static func sortTagsRequest(from tags: [PlacePracticeType]) -> MemberSortTagsUpdateRequestDTO {
+        .init(sortTags: tags.map(\.rawValue))
     }
 
     static func onboardingRequest(

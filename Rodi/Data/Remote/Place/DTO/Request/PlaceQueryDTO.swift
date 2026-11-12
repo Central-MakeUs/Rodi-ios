@@ -10,6 +10,7 @@ struct PlaceListQueryDTO: Encodable {
     let currentLongitude: Double
     let size: Int
     let cursor: String?
+    let practiceTypes: [String]
 }
 
 struct PlaceSearchQueryDTO: Encodable {
@@ -18,6 +19,7 @@ struct PlaceSearchQueryDTO: Encodable {
     let currentLongitude: Double
     let size: Int
     let cursor: String?
+    let practiceTypes: [String]
 }
 
 struct PlaceRelatedSearchQueryDTO: Encodable {

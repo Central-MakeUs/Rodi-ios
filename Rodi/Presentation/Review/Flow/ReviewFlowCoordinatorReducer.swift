@@ -23,7 +23,6 @@ struct ReviewFlowCoordinatorReducer: Reducer {
         case review(ReviewReducer.Action)
         case practiceReturnPromptRequested(PracticeReturnPrompt)
         case practiceReturnPromptInteractionResolved(PracticeReturnPromptInteraction)
-        case practiceReturnVisitSubmissionChanged(Bool)
         case practiceReturnFinishedWithoutReview(String)
         case externalSnackbarRequested(String)
         case snackbarDismissed(String)
@@ -93,9 +92,6 @@ extension ReviewFlowCoordinatorReducer {
 
         case .practiceReturnPromptInteractionResolved(let interaction):
             return reduceReview(&state, action: reviewPromptAction(for: interaction))
-
-        case .practiceReturnVisitSubmissionChanged(let isSubmitting):
-            return reduceReview(&state, action: .prompt(.visitSubmissionChanged(isSubmitting)))
 
         case .practiceReturnFinishedWithoutReview(let message):
             state.entrySource = nil

@@ -1,123 +1,73 @@
 # RODI UI · Figma Guide
 
-이 문서는 Figma 기반 SwiftUI 구현과 UI 리뷰에만 사용하며, 기본 컨텍스트는 `AGENTS.md`와 이 문서로 제한한다.
+## 목적과 적용 범위
 
-## 권위와 최소 컨텍스트
+이 문서는 Figma node를 근거로 RODI UI를 구현하거나 검토할 때 디자인 근거를 수집하고 차이를 판정하는 절차를 정의한다.
 
-UI 계약의 우선순위는 다음과 같다.
+- MUST Figma 링크만 전달된 설명·분석 요청과 실제 구현 요청을 구분한다. 링크 자체를 파일 수정 권한으로 해석하지 않는다.
+- MUST UI의 시각 계약은 대상 node의 screenshot과 속성으로, 현재 기능 동작은 live code로 확인한다.
+- MUST 선택된 chip이나 비활성 button 한 상태만 보고 단일·복수 선택, 필수 입력, API 호출 같은 기능 정책을 추정하지 않는다.
+- SHOULD Reducer 소유권이나 foldering 변경이 필요할 때만 [ARCHITECTURE.md](../Architecture/ARCHITECTURE.md)를 추가로 읽는다.
 
-1. 사용자의 현재 요구사항과 `AGENTS.md`의 제품·안전 금지사항
-2. 대상 Figma frame의 screenshot과 interaction
-3. 현재 인접 View·Reducer·Component와 design-system 코드
-4. 이 문서
-5. UI 구현·리뷰에 필요할 때만 `.agents/skills/rodi-swiftui`
+## Figma 근거 확인
 
-- Figma 링크는 코드 생성 명령이 아니라 디자인 근거다.
-- screenshot은 시각적 원본이고, design context의 React/Tailwind는 구조 참고일 뿐이다.
-- 문서와 코드가 다르면 현재 코드를 따르고 같은 작업에서 문서 차이를 바로잡는다.
-- 전체 `Docs`, `Presentation`, asset catalog를 먼저 읽지 않는다. `rg`로 대상 심볼과 인접 구현부터 찾는다.
-- `Docs/Archive`는 과거 UI 조사 요청이 있을 때 필요한 파일만 명시적으로 읽는다.
-- Reducer 구조나 foldering 판단이 작업의 핵심이면 그때만 `Docs/Architecture/ARCHITECTURE.md`를 추가로 읽는다.
+1. MUST URL에서 구현 대상 `node-id`를 확인하고, 현재 실행 환경의 필수 Figma 지침을 읽는다.
+2. MUST 대상 node의 design context와 screenshot을 확인한다. 생성된 React·Tailwind는 hierarchy·문구·asset 단서로만 사용한다.
+3. MUST device bezel, status bar, home indicator 같은 기기 chrome을 앱 asset이나 custom View로 옮기지 않는다.
+4. MUST 같은 작업에서 이미 확인했고 변경되지 않은 node를 반복 조회하지 않는다. 결과 누락·잘림·디자인 변경·별도 상태 확인이 필요할 때만 추가 조회한다.
+5. MUST context를 얻지 못한 page·canvas node라면 내부의 실제 frame을 찾아 다시 조회한다.
 
-## Figma Dev Mode → SwiftUI
+## 기존 구현 탐색과 차이 판단
 
-Figma URL을 받으면 다음 순서를 지킨다.
+- MUST 기존 화면 수정이면 화면 고유 문구나 예상 심볼을 `rg -l`로 검색하고, 대응 View와 직접 사용되는 Component부터 읽는다.
+- MUST 신규 화면이면 인접 Feature의 실제 진입 경로와 가장 유사한 화면을 확인한다. 기존 화면이 있다는 전제로 검색 결과를 해석하지 않는다.
+- MUST 화면 구조, interaction, navigation, loading·empty·error·success 상태를 구분하고 Figma에 없는 동작은 live code나 명시된 제품 요구사항으로 확인한다.
+- MUST NOT Figma, 사용자 요구사항, live code에서 확인할 수 없는 화면·상태·상호작용을 임시 UI나 임의의 정책으로 구현한다.
+- MUST 구현 근거가 없는 부분을 현재 범위에서 제외하고, 무엇이 미구현으로 남았는지 결과에 명시한다.
+- MUST Plan Mode에서 구현 근거가 없는 부분을 발견하면 계획을 확정하기 전에 임시 구현 여부와 동작 범위를 사용자에게 질문한다. 사용자의 명시적 동의가 없으면 임시 구현을 계획에 포함하지 않는다.
+- MUST 사용자가 임시 구현을 명시적으로 선택한 경우에만 제품 구현과 구분되는 범위로 격리하고, 임시 구현의 근거·제거 조건·미검증 사항을 결과에 명시한다.
+- MUST Figma와 현재 구현이 다르면 시각 변경, 기능 변경, 서버 계약 변경을 구분한다. 현재 코드를 근거로 디자인 계약을 자동 변경하지 않는다.
+- SHOULD 후보 파일을 좁힌 뒤 필요한 심볼과 구간만 읽고, 변경 위치·유지할 계약·검증 방법이 확정되면 탐색을 멈춘다.
 
-1. URL이 `node-id`를 포함한 구현 대상 frame 링크인지 확인한다.
-2. 해당 node의 design context와 screenshot을 한 번씩 조회한다.
-3. screenshot으로 시각적 계약을 확인하고, 생성 코드는 hierarchy·문구·asset 단서로만 사용한다.
-4. 대상 feature의 인접 View·Reducer·Component와 route를 `rg`로 찾는다.
-5. design token, font, asset catalog에서 재사용 가능한 항목을 찾는다.
-6. 화면 구조와 loading·empty·error·success 상태, interaction과 navigation을 먼저 정리한다.
-7. Figma 값을 RODI token·asset·기존 component에 매핑하고, 독립 화면은 `SubPage`, 여러 화면의 재사용 UI는 `Component`, 외부 작업은 `Service`로 분리할지 먼저 결정한다.
-8. View는 State를 렌더링하고 Action을 전달하며, Reducer는 상태 전이와 Effect를 관리한다.
-9. Debug build와 시각 검증을 수행하고 Figma와 다른 점 또는 미확정 사항을 보고한다.
+### 구현 전 근거 판정
 
-node가 page/canvas라 context를 얻을 수 없으면 내부의 실제 frame을 찾아 다시 조회한다.
-대상 node나 디자인이 바뀌지 않았다면 같은 context와 screenshot을 반복 조회하지 않는다.
-Figma의 기기 bezel, status bar, home indicator는 앱 asset이나 custom view로 옮기지 않는다.
+- MUST 새 화면·여러 상태·CRUD 연결을 계획할 때 요소별로 `확정`, `미확정`, `제외`와 근거를 구분한다. `확정`에는 Figma node, 기존 코드 또는 사용자 결정 중 실제 근거를 붙인다.
+- MUST 미확정 사항 중 동작·디자인·데이터 계약을 바꾸는 결정은 질문하고, 답변 전에는 해당 구현을 진행하지 않는다. 이미 승인된 범위는 재승인을 요청하지 않는다.
+- MUST NOT 목업 데이터 사용 승인을 임의의 선택창·확인 팝업·오류 문구·검증 조건 또는 요청하지 않은 CRUD 동작의 승인으로 해석한다. 원본 에셋이 없는 경우도 같은 기준을 적용한다.
+- SHOULD 근거 판정은 현재 계획이나 진행 보고 안에 짧게 남긴다. 단순 수치 수정에 표를 강제하거나 별도 문서를 만들지 않는다.
 
-## RODI Design System
+| 요소 예시 | 판정 | 근거 또는 다음 결정 |
+| --- | --- | --- |
+| 카드·catalog에 없는 아이콘 | 확정 | 대상 node의 속성·원본 export |
+| 날짜 행을 누른 뒤 선택창 | 미확정 | 후속 디자인 또는 임시 구현 여부·범위 확인 |
+| 서버 저장 | 제외 | 현재 요청은 메모리 목업 목록만 연결 |
 
-실제 원본은 다음 경로다.
+## Token·Component·Asset 적용
 
-```text
-Rodi/Core/Components/RodiDesignSystem.swift
-Rodi/Resources/Fonts
-Rodi/Resources/Assets.xcassets
-```
+- MUST RODI의 token·Component·custom UI 계약은 `.agents/skills/rodi-swiftui`에서 확인하고, 같은 의미의 기존 구현을 우선 사용한다.
+- MUST 새 token이나 공통 Component는 현재 요청에서 실제 중복이나 공유 책임이 확인된 경우에만 추가한다.
+- MUST 단순 UI 변경을 캐싱·성능 최적화·공통 Component 개편으로 확대하지 않는다.
+- MUST asset 재사용 여부를 이름만으로 판단하지 않고 glyph, 크기, 투명 여백, rendering mode를 Figma export와 대조한다.
+- MUST 없는 asset은 Figma가 제공한 원본 bytes를 의미 기반 이름으로 catalog에 추가한다. 임시 asset URL이나 임의로 다시 그린 대체물을 source에 남기지 않는다.
+- MUST export된 도형만 포함하는지 바깥 component frame까지 포함하는지 확인하고, 도형 크기·배치 영역·터치 영역을 구분한다.
+- MUST 파일 이름과 실제 glyph 방향을 각각 확인하고, 부모 frame의 회전·반전·crop이 export 결과에 포함됐는지 대조한다.
+- MUST 터치 영역을 넓히기 위해 image 자체를 확대하지 않는다.
+- MUST 원본 image의 resize·재압축과 View의 표시 크기 조절을 구분하고, 원본 bytes를 바꿨다면 결과에 명시한다.
+- SHOULD 같은 원본 node에서 사용하는 관련 asset의 크기·방향·여백을 한 번에 대조한다.
+- MUST Figma 문구가 안전·사고 방지를 보장하면 `AGENTS.md`의 제품 안전 제약에 맞춰 처리한다.
 
-- 색상은 먼저 `RodiColor`에서 찾고, 대응 token이 있으면 raw hex나 임의의 system color로 대체하지 않는다.
-- 텍스트는 `RodiTypography`와 `.rodiTypography(...)`를 우선한다.
-- token이 없는 의도적인 크기에는 `Font.pretendard(...)`를, UIKit 경계에는 `UIFont.pretendard(...)`를 사용한다.
-- Pretendard Regular·Medium·SemiBold·Bold 파일은 실제 Fonts 폴더와 등록 코드를 기준으로 확인한다.
-- 새 token이 필요하면 같은 의미의 기존 token이 없는지 사용처까지 검색한 뒤 추가를 제안한다.
-- asset은 catalog의 실제 이름과 rendering 특성을 확인하고, 기존 항목을 우선 재사용한다.
-- asset 이름 전체 목록이나 색상값 표를 문서에 복제하지 않는다. 자주 변하는 목록의 원본은 코드와 catalog다.
-- 새 image가 꼭 필요하면 안정적인 의미 기반 이름을 쓰고, Figma export의 투명 여백과 scale을 확인한다.
+## 레이아웃 판정
 
-## 기존 RODI UI 계약
+- MUST Figma의 x·y 좌표나 viewport 크기를 화면 전체 고정 frame과 `.position`으로 복제하지 않는다.
+- MUST `GeometryReader`, 측정용 `PreferenceKey`, 직접 `UIScreen.main`, 반복적인 `.offset`을 일반적인 화면 배치 수단으로 사용하지 않는다.
+- SHOULD stack, grid, scroll, alignment, flexible frame, safe-area API와 기존 project abstraction 순서로 적응형 구조를 선택한다.
+- MUST 측정 API가 필요하면 기존 UI 계약과 SDK·gesture 제약으로 대체할 수 없는 이유와 영향 화면을 확인한다.
+- MAY 명확한 icon·Component 자체 크기와 장식 목적의 제한된 위치값은 고정할 수 있다.
 
-Generic SwiftUI 권고보다 현재 제품 계약과 인접 구현이 우선한다.
+## 검증과 보고
 
-- 앱 하단 탐색은 `RodiBottomTabBar`와 `MainTabView`의 custom 동작을 유지한다.
-- Home의 sheet는 `Presentation/Home/BottomSheet` 아래 custom 상태·gesture·safe-area 동작을 유지한다.
-- Figma가 tab bar나 sheet처럼 보여도 곧바로 `TabView`나 system `.sheet`로 교체하지 않는다.
-- 기존 feature component가 있으면 화면별 복제품을 만들지 말고 현재 API와 책임을 확인해 재사용한다.
-- Kakao map은 기존 UIKit-backed adapter 경계를 유지하며 순수 SwiftUI map으로 대체하지 않는다.
-- Figma 문구가 안전·사고 방지를 보장하는 표현이면 구현 전에 `AGENTS.md` 기준으로 바로잡거나 보고한다.
-
-## SwiftUI와 MVI 책임
-
-- View는 State 렌더링, 사용자 입력 수집, Action 전달만 담당한다.
-- Reducer는 사용자 의도, 상태 전이, Effect 시작·취소, 최신 응답 판단을 담당한다.
-- SDK·UIKit delegate·외부 I/O는 기존 Service/Adapter 경계를 따른다.
-- `body` 안에 비동기 업무나 비즈니스 결정을 넣지 않는다.
-- 탭 가능한 요소는 `Button`을 우선하고, 아이콘 단독 버튼에는 접근성 label을 제공한다.
-- 동적 목록은 안정적인 identity를 사용하고 `.indices`를 데이터 identity로 삼지 않는다.
-- 큰 View를 나눌 때 먼저 같은 파일의 작은 private subview/extension이 충분한지 판단한다.
-
-## Layout과 Geometry
-
-새 코드에서는 기본적으로 다음을 사용하지 않는다.
-
-- `GeometryReader`
-- size 측정용 `PreferenceKey`
-- 직접 `UIScreen.main`
-- 기기 전체 크기를 고정한 `.frame`
-- Figma 좌표를 복제한 `.position`
-- 흐르는 content를 맞추기 위한 반복적인 `.offset`
-
-대안은 다음 순서로 검토한다.
-
-1. `VStack`, `HStack`, `ZStack`, `Grid`, `ScrollView`
-2. alignment, `Spacer`, flexible `.frame(maxWidth:maxHeight:)`
-3. `fixedSize`, `layoutPriority`
-4. `safeAreaInset`, alignment 기반 `overlay`
-5. `ViewThatFits` 또는 iOS 16의 `Layout`
-6. 기존 `screenBounds`, `screenSafeAreaInsets`
-7. SDK나 gesture 특성상 필요한 UIKit adapter
-
-측정이 불가피하면 도입 전에 필요한 이유, 위 대안이 실패한 근거, 영향 화면을 보고한다.
-작은 icon이나 명확한 component 자체 크기까지 금지하는 규칙은 아니며, 화면 전체를 Figma pixel frame으로 고정하지 않는 것이 목적이다.
-현재 `LoginView`와 `OnboardingAnalysisDialog`의 직접 `UIScreen.main` 사용은 별도 UI 리팩터링 대상이며 새 코드가 따라 하지 않는다.
-
-## Compatibility와 적응형 검증
-
-최소 지원은 iOS 16.1이다.
-iOS 17+ API를 쓰려면 `#available` 분기와 iOS 16.1 fallback을 함께 구현한다.
-custom tab, bottom sheet, keyboard가 top·bottom safe area와 충돌하지 않는지 확인한다.
-
-구현 후 최소한 다음을 확인한다.
-
-- compact device와 large device에서 clipping, overflow, 과도한 빈 공간이 없는가
-- 긴 한국어 문구와 큰 Dynamic Type에서 핵심 정보와 action이 유지되는가
-- VoiceOver label·trait·reading order와 충분한 tap target이 있는가
-- 색상만으로 selected·disabled·error 상태를 구분하지 않는가
-- Reduce Motion 등 접근성 설정에서도 interaction 의미가 유지되는가
-- loading·empty·error·success가 실제 State에서 각각 도달 가능하고 전환이 자연스러운가
-- keyboard, scroll, safe area, modal·navigation dismiss 동작이 기존 흐름과 맞는가
-
-코드 또는 프로젝트 구조를 바꿨다면 `AGENTS.md`의 `Rodi Dev` Debug 기준으로 build한다.
-가능하면 동일 상태의 simulator screenshot을 Figma와 나란히 비교하고 hierarchy, spacing, typography, asset, interaction 순으로 차이를 확인한다.
-자동 테스트 target이 없다면 “테스트 통과”라고 쓰지 말고, 수행한 build와 수동·시각 검증만 정확히 기록한다.
+- MUST 변경 영향에 맞춰 hierarchy, spacing, typography, color, corner, asset, selected·disabled·error 상태와 interaction을 확인한다.
+- MUST 신규 화면·입력·scroll 변경에서는 compact·large device, safe area, keyboard, 긴 한국어 문구, Dynamic Type, VoiceOver tap target을 확인한다.
+- SHOULD 동일 상태의 screenshot을 Figma와 나란히 비교하고 의도적으로 다른 부분과 확인하지 못한 상태를 보고한다.
+- MUST 코드·구조 변경 뒤 `AGENTS.md`의 Dev Debug build를 실행한다. 자동 테스트를 실행하지 않았다면 테스트 통과로 보고하지 않는다.
+- MUST 단순 색상·간격 변경과 신규 interaction 화면에 동일한 전체 QA 목록을 기계적으로 적용하지 않는다.

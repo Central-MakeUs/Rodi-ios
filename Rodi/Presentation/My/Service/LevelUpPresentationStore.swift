@@ -29,6 +29,13 @@ final class LevelUpPresentationStore {
         self.tokenStore = tokenStore
     }
 
+    /// 서버 전환 시 현재 앱에 저장된 회원별 표시 이력만 제거합니다.
+    static func clearAll(userDefaults: UserDefaults = .standard) {
+        for key in userDefaults.dictionaryRepresentation().keys where key.hasPrefix("\(Key.prefix).") {
+            userDefaults.removeObject(forKey: key)
+        }
+    }
+
     func check(level: MemberProfile.Level) -> LevelUpPresentationCheckResult {
         guard let storageKey = storageKey else {
             return .init(previousLevel: nil, levelToPresent: nil)

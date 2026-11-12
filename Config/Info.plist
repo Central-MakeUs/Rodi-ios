@@ -53,6 +53,8 @@
 	<string>$(KAKAO_NATIVE_APP_KEY)</string>
 	<key>KAKAO_REST_API_KEY</key>
 	<string>$(KAKAO_REST_API_KEY)</string>
+	<key>LSApplicationCategoryType</key>
+	<string></string>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>kakaomap</string>
@@ -60,19 +62,19 @@
 		<string>kakaokompassauth</string>
 		<string>kakaolink</string>
 	</array>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>현재 위치로 주변 운전 연습 장소를 보여드리고, 사용자가 시작한 연습의 방문 인증과 실시간 진행 현황을 제공하기 위해 위치 정보를 사용합니다.</string>
 	<key>NSLocationTemporaryUsageDescriptionDictionary</key>
 	<dict>
-		<key>PracticeTracking</key>
-		<string>사용자가 시작한 연습의 방문 인증과 실시간 진행 현황을 정확하게 확인하기 위해 정밀한 위치가 필요합니다.</string>
+		<key>DrivePractice</key>
+		<string>주행 연습 시 방문 인증과 실시간 주행 기록을 확인하기 위해 정밀한 위치 정보가 필요해요.</string>
 	</dict>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>현재 위치 주변의 운전 연습 장소를 보여주고, 실시간 주행 기록을 확인하기 위해 위치 정보를 사용해요.</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
-	<key>RODI_API_BASE_URL</key>
-	<string>$(RODI_API_BASE_URL)</string>
 	<key>RODI_ANALYTICS_ENABLED</key>
 	<string>$(RODI_ANALYTICS_ENABLED)</string>
+	<key>RODI_API_BASE_URL</key>
+	<string>$(RODI_API_BASE_URL)</string>
 	<key>RODI_ENVIRONMENT</key>
 	<string>$(RODI_ENVIRONMENT)</string>
 	<key>UIAppFonts</key>
@@ -82,10 +84,6 @@
 		<string>Pretendard-SemiBold.otf</string>
 		<string>Pretendard-Bold.otf</string>
 	</array>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>location</string>
-	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -93,6 +91,10 @@
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UISupportedInterfaceOrientations</key>

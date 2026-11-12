@@ -12,6 +12,8 @@ struct DebugFeatureTestPage: View {
     @State private var isMyCoursesPreviewPresented = false
     @State private var isHardWithdrawalConfirmationPresented = false
     @State private var isMandatoryUpdateTestPresented = false
+    @State private var isNicknamePreviewPresented = false
+    @State private var isReviewWritingPreviewPresented = false
     @State private var isHardWithdrawalSubmitting = false
     @State private var hardWithdrawalErrorMessage: String?
 
@@ -57,6 +59,9 @@ struct DebugFeatureTestPage: View {
                     reviewPromptAction()
                     dismiss()
                 }
+                testButton(title: "후기 작성 폼 미리보기 (서버 저장 없음)") {
+                    isReviewWritingPreviewPresented = true
+                }
                 testButton(title: "등록한 코스") {
                     isMyCoursesPreviewPresented = true
                 }
@@ -65,6 +70,9 @@ struct DebugFeatureTestPage: View {
                 }
                 testButton(title: "강제 업데이트 알림") {
                     isMandatoryUpdateTestPresented = true
+                }
+                testButton(title: "온보딩 닉네임") {
+                    isNicknamePreviewPresented = true
                 }
             }
             .padding(.horizontal, 20)
@@ -79,21 +87,27 @@ struct DebugFeatureTestPage: View {
             titleVisibility: .visible
         ) {
             Button("연습 코스로 이동중") {
-                PracticeLiveActivityService.shared.showPreview(state: .headingToCourse)
+                PracticeLiveActivityPreview.show(.headingToCourse)
             }
             Button("코스 주행중") {
-                PracticeLiveActivityService.shared.showPreview(state: .drivingCourse)
+                PracticeLiveActivityPreview.show(.drivingCourse)
             }
             Button("코스 주행중 - 방금 출발") {
-                PracticeLiveActivityService.shared.showPreview(state: .drivingCourseJustStarted)
+                PracticeLiveActivityPreview.show(.drivingCourseJustStarted)
             }
             Button("코스 주행 완료") {
-                PracticeLiveActivityService.shared.showPreview(state: .completed)
+                PracticeLiveActivityPreview.show(.completed)
             }
             Button("취소", role: .cancel) {}
         }
         .fullScreenCover(isPresented: $isMyCoursesPreviewPresented) {
             DebugMyCoursesPreviewPage()
+        }
+        .fullScreenCover(isPresented: $isNicknamePreviewPresented) {
+            DebugNicknamePreviewPage()
+        }
+        .fullScreenCover(isPresented: $isReviewWritingPreviewPresented) {
+            DebugReviewWritingPreviewPage()
         }
         .overlay {
             ZStack {
@@ -134,6 +148,7 @@ struct DebugFeatureTestPage: View {
                 .frame(height: 56)
                 .background(RodiColor.gray100)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }

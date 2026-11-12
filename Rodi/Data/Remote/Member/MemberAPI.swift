@@ -9,7 +9,7 @@ import Foundation
 enum MemberAPI: TargetType {
     case myProfile
     case updateDrivingGoal(MemberDrivingGoalUpdateRequestDTO)
-    case updatePlaceFilterTags(MemberPlaceFilterTagsUpdateRequestDTO)
+    case updateNickname(MemberNicknameUpdateRequestDTO)
     case withdraw
     case hardWithdraw
     case block(memberID: Int)
@@ -17,16 +17,19 @@ enum MemberAPI: TargetType {
     case unblock(memberID: Int)
     case submitOnboarding(MemberOnboardingRequestDTO)
     case completeCourseTutorial
+    case onboardingForm
+    case nicknameAvailability(MemberNicknameAvailabilityQueryDTO)
+    case updateSortTags(MemberSortTagsUpdateRequestDTO)
 
     var method: HTTPMethod {
         switch self {
-        case .myProfile:
+        case .myProfile, .onboardingForm, .nicknameAvailability:
             .get
             
-        case .updateDrivingGoal:
+        case .updateDrivingGoal, .updateNickname:
             .patch
             
-        case .updatePlaceFilterTags:
+        case .updateSortTags:
             .put
             
         case .withdraw, .hardWithdraw:
@@ -50,7 +53,7 @@ enum MemberAPI: TargetType {
 
     var path: String {
         switch self {
-        case .myProfile, .updateDrivingGoal, .withdraw:
+        case .myProfile, .updateDrivingGoal, .updateNickname, .withdraw:
             "/api/v1/members/me"
 
         case .hardWithdraw:
@@ -65,49 +68,58 @@ enum MemberAPI: TargetType {
         case .unblock(let memberID):
             "/api/v1/members/\(memberID)/block"
             
-        case .updatePlaceFilterTags:
-            "/api/v1/members/me/filter-tags"
-            
         case .submitOnboarding:
             "/api/v1/members/me/onboarding"
         case .completeCourseTutorial:
             "/api/v1/members/me/course-tutorial"
+        case .onboardingForm:
+            "/api/v1/members/me/onboarding-form"
+        case .nicknameAvailability:
+            "/api/v1/members/nickname/availability"
+        case .updateSortTags:
+            "/api/v1/members/me/sort-tags"
         }
     }
 
     var optionalHeaders: HTTPHeaders? { nil }
 
     var parameters: Parameters? {
-        guard case .blockedMembers(let query) = self else { return nil }
-
-        var parameters: Parameters = ["size": query.size]
-        if let cursor = query.cursor, !cursor.isEmpty {
-            parameters["cursor"] = cursor
+        switch self {
+        case .blockedMembers(let query):
+            var parameters: Parameters = ["size": query.size]
+            if let cursor = query.cursor, !cursor.isEmpty {
+                parameters["cursor"] = cursor
+            }
+            return parameters
+        case .nicknameAvailability(let query):
+            return ["nickname": query.nickname]
+        default:
+            return nil
         }
-        return parameters
     }
 
     var body: Data? {
         switch self {
-        case .myProfile, .withdraw, .hardWithdraw, .block, .blockedMembers, .unblock, .completeCourseTutorial:
+        case .myProfile, .withdraw, .hardWithdraw, .block, .blockedMembers, .unblock, .completeCourseTutorial, .onboardingForm, .nicknameAvailability:
             nil
             
         case .updateDrivingGoal(let request):
             requestToBody(request)
-            
-        case .updatePlaceFilterTags(let request):
+        case .updateNickname(let request):
             requestToBody(request)
             
         case .submitOnboarding(let request):
+            requestToBody(request)
+        case .updateSortTags(let request):
             requestToBody(request)
         }
     }
 
     var encodingType: EncodingType {
         switch self {
-        case .blockedMembers:
+        case .blockedMembers, .onboardingForm, .nicknameAvailability:
             .url
-        case .myProfile, .updateDrivingGoal, .updatePlaceFilterTags, .withdraw, .hardWithdraw, .block, .unblock, .submitOnboarding, .completeCourseTutorial:
+        case .myProfile, .updateDrivingGoal, .updateNickname, .withdraw, .hardWithdraw, .block, .unblock, .submitOnboarding, .completeCourseTutorial, .updateSortTags:
             .json
         }
     }
@@ -118,7 +130,7 @@ enum MemberAPI: TargetType {
         switch self {
         case .myProfile:
             20
-        case .updateDrivingGoal, .updatePlaceFilterTags, .withdraw, .hardWithdraw, .block, .blockedMembers, .unblock, .submitOnboarding, .completeCourseTutorial:
+        case .updateDrivingGoal, .updateNickname, .withdraw, .hardWithdraw, .block, .blockedMembers, .unblock, .submitOnboarding, .completeCourseTutorial, .onboardingForm, .nicknameAvailability, .updateSortTags:
             nil
         }
     }

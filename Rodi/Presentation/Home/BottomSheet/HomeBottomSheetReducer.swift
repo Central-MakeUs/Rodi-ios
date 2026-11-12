@@ -26,7 +26,7 @@ struct HomeBottomSheetReducer: Reducer {
     enum DetailTransition {
         case resolveSavedPlace(PlaceListItem)
         case clearSearchSelection
-        case presentRecommendListForRegion(RodiCoordinate)
+        case presentRecommendListForRegion
     }
 
     struct Dependencies {
@@ -34,9 +34,11 @@ struct HomeBottomSheetReducer: Reducer {
         let placeRepository: PlaceRepository
         let practiceRepository: PracticeRepository
         let reviewRepository: ReviewRepository
+        let courseRepository: CourseRepository
+        let isCourseReportingEnabled: Bool
         let memberRepository: MemberRepository
         let practiceMeasurementStore: PracticeMeasurementStoring
-        let practiceTrackingService: PracticeTrackingService
+        let drivePracticeService: DrivePracticeService
         let routeGuidanceService: RouteGuidanceService
     }
 
@@ -63,6 +65,7 @@ struct HomeBottomSheetReducer: Reducer {
     }
 
     enum Delegate {
+        case mapClusterQueryRequested(PlaceClusterQuery, revision: Int)
         case mapPlaceResolved(PlaceDetail)
         case mapSearchSelectionRequested(String)
         case mapRouteOverlayChanged(RodiRouteOverlay?)
@@ -107,8 +110,10 @@ struct HomeBottomSheetReducer: Reducer {
             memberRepository: dependencies.memberRepository,
             practiceRepository: dependencies.practiceRepository,
             reviewRepository: dependencies.reviewRepository,
+            courseRepository: dependencies.courseRepository,
+            isCourseReportingEnabled: dependencies.isCourseReportingEnabled,
             practiceMeasurementStore: dependencies.practiceMeasurementStore,
-            practiceTrackingService: dependencies.practiceTrackingService,
+            drivePracticeService: dependencies.drivePracticeService,
             routeGuidanceService: dependencies.routeGuidanceService,
             hasActiveSession: hasActiveSession
         )
@@ -116,7 +121,7 @@ struct HomeBottomSheetReducer: Reducer {
             placeRepository: dependencies.placeRepository,
             memberRepository: dependencies.memberRepository,
             practiceMeasurementStore: dependencies.practiceMeasurementStore,
-            practiceTrackingService: dependencies.practiceTrackingService,
+            drivePracticeService: dependencies.drivePracticeService,
             routeGuidanceService: dependencies.routeGuidanceService,
             hasActiveSession: hasActiveSession
         )
@@ -156,6 +161,7 @@ extension HomeBottomSheetReducer {
             return beginDetailTeardown(.clearSearchSelection, state: &state)
 
         case .presentRecommendListForRegion(let origin):
+            _ = recommendListReducer.reduce(&state.recommendList, with: .regionViewportReloadStarted(origin: origin))
             state.resolvingPlaceID = nil
             state.isRecommendationPlaceResolution = false
             state.isSavedPlaceResolution = false
@@ -163,10 +169,10 @@ extension HomeBottomSheetReducer {
 
             guard state.route == .courseDetail || state.route == .parkingDetail else {
                 state.route = .recommendList
-                return presentRecommendListForRegion(origin: origin, state: state)
+                return .send(.recommendList(.present))
             }
 
-            return beginDetailTeardown(.presentRecommendListForRegion(origin), state: &state)
+            return beginDetailTeardown(.presentRecommendListForRegion, state: &state)
 
         case .detailTeardownFinished(let id):
             guard state.detailTeardownID == id,
@@ -209,7 +215,9 @@ extension HomeBottomSheetReducer {
             let detailAction: Action = detail.type == .course
                 ? .courseDetail(.present(detail, source: "home"))
                 : .parkingDetail(.present(detail, source: "home"))
-            return actions([
+            let closeReport: [Action] = state.courseDetail.courseReport.courseID == nil
+                ? [] : [.courseDetail(.courseReport(.reset))]
+            return actions(closeReport + [
                 detailAction,
                 .delegate(.mapPlaceResolved(detail)),
                 .placeDetailPresentationFinished(id: detail.id)
@@ -253,6 +261,7 @@ extension HomeBottomSheetReducer {
             if case .delegate(let delegate) = action {
                 return reduceRecommendDelegate(delegate, state: &state)
             }
+            state.recommendList.practiceTypes = state.filter.appliedSelection.filterTags
             return recommendListReducer.reduce(&state.recommendList, with: action).map(Action.recommendList)
 
         case .filter(let action):
@@ -283,6 +292,11 @@ extension HomeBottomSheetReducer {
         _ delegate: RecommendListBottomSheetReducer.Delegate, state: inout State
     ) -> Effect<Action> {
         switch delegate {
+        case let .firstPageRequested(query, revision):
+            guard revision == state.recommendList.firstPageRevision,
+                  !state.recommendList.isAwaitingRegionViewport else { return .none }
+            return .send(.delegate(.mapClusterQueryRequested(query, revision: revision)))
+
         case .resolvePlace(let item):
             state.recommendList.presentation = .medium
             return actions([
@@ -449,7 +463,7 @@ extension HomeBottomSheetReducer {
             state.recommendList.presentation = .collapsed
             return .cancel(id: BottomSheetEffectID.placeDetailLoading)
 
-        case .presentRecommendListForRegion(let origin):
+        case .presentRecommendListForRegion:
             state.resolvingPlaceID = nil
             state.isRecommendationPlaceResolution = false
             state.isSavedPlaceResolution = false
@@ -457,26 +471,10 @@ extension HomeBottomSheetReducer {
             state.isCurrentLocationRequestPending = false
             state.route = .recommendList
             state.recommendList.presentation = .collapsed
-            return presentRecommendListForRegion(origin: origin, state: state)
+            return .send(.recommendList(.present))
         }
     }
 
-    private func presentRecommendListForRegion(
-        origin: RodiCoordinate,
-        state: State
-    ) -> Effect<Action> {
-        var followUpActions: [Action] = [
-            .recommendList(.regionViewportReloadStarted(origin: origin)),
-            .recommendList(.present)
-        ]
-
-        if let latestCenter = state.recommendList.latestViewportCenter,
-           latestCenter.distanceKilometers(to: origin) <= 0.5 {
-            followUpActions.append(.recommendList(.reloadAfterRegionViewport(origin: origin)))
-        }
-
-        return actions(followUpActions)
-    }
 }
 
 

@@ -6,8 +6,6 @@
 //
 
 import SwiftUI
-import KakaoSDKCommon
-import KakaoMapsSDK
 
 @main
 struct RodiApp: App {
@@ -18,14 +16,7 @@ struct RodiApp: App {
         RodiLogger.configure()
         RodiFontRegistrar.registerFonts()
 
-        switch KakaoConfiguration.hasNativeAppKey {
-            case true:
-                KakaoSDK.initSDK(appKey: KakaoConfiguration.nativeAppKey)
-                SDKInitializer.InitSDK(appKey: KakaoConfiguration.nativeAppKey)
-
-            case false:
-                RodiLogger.error("Kakao SDK initializer skipped: native app key is empty")
-        }
+        KakaoConfiguration.initializeSDK()
     }
 
     var body: some Scene {

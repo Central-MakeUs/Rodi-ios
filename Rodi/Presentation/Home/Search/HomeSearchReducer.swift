@@ -153,7 +153,8 @@ struct HomeSearchReducer: Reducer {
                     requestID: state.results.requestID,
                     isAppending: true,
                     registration: nil,
-                    origin: state.origin
+                    origin: state.origin,
+                    practiceTypes: state.practiceTypes
                 )
             case nil:
                 return .none
@@ -318,7 +319,8 @@ struct HomeSearchReducer: Reducer {
             requestID: state.results.requestID,
             isAppending: false,
             registration: registration,
-            origin: state.origin
+            origin: state.origin,
+            practiceTypes: state.practiceTypes
         )
     }
 
@@ -425,7 +427,8 @@ struct HomeSearchReducer: Reducer {
         requestID: Int,
         isAppending: Bool,
         registration: RecentSearchRegistration?,
-        origin: RodiCoordinate
+        origin: RodiCoordinate,
+        practiceTypes: [PlacePracticeType]
     ) -> Effect<Action> {
         let placeRepository = placeRepository
         let recentSearchRepository = recentSearchRepository
@@ -444,7 +447,8 @@ struct HomeSearchReducer: Reducer {
                         keyword: keyword,
                         currentLatitude: origin.latitude,
                         currentLongitude: origin.longitude,
-                        cursor: cursor
+                        cursor: cursor,
+                        practiceTypes: practiceTypes
                     )
                 )
                 await send(.searchLoaded(page, requestID: requestID, isAppending: isAppending))

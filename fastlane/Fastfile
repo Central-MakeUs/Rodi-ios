@@ -3,6 +3,8 @@
 
 require "base64"
 require "open3"
+require "json"
+require_relative "lib/backend_environment"
 
 default_platform(:ios)
 
@@ -51,28 +53,46 @@ def xcconfig_value(key, environment:)
   value
 end
 
-def resolved_build_setting(key, environment:)
+def resolved_build_settings(environment:)
   settings = environment_settings(environment)
-  output, status = Open3.capture2e(
+  output, _error, status = Open3.capture3(
     "xcodebuild",
     "-project", PROJECT_PATH,
     "-scheme", settings[:scheme],
     "-configuration", settings[:configuration],
-    "-showBuildSettings"
+    "-showBuildSettings", "-json"
   )
 
   unless status.success?
     UI.user_error!("Unable to resolve #{environment} build settings")
   end
 
-  line = output.lines.reverse.find { |item| item.match?(/^\s*#{Regexp.escape(key)}\s*=/) }
-  value = line&.split("=", 2)&.last&.strip.to_s
+  target = JSON.parse(output).find { |item| item["target"] == "Rodi" }
+  UI.user_error!("Rodi target is missing from resolved build settings") unless target
+  target.fetch("buildSettings")
+rescue JSON::ParserError, KeyError
+  UI.user_error!("Unable to decode resolved #{environment} build settings")
+end
+
+def resolved_build_setting(key, environment:)
+  value = resolved_build_settings(environment: environment).fetch(key, "").to_s
 
   if value.empty?
     UI.user_error!("#{key} is missing from resolved #{environment} build settings")
   end
 
   value
+end
+
+def verify_backend_environment!(environment, uploading: false)
+  values = resolved_build_settings(environment: environment)
+  if uploading
+    BackendEnvironment.validate_upload!(environment, values)
+  else
+    BackendEnvironment.validate!(environment, values)
+  end
+rescue ArgumentError => error
+  UI.user_error!(error.message)
 end
 
 def resolved_key_path(raw_path)
@@ -132,6 +152,7 @@ end
 
 def verify_deployment_target!(environment)
   settings = environment_settings(environment)
+  verify_backend_environment!(environment, uploading: true)
   app_store_id_from_secrets!(environment)
 
   settings
@@ -168,11 +189,13 @@ platform :ios do
 
   desc "Build Rodi Dev for the iOS Simulator"
   lane :build_dev do
+    verify_backend_environment!(:dev)
     sh("xcodebuild -project #{PROJECT_PATH.shellescape} -scheme 'Rodi Dev' -configuration Debug -destination 'generic/platform=iOS Simulator' build")
   end
 
   desc "Create a production App Store archive locally"
   lane :archive_prod do
+    verify_backend_environment!(:prod)
     settings = environment_settings(:prod)
     build_app(
       project: PROJECT_PATH,

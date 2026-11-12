@@ -18,17 +18,21 @@ struct RootView: View {
 
     init() {
         let onboardingProgressStore = OnboardingProgressStore()
+
         let dependencies = AppDependencies()
         self.dependencies = dependencies
+
         let reviewFlowReducer = ReviewFlowFactory.make(
             placeRepository: dependencies.placeRepository,
             practiceRepository: dependencies.practiceRepository,
-            reviewRepository: dependencies.reviewRepository
+            reviewRepository: dependencies.reviewRepository,
+            usesServerReviewForm: AppEnvironment.current == .development
         )
-        let practiceTrackingReducer = PracticeTrackingReducer(
+
+        let drivePracticeReducer = DrivePracticeReducer(
             practiceRepository: dependencies.practiceRepository,
             measurementStore: dependencies.practiceMeasurementStore,
-            trackingService: dependencies.practiceTrackingService
+            drivePracticeService: dependencies.drivePracticeService
         )
 
         _store = StateObject(
@@ -39,11 +43,13 @@ struct RootView: View {
                     authRepository: dependencies.authRepository,
                     onboardingProgressStore: onboardingProgressStore,
                     reviewFlowReducer: reviewFlowReducer,
-                    practiceTrackingReducer: practiceTrackingReducer
+                    drivePracticeReducer: drivePracticeReducer
                 )
             )
         )
+
         let networkConnectionMonitor = NetworkConnectionMonitor()
+
         _networkConnectionMonitor = StateObject(wrappedValue: networkConnectionMonitor)
     }
 
@@ -66,11 +72,10 @@ struct RootView: View {
             )
                 .zIndex(2)
 
-            PracticeTrackingView(
-                state: store.state.practiceTracking,
+            DrivePracticeView(
+                service: dependencies.drivePracticeService, state: store.state.drivePractice,
                 canPresentReviewPrompt: store.state.reviewFlow.review.route == .hidden,
-                service: dependencies.practiceTrackingService,
-                send: { store.send(.practiceTracking($0)) }
+                send: { store.send(.drivePractice($0)) }
             )
                 .zIndex(3)
 

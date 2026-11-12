@@ -19,6 +19,7 @@ struct ReviewPromptReducer: Reducer {
     }
 
     enum Action {
+        // TODO: 매개변수 많은거 struct으로 뺴기 (윤수)
         case start(
             placeID: Int,
             placeName: String,

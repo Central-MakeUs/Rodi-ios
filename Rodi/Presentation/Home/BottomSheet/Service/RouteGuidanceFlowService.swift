@@ -7,17 +7,17 @@ import Foundation
 struct RouteGuidanceFlowService {
     private let routeGuidanceService: RouteGuidanceService
     private let memberRepository: MemberRepository
-    private let practiceTrackingService: PracticeTrackingService
+    private let drivePracticeService: DrivePracticeService
     private let directionsService: KakaoDirectionsService
 
     init(
         memberRepository: MemberRepository,
-        practiceTrackingService: PracticeTrackingService,
+        drivePracticeService: DrivePracticeService,
         directionsService: KakaoDirectionsService,
         routeGuidanceService: RouteGuidanceService
     ) {
         self.memberRepository = memberRepository
-        self.practiceTrackingService = practiceTrackingService
+        self.drivePracticeService = drivePracticeService
         self.directionsService = directionsService
         self.routeGuidanceService = routeGuidanceService
     }
@@ -27,11 +27,11 @@ struct RouteGuidanceFlowService {
     }
 
     var hasActiveMeasurement: Bool {
-        practiceTrackingService.hasActiveMeasurement
+        drivePracticeService.hasActiveMeasurement
     }
 
     var activeMeasurementName: String? {
-        practiceTrackingService.session?.courseName
+        drivePracticeService.session?.courseName
     }
 
     var areLiveActivitiesEnabled: Bool {
@@ -44,7 +44,7 @@ struct RouteGuidanceFlowService {
     }
 
     func cancelActiveMeasurement() {
-        practiceTrackingService.cancel()
+        drivePracticeService.cancel()
     }
 
     func prepareTracking(for request: RouteGuidanceFlowRequest) async -> RouteGuidanceTrackingPreparation {
@@ -71,17 +71,20 @@ struct RouteGuidanceFlowService {
         routePath: [RodiCoordinate],
         rabbitAssetName: String
     ) -> RouteGuidanceTrackingPreparation {
-        switch practiceTrackingService.start(
+        switch drivePracticeService.start(
             course: course,
             routePath: routePath,
             rabbitAssetName: rabbitAssetName
         ) {
         case .started:
-            return .started(measurementID: practiceTrackingService.session?.id ?? UUID())
+            return .started(measurementID: drivePracticeService.session?.id ?? UUID())
+            
         case .authorizationRequested:
             return .authorizationRequested
+            
         case .reducedAccuracyRequested:
             return .reducedAccuracyRequested
+            
         case .unavailable(let message):
             return .unavailable(message)
         }

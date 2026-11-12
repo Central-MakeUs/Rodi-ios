@@ -10,6 +10,7 @@ enum ReviewAPI: TargetType {
     case myReviews(query: MyReviewListQueryDTO)
     case delete(reviewID: Int)
     case reportForm
+    case writingForm(placeID: Int)
     case report(reviewID: Int, request: ReviewReportRequestDTO)
 
     var method: HTTPMethod {
@@ -17,7 +18,7 @@ enum ReviewAPI: TargetType {
         case .create, .report: .post
         case .update: .put
         case .delete: .delete
-        case .summary, .list, .myReviews, .reportForm, .detail: .get
+        case .summary, .list, .myReviews, .reportForm, .writingForm, .detail: .get
         }
     }
 
@@ -30,6 +31,7 @@ enum ReviewAPI: TargetType {
         case .myReviews: "/api/v1/members/me/reviews"
         case .delete(let reviewID): "/api/v1/reviews/\(reviewID)"
         case .reportForm: "/api/v1/reviews/report-form"
+        case .writingForm(let placeID): "/api/v1/places/\(placeID)/review-form"
         case .report(let reviewID, _): "/api/v1/reviews/\(reviewID)/report"
         }
     }
@@ -61,7 +63,7 @@ enum ReviewAPI: TargetType {
             }
             return parameters
 
-        case .detail, .update, .delete, .reportForm, .report:
+        case .detail, .update, .delete, .reportForm, .writingForm, .report:
             return nil
         }
     }
@@ -71,14 +73,14 @@ enum ReviewAPI: TargetType {
         case .create(_, let request): requestToBody(request)
         case .update(_, let request): requestToBody(request)
         case .report(_, let request): requestToBody(request)
-        case .summary, .list, .myReviews, .detail, .delete, .reportForm: nil
+        case .summary, .list, .myReviews, .detail, .delete, .reportForm, .writingForm: nil
         }
     }
 
     var encodingType: EncodingType {
         switch self {
         case .create, .update, .report: .json
-        case .summary, .list, .myReviews, .detail, .delete, .reportForm: .url
+        case .summary, .list, .myReviews, .detail, .delete, .reportForm, .writingForm: .url
         }
     }
 

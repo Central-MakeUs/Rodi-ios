@@ -42,6 +42,7 @@ struct ReviewReducer: Reducer {
     private let writingReducer: ReviewWritingReducer
     private let skipReasonReducer: ReviewSkipReasonReducer
 
+    // TODO: any 확인 (윤수)
     init(
         promptService: any ReviewPromptServicing,
         writingService: any ReviewWritingServicing,

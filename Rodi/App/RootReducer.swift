@@ -28,7 +28,7 @@ struct RootReducer: Reducer {
         var homeTabSelectionRequestID = 0
         var isCourseTutorialCompleted = false
         var reviewFlow = ReviewFlowCoordinatorReducer.State()
-        var practiceTracking = PracticeTrackingReducer.State()
+        var drivePractice = DrivePracticeReducer.State()
     }
 
     enum Action {
@@ -46,7 +46,7 @@ struct RootReducer: Reducer {
         case logoutCompleted
         case courseTutorialCompleted
         case reviewFlow(ReviewFlowCoordinatorReducer.Action)
-        case practiceTracking(PracticeTrackingReducer.Action)
+        case drivePractice(DrivePracticeReducer.Action)
     }
 
     enum SessionRestoreResult {
@@ -64,20 +64,20 @@ struct RootReducer: Reducer {
     private let authRepository: AuthRepository
     private let onboardingProgressStore: OnboardingProgressStore
     private let reviewFlowReducer: ReviewFlowCoordinatorReducer
-    private let practiceTrackingReducer: PracticeTrackingReducer
+    private let drivePracticeReducer: DrivePracticeReducer
 
     init(
         tokenStore: TokenStoring,
         authRepository: AuthRepository,
         onboardingProgressStore: OnboardingProgressStore,
         reviewFlowReducer: ReviewFlowCoordinatorReducer,
-        practiceTrackingReducer: PracticeTrackingReducer
+        drivePracticeReducer: DrivePracticeReducer
     ) {
         self.tokenStore = tokenStore
         self.authRepository = authRepository
         self.onboardingProgressStore = onboardingProgressStore
         self.reviewFlowReducer = reviewFlowReducer
-        self.practiceTrackingReducer = practiceTrackingReducer
+        self.drivePracticeReducer = drivePracticeReducer
     }
 }
 
@@ -95,16 +95,16 @@ extension RootReducer {
             guard state.hasCompletedAppVersionCheck, state.pendingUpdate == nil else { return .none }
             return restoreSessionIfNeeded(
                 state: &state,
-                after: .practiceTracking(
+                after: .drivePractice(
                     .sceneBecameActive(canPresentPrompt: state.reviewFlow.review.route == .hidden)
                 )
             )
 
         case .sceneBecameInactive:
             state.isSceneActive = false
-            return practiceTrackingReducer
-                .reduce(&state.practiceTracking, with: .sceneBecameInactive)
-                .map(Action.practiceTracking)
+            return drivePracticeReducer
+                .reduce(&state.drivePractice, with: .sceneBecameInactive)
+                .map(Action.drivePractice)
 
         case .appVersionCheckCompleted(let update):
             state.hasCompletedAppVersionCheck = true
@@ -112,7 +112,7 @@ extension RootReducer {
             guard update == nil, state.isSceneActive else { return .none }
             return restoreSessionIfNeeded(
                 state: &state,
-                after: .practiceTracking(
+                after: .drivePractice(
                     .sceneBecameActive(canPresentPrompt: state.reviewFlow.review.route == .hidden)
                 )
             )
@@ -181,9 +181,9 @@ extension RootReducer {
             state.isLoginRequiredPresented = false
             state.pendingAuthenticationIntent = nil
             state.isCourseTutorialCompleted = false
-            return practiceTrackingReducer
-                .reduce(&state.practiceTracking, with: .sessionEnded)
-                .map(Action.practiceTracking)
+            return drivePracticeReducer
+                .reduce(&state.drivePractice, with: .sessionEnded)
+                .map(Action.drivePractice)
 
         case .courseTutorialCompleted:
             state.isCourseTutorialCompleted = true
@@ -195,13 +195,13 @@ extension RootReducer {
             }
             return reviewFlowReducer.reduce(&state.reviewFlow, with: action).map(Action.reviewFlow)
 
-        case .practiceTracking(let action):
+        case .drivePractice(let action):
             if case .delegate(let delegate) = action {
-                return reducePracticeTrackingDelegate(delegate)
+                return reduceDrivePracticeDelegate(delegate)
             }
-            return practiceTrackingReducer
-                .reduce(&state.practiceTracking, with: action)
-                .map(Action.practiceTracking)
+            return drivePracticeReducer
+                .reduce(&state.drivePractice, with: action)
+                .map(Action.drivePractice)
         }
     }
 }
@@ -214,12 +214,12 @@ private extension RootReducer {
     ) -> Effect<Action> {
         switch delegate {
         case .practiceReturnPromptInteractionRequested(let interaction):
-            return .send(.practiceTracking(.promptInteractionRequested(interaction)))
+            return .send(.drivePractice(.promptInteractionRequested(interaction)))
         }
     }
 
-    func reducePracticeTrackingDelegate(
-        _ delegate: PracticeTrackingReducer.Delegate
+    func reduceDrivePracticeDelegate(
+        _ delegate: DrivePracticeReducer.Delegate
     ) -> Effect<Action> {
         switch delegate {
         case .reviewPromptRequested(let prompt):
@@ -227,9 +227,6 @@ private extension RootReducer {
 
         case .reviewPromptInteractionReady(let interaction):
             return .send(.reviewFlow(.practiceReturnPromptInteractionResolved(interaction)))
-
-        case .reviewPromptVisitSubmissionChanged(let isSubmitting):
-            return .send(.reviewFlow(.practiceReturnVisitSubmissionChanged(isSubmitting)))
 
         case .reviewFlowFinishedWithoutReview(let message):
             return .send(.reviewFlow(.practiceReturnFinishedWithoutReview(message)))

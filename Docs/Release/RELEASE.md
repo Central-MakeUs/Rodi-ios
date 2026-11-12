@@ -3,7 +3,7 @@
 이 문서는 Dev/Prod 환경, TestFlight, 관측 SDK, 개인정보 및 App Store 출시 게이트를 다루며, 변동값은 아래 live source에서 확인한다.
 
 빌드 설정은 `Config/Dev.xcconfig`·`Config/Prod.xcconfig`, 배포 명령은 `fastlane/Fastfile`,
-관측·개인정보·공개 URL은 `Rodi/Core/Analytics`, `Rodi/App/Configuration/ClarityConfiguration.swift`,
+관측·개인정보·공개 URL은 `Rodi/Core/Analytics`, `Rodi/Presentation/Shared/Analytics`, `Rodi/App/Configuration/ClarityConfiguration.swift`,
 `Rodi/Resources/PrivacyInfo.xcprivacy`, `Rodi/Presentation/Shared/Model/LegalDocument.swift`가 원본이다.
 
 ## Environment Contract
@@ -14,12 +14,20 @@
 | Bundle ID | `com.dororong.rodi.dev` | `com.dororong.rodi` |
 | 표시명 / 아이콘 | `Rodi Dev` / `AppIconDev` | `Rodi` / `AppIcon` |
 | 환경값 | `RODI_ENVIRONMENT=dev` | `RODI_ENVIRONMENT=prod` |
+| API URL | `https://dev-api.stillstar.store` | `https://api.stillstar.store` |
 | 배포 | 로컬, Dev TestFlight | TestFlight, App Store |
 | 업데이트 검사 | 비활성 | 활성 |
 
-두 xcconfig의 API URL은 현재 동일한 운영 endpoint를 가리킨다. Dev에서도 테스트 계정을
-사용하고 탈퇴·복구처럼 서버 상태를 오래 남기는 검증을 운영 사용자 계정으로 수행하지 않는다.
-API URL이 비어 있으면 운영으로 fallback하지 않으며, 환경별 버전과 build number는 xcconfig가 원본이다.
+MUST Dev 테스트에는 개발 서버의 테스트 계정을 사용한다. 운영 JWT·회원·장소·연습 ID를 개발 서버로 이관하지 않는다.
+MUST API URL이 비어 있거나 환경·Bundle ID·HTTPS host가 다르면 앱 조립 및 Fastlane 배포 검증에서 중단하며, 다른 서버로 fallback하지 않는다.
+환경별 버전과 build number는 xcconfig가 원본이다.
+
+### 기존 Dev 설치본 전환
+
+- MUST `DevelopmentServerMigration`을 인증 요청·측정 복원 전에 실행한다. 최초 전환에서 기존 Dev 토큰과 새 Dev 토큰 저장소, 연습 세션·측정·온보딩 초안·완료 상태·최근 로그인 방식·레벨업 표시 이력을 정리하고 기존 Dev Live Activity 종료를 요청한다.
+- MUST Dev token service에 Bundle ID와 개발 서버 host를 사용하고 Prod token service는 기존 Bundle ID 기준을 유지한다. 전체 UserDefaults 또는 Prod 저장소를 삭제하지 않는다.
+- 초기화 표식은 Dev 앱에만 기록하며 이후 실행의 새 로그인은 유지한다. 검색 기록·길안내 앱 선택은 보존한다.
+- MUST `API-004`와 `QA-048` 검증 전에는 Dev의 `RODI_BACKEND_COMPATIBILITY_VERIFIED = NO`를 유지한다. `dev_beta`는 이 값이 `YES`가 아니면 archive·업로드 전에 중단한다. 검증 없이 flag만 변경하지 않는다.
 
 ## Local Configuration And Firebase
 
@@ -101,6 +109,7 @@ bundle exec fastlane prod_beta
 - `dev_beta`와 `prod_beta`는 각 App Store Connect build train의 다음 번호를 계산해 archive에만
   주입하고 TestFlight에 업로드한다. 프로젝트 파일의 build number를 변경하지 않는다.
 - 두 beta lane 모두 해당 환경 local secrets의 App Store app ID와 API key가 필요하다.
+- MUST `build_dev`, `archive_prod`, 두 beta lane에서 최종 Xcode 설정의 앱 Bundle ID·환경·API host를 검증한다. local xcconfig override도 같은 검증을 받는다.
 - `BUILD_NUMBER=...` 방식은 현재 lane 계약이 아니다. 번호 정책을 바꾸려면 Fastfile부터 수정한다.
 
 ## Required Update
@@ -145,35 +154,3 @@ bundle exec fastlane prod_beta
 | Legal | 공개본 접근 smoke test | 승인 원문·공개본·metadata 일치 |
 
 누락된 Firebase 설정, 잘못된 callback, secret 포함, 민감한 Release log, Clarity 미마스킹, Privacy Label 불일치, 접근 불가하거나 승인 여부를 확인할 수 없는 법무·지원 문서는 모두 출시 차단이다.
-
-## 2차 업데이트 심사 제출 체크리스트
-
-### Live Activity와 위치 측정
-
-- `연습하러 가기`를 사용자가 선택한 경우에만 GPS 측정과 Live Activity가 시작되는지 확인한다.
-- 코스는 경로선 150m 이내의 인정 이동거리로 `min(코스 전체 거리 × 40%, 5km)`에 도달하면 완료한다.
-  주차장은 장소 범위 150m 진입 시 완료하며, 완료·취소·프로세스 중단 뒤에는 위치 업데이트와 Live Activity를 종료한다.
-- 실기기에서 Live Activity·위치 권한 허용/거부·정밀 위치 거부·외부 길안내 앱 미설치·재진입·측정 종료를 확인한다.
-  시뮬레이터는 Live Activity와 GPS 최종 검증에 사용하지 않는다.
-- `NSSupportsLiveActivities`, `UIBackgroundModes=location`, extension embedding, iOS 16.1 availability를 Release archive에서 확인한다.
-  빈번한 Live Activity 업데이트 entitlement는 사용하지 않으며, 현재 갱신은 단계 변경·15초 경과·진행률 3% 변화로 제한된다.
-
-### App Review Notes 초안
-
-아래 영문은 App Store Connect의 Notes for Review에 맞춰, 실제 동작을 바꾸지 않고 사용한다.
-
-> Rodi is a driving-practice course and parking-location discovery app for Korea. Reviewers can sign in with their own Apple ID and complete onboarding.
->
-> To test Live Activities and location-based practice measurement: Home > select a course or parking location > Practice > choose Kakao Map or Kakao Navi. With Location and Live Activities enabled, the app starts measurement only after the user starts a practice session. The Live Activity shows the selected session's current state and ends when the session is completed or ended by the user.
->
-> Rodi uses background location only while an active practice measurement is running. Location is used to verify the selected practice session and update its progress; it stops after completion or cancellation. If Live Activities or precise location are not enabled, the user can still view the route without starting measurement. Kakao Map/Kakao Navi are Korean external navigation integrations; please use the route-only fallback if an external navigation app is unavailable.
-
-### 제출 전 사람 확인 항목
-
-- App Store Connect Privacy Label을 Privacy Manifest와 별개로 확인한다. Firebase Analytics/Crashlytics/Performance,
-  Clarity session replay, Kakao SDK, 계정·후기·정확/대략 위치 처리의 실제 수집 목적·연결 여부·추적 여부와 일치해야 한다.
-- 개인정보처리방침·위치기반서비스 이용약관·지원 URL에 운영 주체, 시행일, 문의 수단, 계정 삭제, 활성 연습 중
-  백그라운드 위치 사용, 원본 GPS 궤적 미저장, 분석·session replay 제3자 처리를 반영한다.
-- UGC 신고·차단·문의·운영 대응 책임자를 확인한다. 신고나 차단은 실제 서버 요청과 차단목록 반영까지 실기기에서 검증한다.
-- App Store Connect의 설명, 새 기능, 스크린샷, 지원 URL, 개인정보처리방침 URL, 연령 등급, 암호화 여부,
-  심사 연락처를 실제 Release 바이너리와 맞춘다.

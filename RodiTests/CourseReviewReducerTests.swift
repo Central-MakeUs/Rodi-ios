@@ -3,6 +3,30 @@ import XCTest
 
 @MainActor
 final class CourseReviewReducerTests: XCTestCase {
+    func testFilterSaveFailureDoesNotCommitSelection() async {
+        let reducer = FilterBottomSheetReducer(
+            memberRepository: MemberRepositoryStub(sortTagsError: .networkUnavailable),
+            hasActiveSession: { true }
+        )
+        var state = FilterBottomSheetReducer.State()
+        state.appliedSelection = .default
+        state.draftSelection = .default
+        state.draftSelection.selectCategory(.parking)
+        let effect = reducer.reduce(&state, with: .apply)
+        XCTAssertTrue(state.isApplying)
+        guard case .none = reducer.reduce(&state, with: .apply).caseOf else {
+            return XCTFail("저장 중 중복 요청은 없어야 합니다.")
+        }
+        guard case let .run(_, task) = effect.caseOf else { return XCTFail("저장 요청이 필요합니다.") }
+        var completion: FilterBottomSheetReducer.Action?
+        await task { completion = $0 }
+        guard let completion, case .failed = completion else { return XCTFail("저장 실패가 필요합니다.") }
+        _ = reducer.reduce(&state, with: completion)
+        XCTAssertFalse(state.isApplying)
+        XCTAssertTrue(state.appliedSelection.filterTags.isEmpty)
+        XCTAssertEqual(state.draftSelection.filterTags, [.parking])
+    }
+
     func testReportedReviewIsRemovedAndReturnsToOriginalRoute() {
         let reducer = makeReducer()
         let review = makeReview(id: 10, memberID: 100)
@@ -55,6 +79,7 @@ final class CourseReviewReducerTests: XCTestCase {
 }
 
 private struct ReviewRepositoryStub: ReviewRepository {
+    func fetchWritingForm(placeID: Int) async throws(NetworkError) -> ReviewWritingForm { fatalError() }
     func create(placeID: Int, submission: PlaceReviewSubmission) async throws(NetworkError) {}
     func fetchDetail(reviewID: Int) async throws(NetworkError) -> ReviewDetail { fatalError() }
     func update(reviewID: Int, submission: PlaceReviewSubmission) async throws(NetworkError) {}
@@ -67,6 +92,8 @@ private struct ReviewRepositoryStub: ReviewRepository {
 }
 
 private struct MemberRepositoryStub: MemberRepository {
+    var sortTagsError: NetworkError? = nil
+    func fetchOnboardingForm() async throws(NetworkError) -> MemberOnboardingForm { fatalError() }
     func fetchMyProfile() async throws(NetworkError) -> MemberProfile { fatalError() }
     func withdraw() async throws(NetworkError) {}
     func hardWithdraw() async throws(NetworkError) {}
@@ -74,7 +101,10 @@ private struct MemberRepositoryStub: MemberRepository {
     func fetchBlockedMembers(query: BlockedMemberQuery) async throws(NetworkError) -> BlockedMemberPage { fatalError() }
     func unblock(memberID: Int) async throws(NetworkError) {}
     func updateDrivingGoal(_ drivingGoal: String) async throws(NetworkError) {}
-    func updatePlaceFilterTags(_ tags: [PlacePracticeType]) async throws(NetworkError) {}
+    func updateNickname(_ nickname: String) async throws(NetworkError) -> String { nickname }
+    func updatePlaceFilterTags(_ tags: [PlacePracticeType]) async throws(NetworkError) {
+        if let sortTagsError { throw sortTagsError }
+    }
     func submitOnboarding(_ submission: MemberOnboardingSubmission) async throws(NetworkError) {}
     func completeCourseTutorial() async throws(NetworkError) -> CourseTutorialCompletion { fatalError() }
 }

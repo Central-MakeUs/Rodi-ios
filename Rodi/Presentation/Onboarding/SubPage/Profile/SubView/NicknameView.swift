@@ -35,6 +35,12 @@ struct NicknameView: View {
                     Text("로 시작해요.")
                         .rodiTypography(.headline1)
                         .foregroundStyle(RodiColor.black)
+
+                    Text("닉네임은 마이페이지에서 수정 가능해요.")
+                        .rodiTypography(.body3Medium)
+                        .foregroundStyle(RodiColor.gray500)
+                        .multilineTextAlignment(.center)
+                        .padding(.top, 12)
                 }
             }
             .frame(maxWidth: .infinity)

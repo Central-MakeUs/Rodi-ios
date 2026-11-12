@@ -6,8 +6,12 @@
 //
 
 import Foundation
+import KakaoSDKCommon
+import KakaoMapsSDK
 
 enum KakaoConfiguration {
+    private static var didInitializeSDK = false
+
     static var nativeAppKey: String {
         Bundle.main.rodiString(for: "KAKAO_NATIVE_APP_KEY")
     }
@@ -18,6 +22,19 @@ enum KakaoConfiguration {
 
     static var hasNativeAppKey: Bool {
         !nativeAppKey.isEmpty
+    }
+
+    static func initializeSDK() {
+        guard hasNativeAppKey else {
+            RodiLogger.error("Kakao SDK initializer skipped: native app key is empty")
+            return
+        }
+
+        guard !didInitializeSDK else { return }
+
+        KakaoSDK.initSDK(appKey: nativeAppKey)
+        SDKInitializer.InitSDK(appKey: nativeAppKey)
+        didInitializeSDK = true
     }
 }
 

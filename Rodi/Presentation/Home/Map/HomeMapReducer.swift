@@ -29,7 +29,7 @@ struct HomeMapReducer: Reducer {
         case searchEntryTapped
         case searchSelectionClearTapped
         case initialLocationRequested
-        case initialMarkersLoadRequested
+        case clusterQueryRequested(PlaceClusterQuery, listRevision: Int)
         case periodicLocationRefreshSchedulingRequested
         case periodicLocationRefreshTimerFired
         case serviceOutput(MapServiceOutAction)
@@ -59,13 +59,14 @@ struct HomeMapReducer: Reducer {
         case prepareForCurrentLocation
         case reloadCurrentViewport(origin: RodiCoordinate?)
         case viewportChanged(PlaceViewport, center: RodiCoordinate, isUserInitiated: Bool)
-        case reloadAfterRegionViewport(origin: RodiCoordinate)
+        case reloadAfterRegionViewport(viewport: PlaceViewport, origin: RodiCoordinate)
         case presentRecommendListForRegion(origin: RodiCoordinate)
         case prepareInitialSearch(origin: RodiCoordinate)
     }
 
     private enum CancellationID: Hashable {
         case progressiveMarkerRendering
+        case clusterLoading
         case userHeadingUpdates
         case periodicLocationRefresh
     }
@@ -76,8 +77,6 @@ struct HomeMapReducer: Reducer {
     private let mapService: MapService
     private let markerRenderingService = MapMarkerRenderingService()
     private let hasActiveSession: () -> Bool
-    private let markerTierResolver = MapMarkerTierResolver()
-    private let markerInteractionResolver = MapMarkerInteractionResolver()
 
     init(dependencies: Dependencies) {
         mapService = MapService(
@@ -131,40 +130,49 @@ struct HomeMapReducer: Reducer {
             state.mapLifecycle = .ready
             return state.isMapInteractive ? initialMapDataLoadEffect() : .none
 
-        case let .viewportChanged(center, zoomLevel, viewport, isUserInitiated):
-            state.mapZoomLevel = zoomLevel
+        case let .viewportChanged(center, _, viewport, isUserInitiated):
             if isUserInitiated { state.isCurrentLocationButtonActive = false }
-            let resolution = markerTierResolver.resolve(zoomLevel: zoomLevel, forcedTier: state.forcedMarkerTier, forcedTierZoomLevel: state.forcedMarkerTierZoomLevel)
-            state.forcedMarkerTier = resolution.forcedTier
-            state.forcedMarkerTierZoomLevel = resolution.forcedTierZoomLevel
-            if state.markerState == .loaded, state.displayedMarkerTier != resolution.tier {
-                state.displayedMarkerTier = resolution.tier
-                if resolution.tier != .individual, isUserInitiated { state.selectedMarkerID = nil }
+            if viewport.longitudeSpan.isFinite, viewport.longitudeSpan > 0 {
+                state.visibleLongitudeSpan = viewport.longitudeSpan
+            }
+            if let span = state.visibleLongitudeSpan,
+               let level = state.clusterResult?.levelIndex(for: span),
+               state.displayedClusterLevel != level {
+                state.displayedClusterLevel = level
+                state.markerRenderingGeneration += 1
                 rebuildMarkers(&state)
+                state.hasCompletedInitialMarkerRendering = true
             }
             var delegates: [Action] = [.delegate(.viewportChanged(viewport, center: center, isUserInitiated: isUserInitiated))]
-            if !isUserInitiated, state.pendingRegionCameraRequestID != nil, let origin = state.pendingRegionViewportReloadOrigin {
+            if !isUserInitiated, viewport.isValidForPlaceQuery,
+               state.pendingRegionCameraRequestID == state.cameraRequestID,
+               let origin = state.pendingRegionViewportReloadOrigin {
                 state.pendingRegionCameraRequestID = nil
                 state.pendingRegionViewportReloadOrigin = nil
-                delegates.append(.delegate(.reloadAfterRegionViewport(origin: origin)))
+                delegates.append(.delegate(.reloadAfterRegionViewport(viewport: viewport, origin: origin)))
             }
             return actions(delegates)
 
         case .markerTapped(let markerID):
-            guard let interaction = markerInteractionResolver.resolve(markerID: markerID, markers: state.markers, items: state.mapItems) else { return .none }
-            switch interaction {
-            case .cluster(let marker, let target):
+            guard let marker = state.markers.first(where: { $0.id == markerID }) else { return .none }
+            switch marker.kind {
+            case .cluster:
+                guard let bounds = state.clusterBoundsByMarkerID[markerID] else { return .none }
                 state.isCurrentLocationButtonActive = false
                 state.selectedMarkerID = nil
                 state.routeOverlay = nil
                 state.markerRenderingGeneration += 1
-                state.forcedMarkerTier = target.nextTier
-                state.forcedMarkerTierZoomLevel = nil
+                rebuildMarkers(&state)
+                state.hasCompletedInitialMarkerRendering = true
                 state.cameraTarget = marker.coordinate
-                state.cameraFocus = .cluster(coordinates: target.coordinates)
+                state.cameraFocus = .cluster(coordinates: [
+                    .init(latitude: bounds.southWestLatitude, longitude: bounds.southWestLongitude),
+                    .init(latitude: bounds.northEastLatitude, longitude: bounds.northEastLongitude)
+                ])
                 requestCamera(&state)
                 return .cancel(id: CancellationID.progressiveMarkerRendering)
-            case .course(let marker, let placeID), .parking(let marker, let placeID):
+            case .course, .parking:
+                guard let placeID = Int(markerID.split(separator: "-").last ?? "") else { return .none }
                 guard hasActiveSession() else {
                     return .send(.delegate(.requestAuthentication))
                 }
@@ -177,6 +185,7 @@ struct HomeMapReducer: Reducer {
                 state.cameraFocus = marker.kind == .course ? .courseMarker : .closeSingleLocation
                 requestCamera(&state)
                 rebuildMarkers(&state)
+                state.hasCompletedInitialMarkerRendering = true
                 return actions([.delegate(.bottomTabBarVisibilityChanged(false)), .delegate(.resolvePlace(placeID))])
             }
 
@@ -214,10 +223,8 @@ struct HomeMapReducer: Reducer {
             return actions([.delegate(.bottomTabBarVisibilityChanged(true)), .delegate(.searchSelectionClearRequested)])
 
         case .markerRetryRequested:
-            guard state.markerState == .failed else { return .none }
-            state.hasCompletedInitialMarkerRendering = false
-            state.markerState = .loading
-            return mapServiceEffect(.loadPlaceCoordinates)
+            guard state.markerState == .failed, let query = state.clusterQuery else { return .none }
+            return loadClusters(query, state: &state)
 
         case .initialLocationRequested:
             guard state.mapLifecycle == .ready, state.locationState == .idle else { return .none }
@@ -225,11 +232,9 @@ struct HomeMapReducer: Reducer {
             state.locationState = .requesting
             return mapServiceEffect(.requestCurrentLocation(source: .initial))
 
-        case .initialMarkersLoadRequested:
-            guard state.mapLifecycle == .ready, state.markerState == .idle else { return .none }
-            state.hasCompletedInitialMarkerRendering = false
-            state.markerState = .loading
-            return mapServiceEffect(.loadPlaceCoordinates)
+        case let .clusterQueryRequested(query, listRevision):
+            state.clusterListRevision = listRevision
+            return loadClusters(query, state: &state)
 
         case .periodicLocationRefreshSchedulingRequested:
             guard state.isMapInteractive, state.mapLifecycle == .ready, state.locationAuthorizationState == .authorized, state.locationState != .requesting else {
@@ -263,7 +268,7 @@ struct HomeMapReducer: Reducer {
         case .searchPlaceSelected(let name):
             state.selectedSearchResultName = name
             state.routeOverlay = nil
-            state.isResearchButtonVisible = false
+            state.isListResearchButtonVisible = false
             rebuildMarkers(&state)
             return .none
 
@@ -271,14 +276,16 @@ struct HomeMapReducer: Reducer {
             state.selectedSearchResultName = name
             state.routeOverlay = nil
             state.selectedMarkerID = nil
-            state.isResearchButtonVisible = false
+            state.isListResearchButtonVisible = false
+            state.didClusterRefreshFail = false
+            state.clusterRequestRevision += 1
             rebuildMarkers(&state)
             state.cameraTarget = center
             state.cameraFocus = .region
             requestCamera(&state)
             state.pendingRegionViewportReloadOrigin = center
             state.pendingRegionCameraRequestID = state.cameraRequestID
-            return effects([.delegate(.bottomTabBarVisibilityChanged(true)), .delegate(.presentRecommendListForRegion(origin: center))])
+            return .send(.delegate(.presentRecommendListForRegion(origin: center)))
 
         case .routeOverlayChanged(let overlay):
             state.routeOverlay = overlay
@@ -300,7 +307,7 @@ struct HomeMapReducer: Reducer {
             return mapServiceEffect(.requestCurrentLocation(source: .userInitiated))
 
         case .researchButtonVisibilityChanged(let visible):
-            state.isResearchButtonVisible = visible
+            state.isListResearchButtonVisible = visible
             return .none
 
         case .recommendationCollapsed:
@@ -359,20 +366,33 @@ private extension HomeMapReducer {
             resetToKoreaOverview(&state)
             return .send(.delegate(.showLocationSettingsAlert(true)))
 
-        case .placeCoordinatesLoaded(let coordinates):
-            guard state.markerState == .loading else { return .none }
+        case let .clustersLoaded(result, revision):
+            guard revision == state.clusterRequestRevision else { return .none }
+            guard let span = state.visibleLongitudeSpan ?? state.clusterQuery?.viewport.longitudeSpan,
+                  let level = result.levelIndex(for: span) else {
+                return reduceServiceOutput(.clusterLoadFailed(revision: revision), state: &state)
+            }
+            let isFirstResult = state.clusterResult == nil
             state.markerState = .loaded
-            state.mapItems = coordinates.map(RodiCourseItem.init(placeCoordinate:))
+            state.clusterResult = result
+            state.displayedClusterLevel = level
+            state.didClusterRefreshFail = false
             state.markerRenderingGeneration += 1
-            let resolution = markerTierResolver.resolve(zoomLevel: state.mapZoomLevel, forcedTier: state.forcedMarkerTier, forcedTierZoomLevel: state.forcedMarkerTierZoomLevel)
-            state.forcedMarkerTier = resolution.forcedTier
-            state.forcedMarkerTierZoomLevel = resolution.forcedTierZoomLevel
-            state.displayedMarkerTier = resolution.tier
-            return markerRenderingEffect(RodiHomeMarkerClusterIndex.markers(for: state.mapItems, tier: resolution.tier, selectedMarkerID: state.selectedMarkerID), generation: state.markerRenderingGeneration, reportsInitialCompletion: true)
+            let markers = serverMarkers(&state)
+            if isFirstResult, state.isMapInteractive {
+                return markerRenderingEffect(markers, generation: state.markerRenderingGeneration, reportsInitialCompletion: true)
+            }
+            state.markers = markers
+            state.hasCompletedInitialMarkerRendering = true
+            return .none
 
-        case .placeCoordinatesLoadFailed:
-            guard state.markerState == .loading else { return .none }
-            state.markerState = .failed
+        case .clusterLoadFailed(let revision):
+            guard revision == state.clusterRequestRevision else { return .none }
+            if state.clusterResult == nil {
+                state.markerState = .failed
+            } else {
+                state.didClusterRefreshFail = true
+            }
             return .none
 
         case .userHeadingUpdated(let degrees):
@@ -395,7 +415,7 @@ private extension HomeMapReducer {
             return .none
         case .ready:
             if state.markerState == .idle { return initialMapDataLoadEffect() }
-            if state.markerState == .loaded, state.displayedMarkerTier != nil {
+            if state.markerState == .loaded {
                 rebuildMarkers(&state)
                 state.hasCompletedInitialMarkerRendering = true
             }
@@ -407,7 +427,7 @@ private extension HomeMapReducer {
         state.selectedSearchResultName = nil
         state.routeOverlay = nil
         state.selectedMarkerID = nil
-        state.isResearchButtonVisible = false
+        state.isListResearchButtonVisible = false
         rebuildMarkers(&state)
     }
 
@@ -415,9 +435,6 @@ private extension HomeMapReducer {
         guard state.selectedMarkerID != id else { return }
         state.selectedMarkerID = id
         state.markerRenderingGeneration += 1
-        state.forcedMarkerTier = .individual
-        state.forcedMarkerTierZoomLevel = nil
-        state.displayedMarkerTier = .individual
         rebuildMarkers(&state)
         if state.markerState == .loaded { state.hasCompletedInitialMarkerRendering = true }
         state.cameraTarget = coordinate
@@ -426,7 +443,39 @@ private extension HomeMapReducer {
     }
 
     func rebuildMarkers(_ state: inout State) {
-        state.markers = RodiHomeMarkerClusterIndex.markers(for: state.mapItems, tier: state.displayedMarkerTier ?? .init(zoomLevel: state.mapZoomLevel), selectedMarkerID: state.selectedMarkerID)
+        state.markers = serverMarkers(&state)
+    }
+
+    func serverMarkers(_ state: inout State) -> [RodiMapMarker] {
+        guard let result = state.clusterResult, let index = state.displayedClusterLevel else { return [] }
+        let level = result.levels[index]
+        let individualIDs = Set(level.placeIDs)
+        let selectedID = state.selectedMarkerID
+        state.clusterBoundsByMarkerID = [:]
+        let clusters = level.clusters.enumerated().map { offset, cluster in
+            let id = "server-cluster-\(index)-\(offset)"
+            state.clusterBoundsByMarkerID[id] = cluster.bounds
+            return RodiMapMarker(id: id, kind: .cluster, title: String(cluster.count),
+                                 coordinate: .init(latitude: cluster.latitude, longitude: cluster.longitude))
+        }
+        let places = result.places.compactMap { place -> RodiMapMarker? in
+            guard individualIDs.contains(place.id) else { return nil }
+            let id = markerID(for: place.type, id: place.id)
+            return .init(id: id, kind: place.type == .course ? .course : .parking, title: place.name,
+                         coordinate: .init(latitude: place.latitude, longitude: place.longitude),
+                         isSelected: selectedID == id)
+        }
+        return clusters + places
+    }
+
+    func loadClusters(_ query: PlaceClusterQuery, state: inout State) -> Effect<Action> {
+        guard query.viewport.isValidForPlaceQuery else { return .none }
+        state.clusterQuery = query
+        state.clusterRequestRevision += 1
+        state.didClusterRefreshFail = false
+        if state.clusterResult == nil { state.markerState = .loading }
+        return mapServiceEffect(.loadClusters(query, revision: state.clusterRequestRevision))
+            .cancelTask(id: CancellationID.clusterLoading)
     }
 
     func requestCamera(_ state: inout State) {
@@ -452,10 +501,7 @@ private extension HomeMapReducer {
     }
 
     func initialMapDataLoadEffect() -> Effect<Action> {
-        .run { send in
-            await send(.initialLocationRequested)
-            await send(.initialMarkersLoadRequested)
-        }
+        .send(.initialLocationRequested)
     }
 
     func mapServiceEffect(_ input: MapServiceInAction) -> Effect<Action> {

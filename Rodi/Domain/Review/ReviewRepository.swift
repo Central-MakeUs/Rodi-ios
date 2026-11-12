@@ -1,6 +1,7 @@
 import Foundation
 
 protocol ReviewRepository {
+    func fetchWritingForm(placeID: Int) async throws(NetworkError) -> ReviewWritingForm
     func create(placeID: Int, submission: PlaceReviewSubmission) async throws(NetworkError)
     func fetchDetail(reviewID: Int) async throws(NetworkError) -> ReviewDetail
     func update(reviewID: Int, submission: PlaceReviewSubmission) async throws(NetworkError)

@@ -5,6 +5,7 @@ struct ReviewWritingReducer: Reducer {
         enum Page: Equatable {
             case hidden
             case loading
+            case loadFailed(String)
             case first
             case second
         }
@@ -17,6 +18,7 @@ struct ReviewWritingReducer: Reducer {
         var page: Page = .hidden
         var mode: Mode = .create
         var target: ReviewWriteRequest?
+        var form: ReviewWritingForm?
         var draft = ReviewDraft()
         var isSubmitting = false
         var isDiscardConfirmationPresented = false
@@ -26,22 +28,34 @@ struct ReviewWritingReducer: Reducer {
         var requestID = 0
 
         var canProceedToSecondPage: Bool {
-            draft.canProceedToSecondPage()
+            draft.canProceedToSecondPage(form: form)
         }
 
         var canSubmit: Bool {
-            draft.practiceMethod != nil && !isSubmitting
+            !isSubmitting && draft.submission(form: form) != nil
         }
+
+        var issueTextOption: ReviewWritingForm.Option? { draft.issueTextOption(in: form) }
+        var contentLimit: Int { min(form?[.content]?.maxLength ?? 150, 150) }
+    }
+
+    struct LoadedForm {
+        let target: ReviewWriteRequest
+        let form: ReviewWritingForm?
+        let detail: ReviewDetail?
     }
 
     enum Action {
         case start(ReviewWriteRequest)
         case editStarted(reviewID: Int)
-        case detailLoaded(ReviewRequestResult<ReviewDetail>, flowID: UUID, requestID: Int)
+        case formLoaded(ReviewRequestResult<LoadedForm>, flowID: UUID, requestID: Int)
+        case retryLoading
         case recommendationSelected(Bool)
         case difficultySelected(ReviewDifficulty)
         case congestionSelected(ReviewCongestion)
         case cautionChanged(String)
+        case courseIssueToggled(String)
+        case courseIssueDetailChanged(String)
         case nextTapped
         case backTapped
         case practiceMethodSelected(ReviewPracticeMethod)
@@ -54,7 +68,7 @@ struct ReviewWritingReducer: Reducer {
         case completionConfirmed
         case completionRefreshFinished(flowID: UUID)
         case reset
-        case cancelDetailLoading
+        case cancelLoading
         case cancelSubmission
         case delegate(Delegate)
     }
@@ -67,15 +81,17 @@ struct ReviewWritingReducer: Reducer {
     }
 
     private enum EffectID {
-        case detail
+        case loading
         case submission
         case completionDismissal
     }
 
     private let service: any ReviewWritingServicing
+    private let tracksAnalytics: Bool
 
-    init(service: any ReviewWritingServicing) {
+    init(service: any ReviewWritingServicing, tracksAnalytics: Bool = true) {
         self.service = service
+        self.tracksAnalytics = tracksAnalytics
     }
 }
 
@@ -85,15 +101,23 @@ extension ReviewWritingReducer {
     func reduce(_ state: inout State, with action: Action) -> Effect<Action> {
         switch action {
         case .start(let request):
-            state = .init(page: .first, mode: .create, target: request, requestID: state.requestID + 1)
-            RodiAnalytics.track(.reviewWritingOpened(mode: "create"))
+            state = .init(page: service.usesServerForm ? .loading : .first,
+                          mode: .create, target: request, requestID: state.requestID + 1)
+            if tracksAnalytics { RodiAnalytics.track(.reviewWritingOpened(mode: "create")) }
+            if service.usesServerForm { return loadEffect(state: state) }
 
         case .editStarted(let reviewID):
             state = .init(page: .loading, mode: .edit(reviewID: reviewID), requestID: state.requestID + 1)
-            RodiAnalytics.track(.reviewWritingOpened(mode: "edit"))
-            return detailEffect(reviewID: reviewID, flowID: state.flowID, requestID: state.requestID)
+            if tracksAnalytics { RodiAnalytics.track(.reviewWritingOpened(mode: "edit")) }
+            return loadEffect(state: state)
 
-        case .detailLoaded(let result, let flowID, let requestID):
+        case .retryLoading:
+            guard case .loadFailed = state.page else { return .none }
+            state.page = .loading
+            state.requestID += 1
+            return loadEffect(state: state)
+
+        case .formLoaded(let result, let flowID, let requestID):
             guard state.page == .loading,
                   state.flowID == flowID,
                   state.requestID == requestID
@@ -102,19 +126,28 @@ extension ReviewWritingReducer {
             }
 
             switch result {
-            case .success(let detail):
-                guard case .edit(let reviewID) = state.mode, reviewID == detail.reviewID else {
-                    return .none
-                }
-                state.target = .init(placeID: detail.placeID, placeName: detail.placeName)
-                state.draft = .init(detail: detail)
+            case .success(let loaded):
+                state.target = loaded.target
+                state.form = loaded.form
+                if let detail = loaded.detail { state.draft = .init(detail: detail) }
                 state.page = .first
             case .failure(let message):
-                return .send(.delegate(.editingFailed(message)))
+                if !service.usesServerForm { return .send(.delegate(.editingFailed(message))) }
+                state.page = .loadFailed(message)
             }
 
         case .recommendationSelected(let value):
             guard state.page == .first else { return .none }
+            if state.form != nil, state.draft.isRecommended != value {
+                if value {
+                    state.draft.courseIssues = []
+                    state.draft.courseIssueDetail = ""
+                } else {
+                    state.draft.difficulty = nil
+                    state.draft.congestion = nil
+                    state.draft.caution = ""
+                }
+            }
             state.draft.isRecommended = value
 
         case .difficultySelected(let value):
@@ -126,8 +159,20 @@ extension ReviewWritingReducer {
             state.draft.congestion = value
 
         case .cautionChanged(let value):
-            guard state.page == .first else { return .none }
+            guard state.page == .first,
+                  state.form?[.caution]?.maxLength.map({ value.count <= $0 }) ?? true else { return .none }
             state.draft.caution = value
+
+        case .courseIssueToggled(let code):
+            guard state.page == .first, state.draft.isRecommended == false,
+                  state.form?[.courseIssues]?.options.contains(where: { $0.code == code }) == true else { return .none }
+            if state.draft.courseIssues.remove(code) == nil { state.draft.courseIssues.insert(code) }
+            if state.issueTextOption == nil { state.draft.courseIssueDetail = "" }
+
+        case .courseIssueDetailChanged(let value):
+            guard state.page == .first, let option = state.issueTextOption,
+                  value.count <= min(option.textInputMaxLength ?? 30, 30) else { return .none }
+            state.draft.courseIssueDetail = value
 
         case .nextTapped:
             guard state.page == .first, state.canProceedToSecondPage else { return .none }
@@ -142,7 +187,7 @@ extension ReviewWritingReducer {
             state.draft.practiceMethod = value
 
         case .contentChanged(let value):
-            guard state.page == .second, value.count <= 150 else { return .none }
+            guard state.page == .second, value.count <= state.contentLimit else { return .none }
             state.draft.content = value
 
         case .closeTapped:
@@ -156,7 +201,11 @@ extension ReviewWritingReducer {
 
         case .discardConfirmed:
             guard state.isDiscardConfirmationPresented else { return .none }
-            return .send(.delegate(.finished))
+            state.requestID += 1
+            return .run { send in
+                await send(.cancelLoading)
+                await send(.delegate(.finished))
+            }
 
         case .discardCancelled:
             state.isDiscardConfirmationPresented = false
@@ -165,18 +214,20 @@ extension ReviewWritingReducer {
             guard state.page == .second,
                   state.canSubmit,
                   let target = state.target,
-                  let submission = state.draft.submission()
+                  let submission = state.draft.submission(form: state.form)
             else {
                 return .none
             }
             state.isSubmitting = true
             state.requestID += 1
-            RodiAnalytics.track(
-                .reviewSubmitted(
-                    mode: state.mode.analyticsName,
-                    hasContent: !state.draft.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            if tracksAnalytics {
+                RodiAnalytics.track(
+                    .reviewSubmitted(
+                        mode: state.mode.analyticsName,
+                        hasContent: submission.content != nil
+                    )
                 )
-            )
+            }
             return submitEffect(
                 mode: state.mode,
                 placeID: target.placeID,
@@ -197,9 +248,9 @@ extension ReviewWritingReducer {
             switch result {
             case .success:
                 state.isCompletionPresented = true
-                RodiAnalytics.track(.reviewCompleted(mode: state.mode.analyticsName))
+                if tracksAnalytics { RodiAnalytics.track(.reviewCompleted(mode: state.mode.analyticsName)) }
             case .failure(let message):
-                RodiAnalytics.track(.reviewSubmissionFailed(mode: state.mode.analyticsName))
+                if tracksAnalytics { RodiAnalytics.track(.reviewSubmissionFailed(mode: state.mode.analyticsName)) }
                 return .send(.delegate(.showSnackbar(message)))
             }
 
@@ -226,12 +277,12 @@ extension ReviewWritingReducer {
         case .reset:
             state = .init()
             return .run { send in
-                await send(.cancelDetailLoading)
+                await send(.cancelLoading)
                 await send(.cancelSubmission)
             }
 
-        case .cancelDetailLoading:
-            return .cancel(id: EffectID.detail)
+        case .cancelLoading:
+            return .cancel(id: EffectID.loading)
 
         case .cancelSubmission:
             return .cancel(id: EffectID.submission)
@@ -256,21 +307,40 @@ private extension ReviewWritingReducer.State.Mode {
 // MARK: - Effect
 private extension ReviewWritingReducer {
 
-    func detailEffect(reviewID: Int, flowID: UUID, requestID: Int) -> Effect<Action> {
+    func loadEffect(state: State) -> Effect<Action> {
         let service = service
+        let (mode, initialTarget, flowID, requestID) = (state.mode, state.target, state.flowID, state.requestID)
         return .run { send in
             do {
-                let detail = try await service.fetchReviewDetail(reviewID: reviewID)
-                await send(.detailLoaded(.success(detail), flowID: flowID, requestID: requestID))
-            } catch is CancellationError {
-                return
-            } catch let error as NetworkError {
-                await send(.detailLoaded(.failure(Self.detailMessage(for: error)), flowID: flowID, requestID: requestID))
+                let target: ReviewWriteRequest
+                let detail: ReviewDetail?
+                switch mode {
+                case .create:
+                    guard let initialTarget else { return }
+                    target = initialTarget
+                    detail = nil
+                case .edit(let reviewID):
+                    let loadedDetail = try await service.fetchReviewDetail(reviewID: reviewID)
+                    guard loadedDetail.reviewID == reviewID else { throw NetworkError.decodingFail }
+                    detail = loadedDetail
+                    target = .init(placeID: loadedDetail.placeID, placeName: loadedDetail.placeName)
+                }
+                try Task.checkCancellation()
+                let form = service.usesServerForm ? try await service.fetchWritingForm(placeID: target.placeID) : nil
+                try Task.checkCancellation()
+                let resolvedTarget = ReviewWriteRequest(placeID: target.placeID, placeName: form?.placeName ?? target.placeName)
+                await send(.formLoaded(.success(.init(target: resolvedTarget, form: form, detail: detail)), flowID: flowID, requestID: requestID))
             } catch {
-                await send(.detailLoaded(.failure("후기 상세를 불러오지 못했어요. 다시 시도해주세요."), flowID: flowID, requestID: requestID))
+                guard !Task.isCancelled, !(error is CancellationError) else { return }
+                let message = if let error = error as? NetworkError {
+                    Self.loadMessage(for: error)
+                } else {
+                    "후기 폼을 불러오지 못했어요. 다시 시도해주세요."
+                }
+                await send(.formLoaded(.failure(message), flowID: flowID, requestID: requestID))
             }
         }
-        .cancelTask(id: EffectID.detail)
+        .cancelTask(id: EffectID.loading)
     }
 
     func submitEffect(
@@ -301,11 +371,14 @@ private extension ReviewWritingReducer {
         .cancelTask(id: EffectID.submission)
     }
 
-    static func detailMessage(for error: NetworkError) -> String {
+    static func loadMessage(for error: NetworkError) -> String {
         if case .networkUnavailable = error {
             return "네트워크 연결을 확인해주세요."
         }
-        return "후기 상세를 불러오지 못했어요. 다시 시도해주세요."
+        if case .apiError(let code, _, _) = error, code == "REVIEW_400_2" {
+            return "주차장은 후기를 작성할 수 없어요."
+        }
+        return "후기 폼을 불러오지 못했어요. 다시 시도해주세요."
     }
 
     static func submissionMessage(for error: NetworkError, mode: State.Mode) -> String {

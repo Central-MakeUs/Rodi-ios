@@ -9,7 +9,7 @@ struct ReviewFormPageTwoView: View {
     var body: some View {
         ReviewFormScaffold(
             header: ReviewFormHeader(
-                title: "후기 남기기",
+                title: state.form?.title ?? "후기 남기기",
                 showsBack: true,
                 backAction: { send(.backTapped) },
                 closeAction: { send(.closeTapped) }
@@ -18,28 +18,38 @@ struct ReviewFormPageTwoView: View {
         ) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text("연습 방법")
+                    Text(state.form?[.practiceMethod]?.title ?? "연습 방법")
                         .rodiTypography(.body1SemiBold)
                         .foregroundStyle(RodiColor.black)
 
                     HStack(spacing: 6) {
-                        methodButton(.solo)
-                        methodButton(.accompanied)
+                        if let options = state.form?[.practiceMethod]?.options {
+                            ForEach(options) { option in
+                                if let method = ReviewPracticeMethod(rawValue: option.code) {
+                                    methodButton(method, title: option.label)
+                                }
+                            }
+                        } else {
+                            methodButton(.solo, title: ReviewPracticeMethod.solo.title)
+                            methodButton(.accompanied, title: ReviewPracticeMethod.accompanied.title)
+                        }
                     }
                     .padding(.top, 12)
 
-                    Text("후기 작성")
-                        .rodiTypography(.body1SemiBold)
-                        .foregroundStyle(RodiColor.black)
-                        .padding(.top, 40)
+                    if state.form == nil || state.form?[.content]?.isVisible(for: state.draft.isRecommended) == true {
+                        Text(state.form?[.content]?.title ?? "후기 작성")
+                            .rodiTypography(.body1SemiBold)
+                            .foregroundStyle(RodiColor.black)
+                            .padding(.top, 40)
 
-                    reviewTextEditor
+                        reviewTextEditor
 
-                    Text("\(state.draft.content.count) / 150")
-                        .rodiTypography(.body3Medium)
-                        .foregroundStyle(RodiColor.gray600)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-                        .padding(.top, 4)
+                        Text("\(state.draft.content.count) / \(state.contentLimit)")
+                            .rodiTypography(.body3Medium)
+                            .foregroundStyle(RodiColor.gray600)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                            .padding(.top, 4)
+                    }
 
                     Color.clear
                         .frame(height: 48)
@@ -70,7 +80,7 @@ private extension ReviewFormPageTwoView {
     var reviewTextEditor: some View {
         ReviewTextEditor(
             text: contentBinding,
-            characterLimit: 150,
+            characterLimit: state.contentLimit,
             isFocused: $isContentFocused
         )
             .frame(maxWidth: .infinity)
@@ -83,7 +93,7 @@ private extension ReviewFormPageTwoView {
             }
             .overlay(alignment: .topLeading) {
                 if state.draft.content.isEmpty {
-                    Text("자유롭게 후기를 작성해주세요.")
+                    Text(state.form == nil ? "자유롭게 후기를 작성해주세요." : state.form?[.content]?.placeholder ?? "")
                         .rodiTypography(.body3Medium)
                         .foregroundStyle(RodiColor.gray500)
                         .padding(.horizontal, 16)
@@ -94,8 +104,8 @@ private extension ReviewFormPageTwoView {
             .padding(.top, 12)
     }
 
-    func methodButton(_ method: ReviewPracticeMethod) -> some View {
-        ReviewChoiceButton(title: method.title, isSelected: state.draft.practiceMethod == method) {
+    func methodButton(_ method: ReviewPracticeMethod, title: String) -> some View {
+        ReviewChoiceButton(title: title, isSelected: state.draft.practiceMethod == method) {
             send(.practiceMethodSelected(method))
         }
     }

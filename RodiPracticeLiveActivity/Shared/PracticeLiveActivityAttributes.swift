@@ -34,17 +34,25 @@ enum PracticeLiveActivityDeepLink {
     }
 }
 
+nonisolated enum PracticeLiveActivityPhase: String, Codable, Hashable, Sendable {
+    case headingToCourse
+    case drivingCourse
+    case completed
+}
+
 @available(iOS 16.1, *)
-struct PracticeLiveActivityAttributes: ActivityAttributes {
-    struct ContentState: Codable, Hashable {
+nonisolated struct PracticeLiveActivityAttributes: ActivityAttributes, Sendable {
+    struct ContentState: Codable, Hashable, Sendable {
         let phaseRawValue: String
-        let approachProgress: Double
         let progress: Double
         let distanceToCourseStartMeters: Int?
+
+        var phase: PracticeLiveActivityPhase {
+            PracticeLiveActivityPhase(rawValue: phaseRawValue) ?? .completed
+        }
     }
 
     let sessionID: UUID
-    let courseID: Int
     let courseName: String
     let placeTypeRawValue: String
     let rabbitAssetName: String

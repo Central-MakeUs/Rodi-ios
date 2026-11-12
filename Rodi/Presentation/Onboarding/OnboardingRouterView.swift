@@ -95,7 +95,8 @@ private extension OnboardingRouterView {
                 session: session,
                 screen: .drivingExperience,
                 onTransition: handle,
-                memberRepository: dependencies.memberRepository
+                memberRepository: dependencies.memberRepository,
+                onFormLoaded: { session.form = $0 }
             )
 
         case .optionalDrivingPreference:
@@ -103,7 +104,8 @@ private extension OnboardingRouterView {
                 session: session,
                 screen: .drivingPreference,
                 onTransition: handle,
-                memberRepository: dependencies.memberRepository
+                memberRepository: dependencies.memberRepository,
+                onFormLoaded: { session.form = $0 }
             )
 
         case .safety:

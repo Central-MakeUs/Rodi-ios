@@ -26,6 +26,8 @@
 		C1A000000000000000001001 /* Clarity in Frameworks */ = {isa = PBXBuildFile; productRef = C1A000000000000000003001 /* Clarity */; };
 		E1A1F4A0010A4C7A9B1C0001 /* RodiPracticeLiveActivity/Shared/PracticeLiveActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1A1F4A1010A4C7A9B1C0001 /* RodiPracticeLiveActivity/Shared/PracticeLiveActivityAttributes.swift */; };
 		E1A1F4A0010A4C7A9B1C0002 /* RodiPracticeLiveActivity/AppSupport/PracticeLiveActivityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1A1F4A1010A4C7A9B1C0002 /* RodiPracticeLiveActivity/AppSupport/PracticeLiveActivityService.swift */; };
+		E1A1F4A0010A4C7A9B1C0003 /* RodiPracticeLiveActivity/View/PracticeLiveActivityContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1A1F4A1010A4C7A9B1C0003 /* RodiPracticeLiveActivity/View/PracticeLiveActivityContentView.swift */; };
+		E1A1F4A0010A4C7A9B1C0004 /* RodiPracticeLiveActivity/Component/PracticeRouteProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1A1F4A1010A4C7A9B1C0004 /* RodiPracticeLiveActivity/Component/PracticeRouteProgress.swift */; };
 		F1B000000000000000001001 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = F1B000000000000000003001 /* FirebaseCore */; };
 		F1B000000000000000001002 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = F1B000000000000000003002 /* FirebaseAnalytics */; };
 		F1B000000000000000001003 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = F1B000000000000000003003 /* FirebaseCrashlytics */; };
@@ -77,6 +79,8 @@
 		C65E36336F2D2B59EAD7C56C /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		E1A1F4A1010A4C7A9B1C0001 /* RodiPracticeLiveActivity/Shared/PracticeLiveActivityAttributes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RodiPracticeLiveActivity/Shared/PracticeLiveActivityAttributes.swift; sourceTree = SOURCE_ROOT; };
 		E1A1F4A1010A4C7A9B1C0002 /* RodiPracticeLiveActivity/AppSupport/PracticeLiveActivityService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RodiPracticeLiveActivity/AppSupport/PracticeLiveActivityService.swift; sourceTree = SOURCE_ROOT; };
+		E1A1F4A1010A4C7A9B1C0003 /* RodiPracticeLiveActivity/View/PracticeLiveActivityContentView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RodiPracticeLiveActivity/View/PracticeLiveActivityContentView.swift; sourceTree = SOURCE_ROOT; };
+		E1A1F4A1010A4C7A9B1C0004 /* RodiPracticeLiveActivity/Component/PracticeRouteProgress.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RodiPracticeLiveActivity/Component/PracticeRouteProgress.swift; sourceTree = SOURCE_ROOT; };
 		E73E620BAD2C71AB84067D43 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		EAC880421E775A2ACFA24094 /* RodiPracticeLiveActivity.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = RodiPracticeLiveActivity.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -202,6 +206,8 @@
 				E73E620BAD2C71AB84067D43 /* Info.plist */,
 				E1A1F4A1010A4C7A9B1C0001 /* RodiPracticeLiveActivity/Shared/PracticeLiveActivityAttributes.swift */,
 				E1A1F4A1010A4C7A9B1C0002 /* RodiPracticeLiveActivity/AppSupport/PracticeLiveActivityService.swift */,
+				E1A1F4A1010A4C7A9B1C0003 /* RodiPracticeLiveActivity/View/PracticeLiveActivityContentView.swift */,
+				E1A1F4A1010A4C7A9B1C0004 /* RodiPracticeLiveActivity/Component/PracticeRouteProgress.swift */,
 				03B2997E7F254438E20F793B /* Assets.xcassets */,
 			);
 			path = RodiPracticeLiveActivity;
@@ -424,6 +430,8 @@
 			files = (
 				7863573BB827CEC2F5056C50 /* PracticeLiveActivity.swift in Sources */,
 				FADD9B8005F6E08C3F9AA73C /* RodiPracticeLiveActivity/Shared/PracticeLiveActivityAttributes.swift in Sources */,
+				E1A1F4A0010A4C7A9B1C0003 /* RodiPracticeLiveActivity/View/PracticeLiveActivityContentView.swift in Sources */,
+				E1A1F4A0010A4C7A9B1C0004 /* RodiPracticeLiveActivity/Component/PracticeRouteProgress.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

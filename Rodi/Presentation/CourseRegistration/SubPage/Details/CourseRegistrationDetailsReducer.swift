@@ -116,7 +116,6 @@ struct CourseRegistrationDetailsReducer: Reducer {
 
             guard state.draft.selectedCategoryCodes != [category.code] else { return .none }
             state.draft.selectedCategoryCodes = [category.code]
-            state.draft.selectedPracticeTypeCodes.removeAll()
 
         case .practiceTypeTapped(let practiceTypeCode):
             guard case let .loaded(form) = state.loadState,

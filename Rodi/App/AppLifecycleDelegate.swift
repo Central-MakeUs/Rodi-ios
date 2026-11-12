@@ -19,4 +19,9 @@ final class AppLifecycleDelegate: NSObject, UIApplicationDelegate {
         ClarityConfiguration.initializeIfEnabled()
         return true
     }
+
+    func applicationWillTerminate(_ application: UIApplication) {
+        guard #available(iOS 16.1, *) else { return }
+        PracticeLiveActivityService.endAllBeforeProcessTermination()
+    }
 }

@@ -1,5 +1,6 @@
 import SwiftUI
 
+// TODO: Scaffold -> ContainerView (윤수)
 struct ReviewFormScaffold<Content: View, BottomBar: View>: View {
     @Environment(\.screenSafeAreaInsets) private var screenSafeAreaInsets
 

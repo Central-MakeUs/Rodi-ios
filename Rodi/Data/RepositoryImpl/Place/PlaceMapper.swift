@@ -6,6 +6,55 @@
 import Foundation
 
 nonisolated struct PlaceMapper {
+    static func clusterQuery(from query: PlaceClusterQuery) -> PlaceClusterQueryDTO {
+        let viewport = query.viewport
+        return .init(
+            swLat: viewport.southWestLatitude, swLng: viewport.southWestLongitude,
+            neLat: viewport.northEastLatitude, neLng: viewport.northEastLongitude,
+            practiceTypes: query.practiceTypes.isEmpty ? nil : query.practiceTypes.map(\.rawValue)
+        )
+    }
+
+    static func clusterResult(from dto: PlaceClusterResponseDTO) throws(NetworkError) -> PlaceClusterResult {
+        let places = try dto.places.map(coordinate(from:))
+        let placeIDs = Set(places.map(\.id))
+        guard placeIDs.count == places.count, !dto.levels.isEmpty,
+              places.allSatisfy({ (-90...90).contains($0.latitude) && (-180...180).contains($0.longitude) })
+        else { throw .decodingFail }
+
+        var levels: [PlaceClusterLevel] = []
+        for level in dto.levels {
+            guard level.minLngSpan.isFinite, level.minLngSpan >= 0,
+                  level.maxLngSpan.map({ $0.isFinite && $0 > level.minLngSpan }) ?? true
+            else { throw .decodingFail }
+            let ids = try level.placeIds.map(int(from:))
+            guard Set(ids).count == ids.count, Set(ids).isSubset(of: placeIDs) else { throw .decodingFail }
+
+            var clusters: [PlaceCluster] = []
+            for cluster in level.clusters {
+                let bounds = cluster.bounds
+                guard (-90...90).contains(cluster.lat), (-180...180).contains(cluster.lng),
+                      cluster.count > 0,
+                      (-90...90).contains(bounds.swLat), (-90...90).contains(bounds.neLat),
+                      (-180...180).contains(bounds.swLng), (-180...180).contains(bounds.neLng),
+                      bounds.swLat <= bounds.neLat, bounds.swLng <= bounds.neLng
+                else { throw .decodingFail }
+                clusters.append(.init(
+                    latitude: cluster.lat, longitude: cluster.lng, count: cluster.count,
+                    bounds: .init(southWestLatitude: bounds.swLat, southWestLongitude: bounds.swLng,
+                                  northEastLatitude: bounds.neLat, northEastLongitude: bounds.neLng)
+                ))
+            }
+            levels.append(.init(minLongitudeSpan: level.minLngSpan, maxLongitudeSpan: level.maxLngSpan,
+                                clusters: clusters, placeIDs: ids))
+        }
+        levels.sort { $0.minLongitudeSpan < $1.minLongitudeSpan }
+        guard levels.first?.minLongitudeSpan == 0, levels.last?.maxLongitudeSpan == nil,
+              zip(levels, levels.dropFirst()).allSatisfy({ $0.maxLongitudeSpan == $1.minLongitudeSpan })
+        else { throw .decodingFail }
+        return .init(places: places, levels: levels)
+    }
+
     static func listQuery(from query: PlaceListQuery) -> PlaceListQueryDTO {
         .init(
             southWestLatitude: query.viewport.southWestLatitude,
@@ -15,7 +64,8 @@ nonisolated struct PlaceMapper {
             currentLatitude: query.currentLatitude,
             currentLongitude: query.currentLongitude,
             size: query.size,
-            cursor: query.cursor
+            cursor: query.cursor,
+            practiceTypes: query.practiceTypes.map(\.rawValue)
         )
     }
 
@@ -25,7 +75,8 @@ nonisolated struct PlaceMapper {
             currentLatitude: query.currentLatitude,
             currentLongitude: query.currentLongitude,
             size: query.size,
-            cursor: query.cursor
+            cursor: query.cursor,
+            practiceTypes: query.practiceTypes.map(\.rawValue)
         )
     }
 

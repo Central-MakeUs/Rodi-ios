@@ -17,6 +17,14 @@ final class PlaceRemoteDataSource {
         )
     }
 
+    func fetchClusters(_ query: PlaceClusterQueryDTO) async throws(NetworkError) -> PlaceClusterResponseDTO {
+        try await ServerResponseHandler.payload(
+            PlaceAPI.clusters(query),
+            using: publicNetworkManager,
+            as: PlaceClusterResponseDTO.self
+        )
+    }
+
     func fetchPlaces(
         query: PlaceListQueryDTO,
         access: PlaceRemoteAccess

@@ -66,11 +66,19 @@ final class ReviewRemoteDataSource {
         try await ServerResponseHandler.empty(ReviewAPI.delete(reviewID: reviewID), using: networkManager)
     }
 
-    func fetchReportForm() async throws(NetworkError) -> ReviewReportFormResponseDTO {
+    func fetchReportForm() async throws(NetworkError) -> ReportFormResponseDTO {
         try await ServerResponseHandler.payload(
             ReviewAPI.reportForm,
             using: networkManager,
-            as: ReviewReportFormResponseDTO.self
+            as: ReportFormResponseDTO.self
+        )
+    }
+
+    func fetchWritingForm(placeID: Int) async throws(NetworkError) -> ReviewWritingFormResponseDTO {
+        try await ServerResponseHandler.payload(
+            ReviewAPI.writingForm(placeID: placeID),
+            using: networkManager,
+            as: ReviewWritingFormResponseDTO.self
         )
     }
 

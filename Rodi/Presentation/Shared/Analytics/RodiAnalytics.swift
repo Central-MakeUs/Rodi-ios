@@ -49,10 +49,10 @@ enum RodiAnalytics {
         case reviewSubmitted(mode: String, hasContent: Bool)
         case reviewCompleted(mode: String)
         case reviewSubmissionFailed(mode: String)
-        case practiceTrackingStarted(placeType: String)
-        case practiceTrackingEnteredCourse(placeType: String)
-        case practiceTrackingCompleted(placeType: String)
-        case practiceTrackingCancelled(placeType: String)
+        case drivePracticeStarted(placeType: String)
+        case drivePracticeEnteredCourse(placeType: String)
+        case drivePracticeCompleted(placeType: String)
+        case drivePracticeCancelled(placeType: String)
         case myOpened
         case savedPlacesOpened
         case savedPlaceSelected
@@ -100,10 +100,10 @@ enum RodiAnalytics {
             case .reviewSubmitted: "review_submitted"
             case .reviewCompleted: "review_completed"
             case .reviewSubmissionFailed: "review_submission_failed"
-            case .practiceTrackingStarted: "practice_tracking_started"
-            case .practiceTrackingEnteredCourse: "practice_tracking_entered_course"
-            case .practiceTrackingCompleted: "practice_tracking_completed"
-            case .practiceTrackingCancelled: "practice_tracking_cancelled"
+            case .drivePracticeStarted: "practice_tracking_started"
+            case .drivePracticeEnteredCourse: "practice_tracking_entered_course"
+            case .drivePracticeCompleted: "practice_tracking_completed"
+            case .drivePracticeCancelled: "practice_tracking_cancelled"
             case .myOpened: "my_opened"
             case .savedPlacesOpened: "saved_places_opened"
             case .savedPlaceSelected: "saved_place_selected"
@@ -192,10 +192,10 @@ enum RodiAnalytics {
                 ["mode": mode]
             case .reviewSubmissionFailed(let mode):
                 ["mode": mode]
-            case .practiceTrackingStarted(let placeType),
-                 .practiceTrackingEnteredCourse(let placeType),
-                 .practiceTrackingCompleted(let placeType),
-                 .practiceTrackingCancelled(let placeType):
+            case .drivePracticeStarted(let placeType),
+                 .drivePracticeEnteredCourse(let placeType),
+                 .drivePracticeCompleted(let placeType),
+                 .drivePracticeCancelled(let placeType):
                 ["place_type": placeType]
             case .myOpened, .savedPlacesOpened, .savedPlaceSelected, .logoutCompleted, .withdrawalRequested, .withdrawalRestored:
                 [:]

@@ -29,6 +29,7 @@ struct MainTabReducer: Reducer {
         var isHomeBottomTabBarVisible = true
         var homePlaceSelectionRequest: HomePlaceSelectionRequest?
         var myDataRefreshRequestID = 0
+        var homeFilterRecoveryRequestID = 0
         var practiceRecordsNavigationRequestID = 0
         fileprivate var nextHomePlaceSelectionRequestID = 0
     }
@@ -38,6 +39,7 @@ struct MainTabReducer: Reducer {
         case homeTabSelected
         
         case myTabTapped
+        case homeFilterRecoveryRequested
         case registerTabTapped
         case courseRegistrationExited
         
@@ -74,6 +76,13 @@ extension MainTabReducer {
 
         case .homeTabSelected:
             state.selectedTab = .home
+
+        case .homeFilterRecoveryRequested:
+            guard AppEnvironment.current == .development, state.selectedTab == .my, hasActiveSession else {
+                return .none
+            }
+            state.selectedTab = .home
+            state.homeFilterRecoveryRequestID += 1
 
         case .myTabTapped:
             guard !hasActiveSession else {
