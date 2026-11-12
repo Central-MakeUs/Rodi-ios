@@ -11,6 +11,7 @@ struct MyProfileView: View {
     let hasCompletedInitialLoad: Bool
     let errorMessage: String?
     let openSettings: () -> Void
+    let openHomeFilterRecovery: () -> Void
     let openDrivingGoal: () -> Void
     let openNickname: () -> Void
     let openSavedPlaces: () -> Void
@@ -79,9 +80,13 @@ struct MyProfileView: View {
 
     private var header: some View {
         ZStack {
-            Text("마이페이지")
-                .rodiTypography(.headline1)
-                .foregroundStyle(RodiColor.black)
+            if AppEnvironment.current == .development {
+                title
+                    .contentShape(Rectangle())
+                    .onTapGesture(count: 5, perform: openHomeFilterRecovery)
+            } else {
+                title
+            }
 
             HStack {
                 Spacer()
@@ -97,6 +102,12 @@ struct MyProfileView: View {
         }
         .frame(height: 56)
         .padding(.horizontal, 16)
+    }
+
+    private var title: some View {
+        Text("마이페이지")
+            .rodiTypography(.headline1)
+            .foregroundStyle(RodiColor.black)
     }
 
     @ViewBuilder

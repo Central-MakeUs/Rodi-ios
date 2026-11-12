@@ -4,6 +4,7 @@ import Foundation
 struct HomePresentation {
     let isHomeTabSelected: Bool
     let listPresentationRequestID: Int
+    let filterRecoveryRequestID: Int
     let placeSelectionRequest: HomePlaceSelectionRequest?
     let reviewFlowFinishedRequestID: Int
     let courseDetailReviewPresentation: CourseDetailReviewPresentation

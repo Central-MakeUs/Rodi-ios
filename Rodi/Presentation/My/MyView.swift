@@ -14,6 +14,7 @@ struct MyView: View {
     let isMyTabSelected: Bool
     let dataRefreshRequestID: Int
     let navigate: (MainTabIntent) -> Void
+    let openHomeFilterRecovery: () -> Void
     let onLogoutCompleted: () -> Void
     let onReviewTestRequested: () -> Void
     let onReviewRequested: (ReviewWriteRequest) -> Void
@@ -31,6 +32,7 @@ struct MyView: View {
         isMyTabSelected: Bool,
         dataRefreshRequestID: Int,
         navigate: @escaping (MainTabIntent) -> Void,
+        openHomeFilterRecovery: @escaping () -> Void,
         onLogoutCompleted: @escaping () -> Void,
         onReviewTestRequested: @escaping () -> Void,
         onReviewRequested: @escaping (ReviewWriteRequest) -> Void,
@@ -46,6 +48,7 @@ struct MyView: View {
         self.isMyTabSelected = isMyTabSelected
         self.dataRefreshRequestID = dataRefreshRequestID
         self.navigate = navigate
+        self.openHomeFilterRecovery = openHomeFilterRecovery
         self.onLogoutCompleted = onLogoutCompleted
         self.onReviewTestRequested = onReviewTestRequested
         self.onReviewRequested = onReviewRequested
@@ -79,6 +82,7 @@ struct MyView: View {
                 hasCompletedInitialLoad: store.state.hasCompletedInitialLoad,
                 errorMessage: store.state.profileErrorMessage,
                 openSettings: { router.push(.settings) },
+                openHomeFilterRecovery: openHomeFilterRecovery,
                 openDrivingGoal: { router.push(.drivingGoal) },
                 openNickname: { router.push(.nickname) },
                 openSavedPlaces: { router.push(.savedPlaces) },
