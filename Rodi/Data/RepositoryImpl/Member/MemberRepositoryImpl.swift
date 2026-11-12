@@ -60,8 +60,8 @@ final class MemberRepositoryImpl: MemberRepository {
     }
 
     func updatePlaceFilterTags(_ tags: [PlacePracticeType]) async throws(NetworkError) {
-        try await remoteDataSource.updateFilterTags(
-            MemberMapper.placeFilterTagsRequest(from: tags)
+        try await remoteDataSource.updateSortTags(
+            MemberMapper.sortTagsRequest(from: tags)
         )
     }
 

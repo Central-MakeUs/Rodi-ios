@@ -75,7 +75,7 @@ extension FilterBottomSheetReducer {
             RodiAnalytics.track(.practiceFilterOpened(presentation: "bottom_sheet"))
 
         case .dismiss:
-            state.isApplying = false
+            guard !state.isApplying else { return .none }
             state.isPresented = false
             state.draftSelection = state.appliedSelection
             return .send(.delegate(.dismissed))

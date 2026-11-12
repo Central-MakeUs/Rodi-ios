@@ -77,10 +77,6 @@ final class MemberRemoteDataSource {
         )
     }
     
-    func updateFilterTags(_ request: MemberPlaceFilterTagsUpdateRequestDTO) async throws(NetworkError) {
-        try await ServerResponseHandler.empty(MemberAPI.updatePlaceFilterTags(request), using: networkManager)
-    }
-    
     func submitOnboarding(_ request: MemberOnboardingRequestDTO) async throws(NetworkError) {
         try await ServerResponseHandler.empty(MemberAPI.submitOnboarding(request), using: networkManager)
     }

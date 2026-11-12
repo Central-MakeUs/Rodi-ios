@@ -10,7 +10,6 @@ enum MemberAPI: TargetType {
     case myProfile
     case updateDrivingGoal(MemberDrivingGoalUpdateRequestDTO)
     case updateNickname(MemberNicknameUpdateRequestDTO)
-    case updatePlaceFilterTags(MemberPlaceFilterTagsUpdateRequestDTO)
     case withdraw
     case hardWithdraw
     case block(memberID: Int)
@@ -30,7 +29,7 @@ enum MemberAPI: TargetType {
         case .updateDrivingGoal, .updateNickname:
             .patch
             
-        case .updatePlaceFilterTags, .updateSortTags:
+        case .updateSortTags:
             .put
             
         case .withdraw, .hardWithdraw:
@@ -68,9 +67,6 @@ enum MemberAPI: TargetType {
 
         case .unblock(let memberID):
             "/api/v1/members/\(memberID)/block"
-            
-        case .updatePlaceFilterTags:
-            "/api/v1/members/me/filter-tags"
             
         case .submitOnboarding:
             "/api/v1/members/me/onboarding"
@@ -112,9 +108,6 @@ enum MemberAPI: TargetType {
         case .updateNickname(let request):
             requestToBody(request)
             
-        case .updatePlaceFilterTags(let request):
-            requestToBody(request)
-            
         case .submitOnboarding(let request):
             requestToBody(request)
         case .updateSortTags(let request):
@@ -126,7 +119,7 @@ enum MemberAPI: TargetType {
         switch self {
         case .blockedMembers, .onboardingForm, .nicknameAvailability:
             .url
-        case .myProfile, .updateDrivingGoal, .updateNickname, .updatePlaceFilterTags, .withdraw, .hardWithdraw, .block, .unblock, .submitOnboarding, .completeCourseTutorial, .updateSortTags:
+        case .myProfile, .updateDrivingGoal, .updateNickname, .withdraw, .hardWithdraw, .block, .unblock, .submitOnboarding, .completeCourseTutorial, .updateSortTags:
             .json
         }
     }
@@ -137,7 +130,7 @@ enum MemberAPI: TargetType {
         switch self {
         case .myProfile:
             20
-        case .updateDrivingGoal, .updateNickname, .updatePlaceFilterTags, .withdraw, .hardWithdraw, .block, .blockedMembers, .unblock, .submitOnboarding, .completeCourseTutorial, .onboardingForm, .nicknameAvailability, .updateSortTags:
+        case .updateDrivingGoal, .updateNickname, .withdraw, .hardWithdraw, .block, .blockedMembers, .unblock, .submitOnboarding, .completeCourseTutorial, .onboardingForm, .nicknameAvailability, .updateSortTags:
             nil
         }
     }

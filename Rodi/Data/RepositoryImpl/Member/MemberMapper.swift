@@ -11,10 +11,8 @@ nonisolated enum MemberMapper {
         .init(drivingGoal: drivingGoal)
     }
 
-    static func placeFilterTagsRequest(
-        from tags: [PlacePracticeType]
-    ) -> MemberPlaceFilterTagsUpdateRequestDTO {
-        .init(filterTags: tags.map(\.rawValue))
+    static func sortTagsRequest(from tags: [PlacePracticeType]) -> MemberSortTagsUpdateRequestDTO {
+        .init(sortTags: tags.map(\.rawValue))
     }
 
     static func onboardingRequest(
