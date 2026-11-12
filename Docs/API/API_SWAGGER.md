@@ -129,12 +129,12 @@ traceId: String?
 | 2026-11-02 | Dev | GET `/api/v1/members/me/onboarding-form` | MemberAPI → DTO·RemoteDataSource → MemberOnboardingFormMapper → MemberRepository → OnboardingProfileReducer | 환경별 주소·인증 경로 유지; 누락 규칙의 Prod fallback 없음, token 없는 GET은 401·AUTH_401_6 | 연결됨 / 실제 응답·누락 규칙 확인 대기 (`API-004`, `QA-050`) |
 | 2026-11-02 | Dev·Prod | GET `/api/v1/members/nickname/availability` | MemberAPI → MemberNicknameAvailabilityQueryDTO·ResponseDTO → MemberRemoteDataSource | schema 대조; 30일 제한의 `nicknameChangeableAt` 포함 | Data 준비 완료 / Domain·Presentation 미연결 / 실행 미검증 |
 | 2026-11-02 | Dev·Prod | PATCH `/api/v1/members/me` (닉네임) | MemberAPI → MemberNicknameUpdateRequestDTO·ResponseDTO → MemberRemoteDataSource → MemberMapper·MemberRepositoryImpl → MemberRepository → MyNicknameReducer | schema·정적 경로 대조; nickname만 전송, 확정 nickname 반환·nullable nicknameChangeableAt 수신 | 연결됨 / 실제 PATCH·인증·UI 실행 미검증 |
-| 2026-11-02 | Dev·Prod | PUT `/api/v1/members/me/sort-tags` | MemberAPI → MemberSortTagsUpdateRequestDTO → MemberRemoteDataSource | schema 대조; JSON body·빈 성공 응답 | Data 준비 완료 / Domain·Presentation 미연결 / 실행 미검증 |
+| 2026-11-12 | Dev·Prod | PUT `/api/v1/members/me/sort-tags` | 홈 필터 → MemberRepository → MemberRemoteDataSource → MemberAPI | 인증 JSON `sortTags`; 초기화는 빈 배열, 저장 성공 후 GET 갱신 | 연결됨 / Dev 테스트 계정 실제 저장 대기 (`QA-051`); Prod 쓰기 미실행 |
 | 2026-11-11 | Dev만 | GET `/api/v1/places/{placeId}/review-form` | ReviewAPI → DTO·RemoteDataSource → ReviewMapper·ReviewRepository → ReviewWritingReducer | `showWhen`·코스 문제 선택지·직접 입력 규칙 대조; Prod에는 호출하지 않음 | 연결됨 / 인증된 실행 미검증 |
 | 2026-11-11 | Dev만 | GET `/api/v1/courses/report-form` | CourseRemoteDataSource → CourseMapper·CourseRepository → CourseReportReducer | `FormResponse` 공유 schema와 복수 선택·기타 입력 계약 대조 | 연결됨 / 인증된 실행 미검증 |
 | 2026-11-11 | Dev만 | POST `/api/v1/courses/{courseId}/report` | CourseReportReducer → CourseRepository → CourseReportRequestDTO·CourseRemoteDataSource | `courseIssues`·`detail` JSON 및 빈 성공 응답 schema 대조 | 연결됨 / 실제 제출 미실행 |
-| 2026-11-02 | Dev·Prod | GET `/api/v1/places/clusters` | PlaceAPI → PlaceClusterQueryDTO·ResponseDTO → PlaceRemoteDataSource | schema 대조; 공개 GET·콤마 형식 유형 query | Data 준비 완료 / Domain·Presentation 미연결 / 실행 미검증 |
-| 2026-11-02 | Dev·Prod | GET `/api/v1/places` | Home 적용 필터 → PlaceListQuery → PlaceMapper → PlaceListQueryDTO → PlaceAPI | `practiceTypes` 콤마 query, 빈 배열 생략; 첫 페이지 조건을 페이지네이션에 유지 | 연결됨 / 실제 필터 결과·totalCount 검증 대기 (`QA-051`) |
+| 2026-11-12 | Dev·Prod | GET `/api/v1/places/clusters` | 홈 지도 → PlaceRepository → PlaceMapper·PlaceRemoteDataSource → PlaceAPI | 공개 GET; 서울 고정 범위·`PARKING`에서 두 환경 모두 장소 6개·단계 12개 | 연결됨 / 공개 GET 확인 / 지도 QA는 `API-003` |
+| 2026-11-12 | Dev·Prod | GET `/api/v1/places` | Home 적용 필터 → PlaceListQuery → PlaceMapper → PlaceListQueryDTO → PlaceAPI | 지도와 같은 범위·유형 사용; 두 환경 공개 GET의 `totalCount` 6 | 연결됨 / 공개 GET 확인 / 인증 목록·페이지네이션 검증 대기 (`QA-051`) |
 | 2026-11-02 | Dev·Prod | GET `/api/v1/places/search` | HomeSearchState → PlaceSearchQuery → PlaceMapper → PlaceSearchQueryDTO → PlaceAPI | `practiceTypes` 콤마 query, 빈 배열 생략; 검색 진입 시 적용 필터 snapshot 사용 | 요청 경로 반영 / 실제 검색 실행 검증 대기 (`QA-051`) |
 
 2026-11-11 Dev 후기 작성·수정은 서버 폼을 조회하고 기존 두 페이지에 문항·선택지·입력 제약을 반영한다. 추천은 난이도·혼잡도, 비추천은 코스 문제 1개 이상과 선택에 따른 직접 입력을 검증한다. 비추천 사유는 후기 POST·PUT의 `courseIssues`·`courseIssueDetail`로만 보내며, 별도 코스 신고를 중복 제출하지 않고 공개 코스 상세에도 표시하지 않는다. 본인 후기 수정은 기존 상세 응답의 저장 값으로 초기화한다. Prod는 폼 미제공이 확인되어 기존 흐름을 유지하고, Dev의 폼 조회 실패 시 Prod 계약이나 하드코딩 폼으로 대체하지 않는다. [TODO](../TODO.md)의 `API-004` 호환성 차단은 유지한다.
@@ -145,11 +145,11 @@ Dev Debug 빌드와 후기·코스 신고 합성 DTO XCTest 4건을 통과했다
 
 후속 승인으로 온보딩은 실제 응답 확보 전 Swagger 기준 연결을 구현하고, 인증된 응답 확인은 앱 로그인 뒤로 이동했다. 폼의 문구·순서·선택지·필수·조건부 노출·단독 선택·후속 생략·상한·추가 정보 건너뛰기를 연결했다. DTO는 Dev 명세에 없는 속성도 수신할 수 있지만 `skippable` 또는 순위 문항의 `maxSelect` 등 해석에 필요한 값이 실제로 없거나 코드·제출 제약이 호환되지 않으면 오류·재시도 화면을 표시한다. 기존 하드코딩 폼과 다른 환경의 값으로 대체하지 않는다. 레벨 계산·기존 제출 형식·초안 저장 형식은 유지한다. 정상 응답 fixture는 아직 없으며 합성 입력 검증을 실제 서버 검증으로 간주하지 않는다.
 
-같은 날 후속 조회에서 Dev·Prod 모두 `/places/clusters`가 추가되고 `/places/coordinates`는 deprecated로 표시됐다. 기존 지도 호출은 유지한다. 닉네임 응답의 30일 변경 제한도 후속 Data DTO에 반영했다. 온보딩·후기 DTO는 기능별 타입으로 분리했으며, 온보딩의 환경 간 소실 속성은 optional로 보존하고 임의 기본값을 넣지 않았다.
+Dev·Prod 모두 `/places/coordinates`는 deprecated다. 홈 지도는 `/places/clusters`로 전환했으며 이전 경로로 대체하지 않는다. 유효한 첫 범위, 재검색, 지역 이동 완료, 필터 저장 성공 시 조회한다. 일반 이동·확대와 클러스터 탭은 기존 응답의 확대 단계와 범위만 사용한다.
 
 후속 닉네임 수정 작업에서는 PATCH를 마이페이지에 연결했다. 사용 가능 여부 GET은 선행 호출하지 않으며 계속 Data 준비 상태다. 중복·금칙어·변경 주기는 PATCH 서버 응답으로 판정한다. 저장 성공 시 반환된 닉네임만 반영하고 별도 프로필 GET은 실행하지 않는다. 실제 저장·키보드·실기기 확인은 `QA-049`에 남긴다.
 
-장소 목록·검색의 `practiceTypes`는 조회 결과를 제한하는 query이며 회원 정렬 기준 저장과 별개다. 기존 회원 설정 저장 호출은 변경하지 않았다. 홈 자동완성은 기존 `/related-search`, 지역 선택은 기존 지도 viewport 이동을 유지한다. 이번에 `/search` 요청 helper의 필터 전달도 준비했지만, 그 helper를 호출하지 않는 기존 검색 흐름을 새 UI나 경로로 바꾸지는 않았다.
+장소 목록·검색·클러스터의 `practiceTypes`는 조회 결과를 제한하는 query이며 회원 정렬 기준 저장과 별개다. 홈 필터는 `/sort-tags`만 호출한다. 홈 자동완성은 기존 `/related-search`를 유지하며 `/search` helper를 새로 호출하지 않는다.
 
 새 기록은 다음 형식을 사용한다.
 
