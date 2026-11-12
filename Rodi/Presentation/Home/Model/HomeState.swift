@@ -17,7 +17,7 @@ struct HomeMapState {
     var cameraFocus: RodiMapCameraFocus = .koreaOverview
     var pendingRegionViewportReloadOrigin: RodiCoordinate?
     var pendingRegionCameraRequestID: Int?
-    var mapZoomLevel = 6
+    var visibleLongitudeSpan: Double?
     var isCurrentLocationButtonActive = false
 
     var locationState: LocationState = .idle
@@ -29,16 +29,20 @@ struct HomeMapState {
     var hasShownProlongedLocationUnavailableNotice = false
 
     var markerState: MarkerState = .idle
-    var mapItems: [RodiCourseItem] = []
     var markers: [RodiMapMarker] = []
     var markerRenderingGeneration = 0
     var hasCompletedInitialMarkerRendering = false
-    var displayedMarkerTier: RodiHomeMarkerClusterIndex.Tier?
-    var forcedMarkerTier: RodiHomeMarkerClusterIndex.Tier?
-    var forcedMarkerTierZoomLevel: Int?
+    var clusterQuery: PlaceClusterQuery?
+    var clusterRequestRevision = 0
+    var clusterListRevision = 0
+    var clusterResult: PlaceClusterResult?
+    var displayedClusterLevel: Int?
+    var clusterBoundsByMarkerID: [String: PlaceViewport] = [:]
+    var didClusterRefreshFail = false
     var selectedMarkerID: String?
     var selectedSearchResultName: String?
-    var isResearchButtonVisible = false
+    var isListResearchButtonVisible = false
+    var isResearchButtonVisible: Bool { isListResearchButtonVisible || didClusterRefreshFail }
 
     var routeOverlay: RodiRouteOverlay?
 }

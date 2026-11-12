@@ -109,6 +109,10 @@ struct HomeReducer: Reducer {
 private extension HomeReducer {
     func reduceMap(_ state: inout State, action: MapAction) -> Effect<Action> {
         guard case .delegate(let delegate) = action else {
+            if case .serviceOutput(.clustersLoaded) = action,
+               state.map.clusterListRevision != state.bottomSheet.recommendList.firstPageRevision { return .none }
+            if case .serviceOutput(.clusterLoadFailed) = action,
+               state.map.clusterListRevision != state.bottomSheet.recommendList.firstPageRevision { return .none }
             return mapReducer.reduce(&state.map, with: action).map(Action.map)
         }
         switch delegate {
@@ -138,9 +142,10 @@ private extension HomeReducer {
             return .send(.bottomSheet(.recommendList(.reloadCurrentViewport(origin: origin))))
         case let .viewportChanged(viewport, center, isUserInitiated):
             return .send(.bottomSheet(.recommendList(.viewportChanged(viewport: viewport, center: center, isUserInitiated: isUserInitiated))))
-        case .reloadAfterRegionViewport(let origin):
-            return .send(.bottomSheet(.recommendList(.reloadAfterRegionViewport(origin: origin))))
+        case let .reloadAfterRegionViewport(viewport, origin):
+            return .send(.bottomSheet(.recommendList(.reloadAfterRegionViewport(viewport: viewport, origin: origin))))
         case .presentRecommendListForRegion(let origin):
+            state.presentation.isBottomTabBarVisible = true
             return .send(.bottomSheet(.presentRecommendListForRegion(origin: origin)))
         case .prepareInitialSearch(let origin):
             return .send(.bottomSheet(.recommendList(.prepareInitialSearch(origin: origin))))
@@ -153,6 +158,8 @@ private extension HomeReducer {
             return bottomSheetReducer.reduce(&state.bottomSheet, with: action).map(Action.bottomSheet)
         }
         switch delegate {
+        case let .mapClusterQueryRequested(query, revision):
+            return .send(.map(.clusterQueryRequested(query, listRevision: revision)))
         case .mapPlaceResolved(let detail):
             return .send(.map(.placeResolved(detail)))
         case .mapSearchSelectionRequested(let name):

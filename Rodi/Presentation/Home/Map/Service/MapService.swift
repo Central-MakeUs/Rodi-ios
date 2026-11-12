@@ -7,7 +7,7 @@ import Foundation
 
 enum MapServiceInAction {
     case requestCurrentLocation(source: LocationRequestSource)
-    case loadPlaceCoordinates
+    case loadClusters(PlaceClusterQuery, revision: Int)
 }
 
 enum MapServiceOutAction {
@@ -18,8 +18,8 @@ enum MapServiceOutAction {
         authorizationState: LocationAuthorizationState
     )
     case userHeadingUpdated(Double)
-    case placeCoordinatesLoaded([PlaceCoordinate])
-    case placeCoordinatesLoadFailed
+    case clustersLoaded(PlaceClusterResult, revision: Int)
+    case clusterLoadFailed(revision: Int)
 }
 
 /// 위치 요청, 장소 좌표
@@ -57,14 +57,14 @@ final class MapService {
                 )
             }
 
-        case .loadPlaceCoordinates:
+        case let .loadClusters(query, revision):
             do {
-                return .placeCoordinatesLoaded(
-                    try await placeRepository.fetchCoordinates()
-                )
+                let result = try await placeRepository.fetchClusters(query: query)
+                guard !Task.isCancelled else { return nil }
+                return .clustersLoaded(result, revision: revision)
             } catch {
                 guard !Task.isCancelled else { return nil }
-                return .placeCoordinatesLoadFailed
+                return .clusterLoadFailed(revision: revision)
             }
         }
     }

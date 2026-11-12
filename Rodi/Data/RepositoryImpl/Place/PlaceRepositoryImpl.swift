@@ -21,6 +21,13 @@ final class PlaceRepositoryImpl: PlaceRepository {
         return try data.map(PlaceMapper.coordinate(from:))
     }
 
+    func fetchClusters(query: PlaceClusterQuery) async throws(NetworkError) -> PlaceClusterResult {
+        guard query.viewport.isValidForPlaceQuery else { throw .encodingFail }
+        return try PlaceMapper.clusterResult(
+            from: await remoteDataSource.fetchClusters(PlaceMapper.clusterQuery(from: query))
+        )
+    }
+
     func fetchPlaces(
         query: PlaceListQuery,
         access: PlaceListAccess

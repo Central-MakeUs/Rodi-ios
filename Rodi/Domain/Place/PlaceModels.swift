@@ -102,6 +102,47 @@ struct PlaceViewport: Equatable {
     let southWestLongitude: Double
     let northEastLatitude: Double
     let northEastLongitude: Double
+
+    var longitudeSpan: Double { northEastLongitude - southWestLongitude }
+
+    var isValidForPlaceQuery: Bool {
+        (-85...85).contains(southWestLatitude) && (-85...85).contains(northEastLatitude)
+            && (-180...180).contains(southWestLongitude) && (-180...180).contains(northEastLongitude)
+            && southWestLatitude < northEastLatitude && southWestLongitude < northEastLongitude
+    }
+}
+
+struct PlaceClusterQuery: Equatable {
+    let viewport: PlaceViewport
+    let practiceTypes: [PlacePracticeType]
+}
+
+struct PlaceClusterResult {
+    let places: [PlaceCoordinate]
+    let levels: [PlaceClusterLevel]
+
+    func levelIndex(for longitudeSpan: Double) -> Int? {
+        levels.firstIndex { $0.contains(longitudeSpan: longitudeSpan) }
+    }
+}
+
+struct PlaceClusterLevel {
+    let minLongitudeSpan: Double
+    let maxLongitudeSpan: Double?
+    let clusters: [PlaceCluster]
+    let placeIDs: [Int]
+
+    func contains(longitudeSpan: Double) -> Bool {
+        longitudeSpan.isFinite && minLongitudeSpan <= longitudeSpan
+            && (maxLongitudeSpan.map { longitudeSpan < $0 } ?? true)
+    }
+}
+
+struct PlaceCluster {
+    let latitude: Double
+    let longitude: Double
+    let count: Int
+    let bounds: PlaceViewport
 }
 
 struct PlaceListQuery: Equatable {

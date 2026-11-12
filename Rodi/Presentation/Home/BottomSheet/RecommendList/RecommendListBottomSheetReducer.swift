@@ -35,6 +35,7 @@ struct RecommendListBottomSheetReducer: Reducer {
         var errorMessage: String?
         var needsResearch = false
         var requestRevision = 0
+        var firstPageRevision = 0
         var presentation: Presentation = .collapsed
     }
 
@@ -46,7 +47,7 @@ struct RecommendListBottomSheetReducer: Reducer {
         case viewportChanged(viewport: PlaceViewport, center: RodiCoordinate, isUserInitiated: Bool)
         case prepareInitialSearch(origin: RodiCoordinate)
         case reloadCurrentViewport(origin: RodiCoordinate?)
-        case reloadAfterRegionViewport(origin: RodiCoordinate)
+        case reloadAfterRegionViewport(viewport: PlaceViewport, origin: RodiCoordinate)
         case reloadAfterFilter
         case loadNextPage
         case placeListLoadingCancellationRequested
@@ -64,6 +65,7 @@ struct RecommendListBottomSheetReducer: Reducer {
     }
 
     enum Delegate {
+        case firstPageRequested(PlaceClusterQuery, revision: Int)
         case resolvePlace(PlaceListItem)
         case presentFilter
         case requestAuthentication
@@ -120,7 +122,7 @@ extension RecommendListBottomSheetReducer {
             state.isRegionSearchResult = true
             state.errorMessage = nil
             state.needsResearch = false
-            return displayStateEffect(state)
+            return .none
 
         case let .viewportChanged(viewport, center, isUserInitiated):
             let previousViewport = state.latestViewport
@@ -149,15 +151,12 @@ extension RecommendListBottomSheetReducer {
                 if state.activeViewport != nil { return displayStateEffect(state) }
             }
 
-            if state.activeViewport == nil,
-               let origin = state.pendingInitialSearchOrigin,
-               center.distanceKilometers(to: origin) <= 0.5,
-               !state.isInitialLoading {
-                return loadFirstPage(viewport: viewport, origin: origin, state: &state, isManualResearch: false)
+            if state.requestRevision == 0 {
+                return loadFirstPage(viewport: viewport, origin: state.pendingInitialSearchOrigin ?? center, state: &state, isManualResearch: false)
             }
 
         case .prepareInitialSearch(let origin):
-            guard state.activeViewport == nil else { return .none }
+            guard state.requestRevision == 0 else { return .none }
             state.pendingInitialSearchOrigin = origin
             if let viewport = state.latestViewport,
                let center = state.latestViewportCenter,
@@ -173,14 +172,16 @@ extension RecommendListBottomSheetReducer {
             state.isRegionSearchResult = false
             return loadFirstPage(viewport: viewport, origin: origin ?? center, state: &state, isManualResearch: true)
 
-        case .reloadAfterRegionViewport(let origin):
-            guard let viewport = state.latestViewport,
+        case let .reloadAfterRegionViewport(viewport, origin):
+            guard state.isAwaitingRegionViewport,
+                  state.pendingInitialSearchOrigin == origin,
                   !state.isInitialLoading,
                   !state.isNextPageLoading else { return .none }
             return loadFirstPage(viewport: viewport, origin: origin, state: &state, isManualResearch: false)
 
         case .reloadAfterFilter:
-            guard let viewport = state.latestViewport,
+            guard !state.isAwaitingRegionViewport,
+                  let viewport = state.latestViewport,
                   let origin = state.requestOrigin ?? state.latestViewportCenter else { return .none }
             return loadFirstPage(viewport: viewport, origin: origin, state: &state, isManualResearch: false)
 
@@ -254,7 +255,13 @@ extension RecommendListBottomSheetReducer {
     }
 
     private func loadFirstPage(viewport: PlaceViewport, origin: RodiCoordinate, state: inout State, isManualResearch: Bool) -> Effect<Action> {
+        guard viewport.isValidForPlaceQuery else {
+            state.isAwaitingRegionViewport = false
+            state.needsResearch = true
+            return displayStateEffect(state)
+        }
         state.requestRevision += 1
+        state.firstPageRevision = state.requestRevision
         state.isAwaitingRegionViewport = false
         state.isInitialLoading = true
         state.isNextPageLoading = false
@@ -273,8 +280,14 @@ extension RecommendListBottomSheetReducer {
         let query = PlaceListQuery(viewport: viewport, currentLatitude: origin.latitude, currentLongitude: origin.longitude, size: 20, cursor: cursor, practiceTypes: practiceTypes)
         return .run { send in
             do {
+                if !isAppending {
+                    await send(.delegate(.firstPageRequested(
+                        .init(viewport: viewport, practiceTypes: practiceTypes), revision: revision
+                    )))
+                }
                 if isManualResearch { try await Task.sleep(for: .milliseconds(350)) }
                 let page = try await repository.fetchPlaces(query: query, access: access)
+                guard !Task.isCancelled else { return }
                 await send(.pageLoaded(
                     page: page,
                     viewport: viewport,
@@ -285,6 +298,7 @@ extension RecommendListBottomSheetReducer {
             } catch is CancellationError {
                 return
             } catch {
+                guard !Task.isCancelled else { return }
                 await send(.pageFailed(message: "추천 목록을 불러오지 못했어요.", revision: revision, isAppending: isAppending, isManualResearch: isManualResearch))
             }
         }
